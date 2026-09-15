@@ -7,7 +7,14 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'reputationhub.site' },
     ],
-    formats: ['image/avif', 'image/webp'],
+    // Solo WebP (sin AVIF) y menos anchos: cada combinación ancho×formato es
+    // una transformación facturable en Vercel. Con AVIF+WebP y 8 anchos, una
+    // sola foto podía costar 16 transformaciones. Las fotos de Storage ya van
+    // en WebP comprimido y se sirven tal cual (ver components/ui/Foto.tsx), así
+    // que por aquí solo pasan logos, placeholders y fotos locales.
+    formats: ['image/webp'],
+    deviceSizes: [640, 1080, 1920],
+    imageSizes: [64, 128, 256, 384],
     // Cachea las imágenes ya optimizadas 30 días (menos recomputación en Vercel).
     minimumCacheTTL: 2_592_000,
   },
