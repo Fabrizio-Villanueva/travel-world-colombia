@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import Image from '@/components/ui/Foto'
 import type { Destino } from '@/types/destino'
 import { destinoCardImg, PLACEHOLDER_DESTINO } from '@/lib/hero'
 import type { Filtro } from './DestinosExplorador'

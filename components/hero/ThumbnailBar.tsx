@@ -2,7 +2,7 @@
 
 import { useRef, useSyncExternalStore } from 'react'
 import type { CSSProperties } from 'react'
-import Image from 'next/image'
+import Image from '@/components/ui/Foto'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Destino } from '@/types/destino'
 import { heroThumb } from '@/lib/hero'

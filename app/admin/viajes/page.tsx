@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import Image from '@/components/ui/Foto'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Plus } from 'lucide-react'

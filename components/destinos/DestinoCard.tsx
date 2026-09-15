@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import Image from '@/components/ui/Foto'
 import Link from 'next/link'
 import { Clock, ChevronRight, Star, MapPin } from 'lucide-react'
 import type { Destino } from '@/types/destino'

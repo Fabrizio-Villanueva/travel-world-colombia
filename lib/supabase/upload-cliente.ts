@@ -45,6 +45,45 @@ export function validarDocumento(file: File): string | null {
 }
 
 /**
+ * Comprime una imagen en el navegador antes de subirla: la reduce a un lado
+ * máximo de `maxLado` px y la re-codifica en WebP.
+ *
+ * ¿Por qué? Las fotos de Storage se sirven tal cual en el sitio (sin el
+ * optimizador de Vercel, ver `components/ui/Foto.tsx`), así que el peso del
+ * original es el peso que descarga el visitante. Un PNG de 3 MB subido "a
+ * pelo" queda en ~150-300 KB. Si algo falla (formato raro, navegador viejo)
+ * o el resultado no es más liviano, se sube el archivo original.
+ */
+export const IMAGEN_LADO_MAX = 1920
+export const IMAGEN_CALIDAD = 0.82
+
+export async function comprimirImagen(file: File, maxLado = IMAGEN_LADO_MAX, calidad = IMAGEN_CALIDAD): Promise<File> {
+  // GIF (animado) y SVG no se re-codifican.
+  if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') return file
+  if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') return file
+  try {
+    const bitmap = await createImageBitmap(file)
+    const escala = Math.min(1, maxLado / Math.max(bitmap.width, bitmap.height))
+    const w = Math.max(1, Math.round(bitmap.width * escala))
+    const h = Math.max(1, Math.round(bitmap.height * escala))
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return file
+    ctx.drawImage(bitmap, 0, 0, w, h)
+    bitmap.close?.()
+    const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/webp', calidad))
+    // Si el navegador no sabe WebP (devuelve PNG) o no ganamos peso, original.
+    if (!blob || blob.type !== 'image/webp' || (escala === 1 && blob.size >= file.size)) return file
+    const nombre = file.name.replace(/.[^.]+$/, '') + '.webp'
+    return new File([blob], nombre, { type: 'image/webp', lastModified: Date.now() })
+  } catch {
+    return file
+  }
+}
+
+/**
  * Sube un archivo al bucket indicado y devuelve su URL pública.
  * `slug` y `campo` solo arman una ruta legible dentro del bucket.
  */
@@ -55,6 +94,8 @@ export async function subirAStorage(
   file: File
 ): Promise<string> {
   const supabase = createClient()
+  // Las imágenes de destinos se comprimen en el navegador (ver comprimirImagen).
+  if (bucket === BUCKET_DESTINOS) file = await comprimirImagen(file)
   const ext = (file.name.split('.').pop() || 'bin').toLowerCase()
   const rand = Math.random().toString(36).slice(2, 8)
   const path = `${slug || 'sin-slug'}/${campo}-${Date.now()}-${rand}.${ext}`

@@ -5,7 +5,7 @@ import type { Destino } from '@/types/destino'
  * como Unsplash)? Si el viaje ya tiene su foto propia en Storage (subida
  * desde el panel) se usa; si no, placeholder de marca.
  */
-function esStorage(url?: string): boolean {
+export function esStorage(url?: string): boolean {
   return !!url && url.includes('/storage/v1/object/public/')
 }
 

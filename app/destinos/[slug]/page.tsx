@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
+import Image from '@/components/ui/Foto'
 import Script from 'next/script'
 import { notFound } from 'next/navigation'
 import { Clock, Users, ArrowRight, Quote, Star, FileText, Download, Eye } from 'lucide-react'

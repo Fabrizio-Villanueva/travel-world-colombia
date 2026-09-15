@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
+import Image from '@/components/ui/Foto'
 import { Star, MapPin, BedDouble, Check, MessageCircle } from 'lucide-react'
 import type { OpcionHospedaje } from '@/types/destino'
 import { whatsappHospedajeUrl } from '@/lib/site'
