@@ -33,13 +33,25 @@ function normalizar(s: string): string {
     .toLowerCase()
 }
 
-/** Nombres por los que un cliente podría referirse a un destino. */
+/**
+ * Nombres por los que un cliente podría referirse a un destino.
+ *
+ * SOLO nombre, nombre local y slug. Antes también entraban `pais` y `region`,
+ * y eso metía el detalle completo de medio catálogo en cada turno: "Colombia"
+ * disparaba 19 destinos y "Caribe" otros 10 (medido el 2026-09-16 con historial
+ * real: 16 destinos por turno en promedio, ~7.900 tokens sin caché por llamada,
+ * el 53% de la factura de Sol). Si el cliente habla de un país sin nombrar un
+ * programa, le basta el índice ligero del bloque cacheado.
+ */
 function aliasesDe(d: Destino): string[] {
-  return [d.nombre, d.nombre_local, d.slug?.replace(/-/g, ' '), d.pais, d.region]
+  return [d.nombre, d.nombre_local, d.slug?.replace(/-/g, ' ')]
     .filter((x): x is string => Boolean(x && x.trim()))
     .map(normalizar)
     .filter(a => a.length >= 4) // evita falsos positivos con palabras cortas
 }
+
+/** Tope de destinos con detalle completo por turno (cada uno pesa ~500 tokens). */
+const MAX_DETALLES = 4
 
 /** El detalle pesado de un destino (lo que NO va en el índice ligero). */
 function bloqueDetalle(d: Destino): string {
@@ -117,8 +129,14 @@ ${preguntas}
 
   const detallesPara = (texto: string): string => {
     const t = normalizar(texto)
-    const relevantes = destinos.filter(d => aliasesDe(d).some(a => t.includes(a)))
-    return relevantes.map(bloqueDetalle).join('\n\n')
+    // Los mencionados más recientemente van primero: si la conversación pasó
+    // por varios destinos, el tope se queda con los que están sobre la mesa.
+    const relevantes = destinos
+      .map(d => ({ d, pos: Math.max(...aliasesDe(d).map(a => t.lastIndexOf(a))) }))
+      .filter(x => x.pos >= 0)
+      .sort((a, b) => b.pos - a.pos)
+      .slice(0, MAX_DETALLES)
+    return relevantes.map(x => bloqueDetalle(x.d)).join('\n\n')
   }
 
   return { base, detallesPara }
