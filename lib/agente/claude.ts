@@ -166,7 +166,11 @@ export async function decidir(
     : situacion
 
   const respuesta = await anthropic().messages.create({
-    model: 'claude-opus-5',
+    // Sonnet 5 desde el 2026-09-22: con Opus 5 Sol costaba ~$0,05 por mensaje
+    // enviado (ya con el arreglo del detalle de destinos); Sonnet 5 cobra 2,5x
+    // menos por token con el mismo prompt, caché de 1h, esfuerzo y salida JSON.
+    // Si la calidad de calificación/escalado se resiente, volver a 'claude-opus-5'.
+    model: 'claude-sonnet-5',
     max_tokens: 4000,
     system: [
       { type: 'text', text: INSTRUCCIONES },
