@@ -1,11 +1,13 @@
 import Image from 'next/image'
 import { SectionTag } from '@/components/ui/SectionTag'
+import { Pausable } from '@/components/ui/Pausable'
 import { HOTELES_CRUCEROS, AEROLINEAS, type Alianza } from '@/lib/alianzas'
 
 /** Una marca dentro del carrusel — logo optimizado o wordmark de texto. */
-function LogoItem({ alianza }: { alianza: Alianza }) {
+function LogoItem({ alianza, copia = false }: { alianza: Alianza; copia?: boolean }) {
   return (
-    <li className="alianza-item shrink-0">
+    // La copia del loop se oculta a lectores de pantalla (no repetir la lista).
+    <li className="alianza-item shrink-0" aria-hidden={copia || undefined}>
       {alianza.logo ? (
         <Image
           src={alianza.logo}
@@ -40,12 +42,12 @@ function MarqueeRow({
   const doubled = [...items, ...items]
 
   return (
-    <div className="marquee" aria-hidden="false">
+    <div className="marquee">
       <ul
         className={`marquee-track ${direction === 'left' ? 'marquee-left' : 'marquee-right'}`}
       >
         {doubled.map((a, i) => (
-          <LogoItem key={`${a.nombre}-${i}`} alianza={a} />
+          <LogoItem key={`${a.nombre}-${i}`} alianza={a} copia={i >= items.length} />
         ))}
       </ul>
     </div>
@@ -78,10 +80,12 @@ export function AlianzasPremium() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <MarqueeRow items={HOTELES_CRUCEROS} direction="left" />
-          <MarqueeRow items={AEROLINEAS} direction="right" />
-        </div>
+        <Pausable clasePausado="marquee-pausado" etiqueta="carrusel de alianzas">
+          <div className="flex flex-col gap-6">
+            <MarqueeRow items={HOTELES_CRUCEROS} direction="left" />
+            <MarqueeRow items={AEROLINEAS} direction="right" />
+          </div>
+        </Pausable>
       </div>
     </section>
   )

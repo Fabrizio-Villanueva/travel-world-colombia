@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 import { MessageCircle, Headset, Map, PlayCircle, ArrowRight } from 'lucide-react'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { SOCIALS } from '@/lib/site'
+import { NuevaPestana } from '@/components/ui/NuevaPestana'
 
 interface Paso {
   icon: LucideIcon
@@ -72,13 +73,14 @@ export function ComoFunciona() {
             className="como-funciona-video group mt-6 inline-flex items-center gap-2"
             style={{ color: 'var(--text-primary)' }}
           >
-            <PlayCircle size={22} style={{ color: 'var(--orange)' }} />
+            <PlayCircle size={22} style={{ color: 'var(--orange)' }} aria-hidden />
             <span
               className="font-inter text-base"
               style={{ borderBottom: '1px solid var(--orange)', paddingBottom: '1px' }}
             >
               Ver video de presentación
             </span>
+            <NuevaPestana />
           </a>
         </div>
 

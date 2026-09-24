@@ -24,7 +24,7 @@ export default async function DestinosPage() {
         {/* Mapa de rutas de fondo */}
         <Image
           src="/img/paginas/mapa-rutas-destinos-travel-world-colombia.webp"
-          alt="Mapa mundial de rutas de viaje de Travel World Colombia, con destinos nacionales e internacionales desde Fusagasugá"
+          alt=""
           fill
           priority
           sizes="100vw"

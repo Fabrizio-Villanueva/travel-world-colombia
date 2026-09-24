@@ -4,6 +4,9 @@ import { getDestinos } from '@/lib/destinos'
 import { FormularioCotizacion } from '@/components/contacto/FormularioCotizacion'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { SITE, WHATSAPP, SOCIALS, whatsappUrl } from '@/lib/site'
+import { NuevaPestana } from '@/components/ui/NuevaPestana'
+
+const esExterno = (href: string) => !href.startsWith('mailto:') && !href.startsWith('tel:')
 
 export const revalidate = 3600
 
@@ -117,10 +120,18 @@ export default async function ContactoPage() {
                         {label}
                       </p>
                       {href ? (
-                        <a href={href} target="_blank" rel="noopener noreferrer"
-                          className="font-inter text-sm hover:underline" style={{ color: 'var(--text-primary)' }}>
-                          {value}
-                        </a>
+                        // mailto:/tel: abren la app del sistema: sin target _blank.
+                        esExterno(href) ? (
+                          <a href={href} target="_blank" rel="noopener noreferrer"
+                            className="font-inter text-sm hover:underline" style={{ color: 'var(--text-primary)' }}>
+                            {value}
+                            <NuevaPestana />
+                          </a>
+                        ) : (
+                          <a href={href} className="font-inter text-sm hover:underline" style={{ color: 'var(--text-primary)' }}>
+                            {value}
+                          </a>
+                        )
                       ) : (
                         <p className="font-inter text-sm" style={{ color: 'var(--text-primary)' }}>{value}</p>
                       )}

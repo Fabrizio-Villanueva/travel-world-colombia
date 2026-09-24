@@ -11,6 +11,7 @@ import { HospedajeShowcase } from '@/components/destinos/HospedajeShowcase'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { Icono } from '@/components/ui/Icono'
 import { Button } from '@/components/ui/Button'
+import { NuevaPestana } from '@/components/ui/NuevaPestana'
 import { SITE, whatsappUrl, whatsappReservaUrl, whatsappDudasUrl } from '@/lib/site'
 import { jsonLd } from '@/lib/seo/jsonLd'
 import { precioDesde } from '@/lib/precio'
@@ -155,7 +156,7 @@ export default async function DestinoPage({ params }: Props) {
       {/* ── HERO ── */}
       <section className="tema-oscuro relative flex items-end overflow-hidden" style={{ minHeight: '90svh' }}>
         {d.imagen_hero ? (
-          <Image src={d.imagen_hero} alt={d.nombre} fill priority sizes="100vw" className="object-cover" style={{ zIndex: 0 }} />
+          <Image src={d.imagen_hero} alt="" fill priority sizes="100vw" className="object-cover" style={{ zIndex: 0 }} />
         ) : (
           <div className="absolute inset-0" style={{ background: 'var(--blue)', zIndex: 0 }} />
         )}
@@ -181,7 +182,7 @@ export default async function DestinoPage({ params }: Props) {
               </p>
             )}
             {d.autor_frase && (
-              <p className="mt-3 font-cinzel text-[11px] tracking-[0.3em] uppercase" style={{ color: 'var(--text-muted)' }}>
+              <p className="mt-3 font-cinzel text-[11px] tracking-[0.3em] uppercase" style={{ color: 'rgba(255,255,255,0.78)' }}>
                 — {d.autor_frase}{d.cargo_autor ? `, ${d.cargo_autor}` : ''}
               </p>
             )}
@@ -252,7 +253,7 @@ export default async function DestinoPage({ params }: Props) {
             <div className="destino-reveal relative">
               <div className="relative h-[26rem] overflow-hidden rounded-2xl lg:h-[32rem]" style={{ boxShadow: '0 40px 80px -32px rgba(13, 30, 60,0.45)' }}>
                 {aboutImg ? (
-                  <Image src={aboutImg} alt={`${d.nombre} — imagen`} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
+                  <Image src={aboutImg} alt="" fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center" style={{ background: 'linear-gradient(135deg, #16315f, #0d1e3c)' }}>
                     <Icono nombre="image" size={64} strokeWidth={1.2} style={{ color: 'rgba(255,255,255,0.22)' }} />
@@ -273,8 +274,8 @@ export default async function DestinoPage({ params }: Props) {
                     </blockquote>
                     <figcaption className="mt-3 flex items-center justify-between">
                       <span className="font-plus-jakarta text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{resena.nombre}</span>
-                      <span className="flex gap-0.5">
-                        {Array.from({ length: resena.estrellas ?? 5 }).map((_, i) => <Star key={i} size={11} fill="var(--orange)" style={{ color: 'var(--orange)' }} />)}
+                      <span className="flex gap-0.5" role="img" aria-label={`${resena.estrellas ?? 5} de 5 estrellas`}>
+                        {Array.from({ length: resena.estrellas ?? 5 }).map((_, i) => <Star key={i} size={11} fill="var(--orange)" style={{ color: 'var(--orange)' }} aria-hidden />)}
                       </span>
                     </figcaption>
                   </figure>
@@ -338,7 +339,7 @@ export default async function DestinoPage({ params }: Props) {
                 >
                   <div className="relative aspect-[4/3] overflow-hidden" style={{ background: 'var(--blue)' }}>
                     {h.imagen ? (
-                      <Image src={h.imagen} alt={h.titulo} fill sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover" />
+                      <Image src={h.imagen} alt="" fill sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <Icono nombre={h.icono} size={52} strokeWidth={1.3} style={{ color: 'rgba(255,255,255,0.6)' }} />
@@ -415,7 +416,7 @@ export default async function DestinoPage({ params }: Props) {
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {d.galeria.map((src, i) => (
                 <li key={i} className={`destino-reveal exp-card relative overflow-hidden rounded-xl ${i === 0 ? 'col-span-2 row-span-2' : ''}`} style={{ aspectRatio: i === 0 ? '4/3' : '1/1' }}>
-                  <Image src={src} alt={`${d.nombre} — foto ${i + 1}`} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover" />
+                  <Image src={src} alt={`Foto ${i + 1} de ${d.galeria!.length} de ${d.nombre}`} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover" />
                 </li>
               ))}
             </ul>
@@ -465,7 +466,8 @@ export default async function DestinoPage({ params }: Props) {
                         className="flex items-center gap-1.5 rounded-full px-4 py-2 font-plus-jakarta text-xs font-bold"
                         style={{ border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                       >
-                        <Eye size={14} /> Ver
+                        <Eye size={14} aria-hidden /> Ver<span className="sr-only"> {f.titulo}</span>
+                        <NuevaPestana />
                       </a>
                     )}
                     {/* `?download` hace que Supabase responda como adjunto. */}
@@ -474,7 +476,7 @@ export default async function DestinoPage({ params }: Props) {
                       className="flex items-center gap-1.5 rounded-full px-4 py-2 font-plus-jakarta text-xs font-bold"
                       style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}
                     >
-                      <Download size={14} /> Descargar
+                      <Download size={14} aria-hidden /> Descargar<span className="sr-only"> {f.titulo}</span>
                     </a>
                   </div>
                 </li>

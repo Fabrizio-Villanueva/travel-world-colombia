@@ -1,4 +1,5 @@
 import { whatsappUrl } from '@/lib/site'
+import { NUEVA_PESTANA } from './NuevaPestana'
 
 interface WhatsAppButtonProps {
   /** Destino para pre-cargar el mensaje (opcional). */
@@ -26,13 +27,14 @@ export function WhatsAppButton({ destino }: WhatsAppButtonProps) {
       href={whatsappUrl(destino)}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Chatear por WhatsApp con Travel World Colombia"
+      aria-label={`Chatear por WhatsApp con Travel World Colombia${NUEVA_PESTANA}`}
       className="group fixed bottom-5 right-5 z-50 flex items-center"
     >
-      {/* Anillo de pulso */}
-      <span className="absolute right-0 inline-flex h-14 w-14 rounded-full bg-[#25D366] opacity-60 animate-ping" />
+      {/* Anillo de pulso (se detiene con "reducir movimiento": ver globals.css) */}
+      <span aria-hidden className="absolute right-0 inline-flex h-14 w-14 rounded-full bg-[#25D366] opacity-60 animate-ping" />
 
-      <span className="relative flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-3 text-white shadow-lg transition-all duration-300 hover:bg-[#20BA5A] hover:scale-105">
+      {/* Ícono y texto navy sobre el verde de marca (blanco no llegaba a 3:1) */}
+      <span className="relative flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-3 text-[#0d1e3c] shadow-lg transition-all duration-300 hover:bg-[#20BA5A] hover:scale-105">
         <WhatsAppIcon />
         <span className="hidden font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase sm:inline">
           ¡Cotiza ahora!

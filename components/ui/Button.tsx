@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { ComponentProps, CSSProperties, ReactNode } from 'react'
+import { NuevaPestana } from './NuevaPestana'
 
 type Variant = 'primary' | 'outline' | 'whatsapp'
 type Size = 'sm' | 'md'
@@ -12,8 +13,9 @@ const variants: Record<Variant, string> = {
     'u-shine btn-primary hover:-translate-y-0.5',
   outline:
     'btn-outline',
+  // Texto navy sobre el verde de marca: blanco daba 1,98:1; navy da 8,35:1 (AA).
   whatsapp:
-    'bg-[#25D366] text-white shadow-lg hover:bg-[#20BA5A] hover:-translate-y-0.5',
+    'bg-[#25D366] text-[#0d1e3c] shadow-lg hover:bg-[#20BA5A] hover:-translate-y-0.5',
 }
 
 const sizes: Record<Size, string> = {
@@ -47,6 +49,7 @@ export function Button(props: ButtonAsButton | ButtonAsLink) {
     return (
       <Link href={href} className={classes} style={{ ...outlineStyle, ...style }} {...linkRest}>
         {children}
+        {linkRest.target === '_blank' && <NuevaPestana />}
       </Link>
     )
   }

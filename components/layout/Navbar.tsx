@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Menu, X, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { NAV_LINKS, SERVICIOS_MENU, SITE } from '@/lib/site'
+import { scrollBehavior } from '@/components/ui/useReducedMotion'
 
 interface NavbarProps {
   /** Regiones (continentes) con destinos activos, para el submenú de Destinos. */
@@ -37,9 +38,9 @@ function goFiltro(e: React.MouseEvent, href: string) {
   // Directo al listado filtrado (o al tope si se eligió "Todos los destinos").
   const resultados = document.getElementById('resultados')
   if (href.includes('?f=') && resultados) {
-    resultados.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    resultados.scrollIntoView({ behavior: scrollBehavior(), block: 'start' })
   } else {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: scrollBehavior() })
   }
 }
 
@@ -53,25 +54,48 @@ const estiloLink = {
     'u-underline font-plus-jakarta text-[11px] font-bold tracking-[0.15em] uppercase text-(--text-primary) transition-colors hover:text-orange',
 } as const
 
-/** Item del navbar desktop con panel desplegable (hover y focus-within). */
+/**
+ * Item del navbar desktop con panel desplegable (hover y foco dentro).
+ * Estado en React (antes solo CSS group-hover/focus-within) para exponer
+ * aria-expanded y poder cerrarlo con Escape sin sacar el foco del enlace.
+ */
 function DropdownDesktop({ label, href, items, onItemClick }: {
   label: string
   href: string
   items: SubItem[]
   onItemClick?: (e: React.MouseEvent, item: SubItem) => void
 }) {
+  const [hover, setHover] = useState(false)
+  const [foco, setFoco] = useState(false)
+  const abierto = hover || foco
+  const triggerRef = useRef<HTMLAnchorElement>(null)
   return (
-    <li className="group relative">
-      <Link href={href} {...estiloLink} aria-haspopup="true">
+    <li
+      className="relative"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onFocus={() => setFoco(true)}
+      onBlur={e => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFoco(false)
+      }}
+      onKeyDown={e => {
+        if (e.key === 'Escape' && abierto) {
+          setHover(false)
+          setFoco(false)
+          triggerRef.current?.focus()
+        }
+      }}
+    >
+      <Link ref={triggerRef} href={href} {...estiloLink} aria-expanded={abierto}>
         <span className="inline-flex items-center gap-1">
           {label}
-          <ChevronDown size={12} className="transition-transform group-hover:rotate-180" />
+          <ChevronDown size={12} aria-hidden className={`transition-transform ${abierto ? 'rotate-180' : ''}`} />
         </span>
       </Link>
       {/* pt-4 mantiene el hover al cruzar el espacio entre el link y el panel.
           Con muchos ítems el panel va a 2 columnas: si crece hacia abajo choca
           con el botón flotante de WhatsApp (z-50, por encima del header z-40). */}
-      <div className="invisible absolute left-1/2 -translate-x-1/2 pt-4 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+      <div className={`absolute left-1/2 -translate-x-1/2 pt-4 transition-all duration-200 ${abierto ? 'visible opacity-100' : 'invisible opacity-0'}`}>
         <ul
           className={`${items.length > 8 ? 'grid w-[26rem] grid-cols-2' : 'min-w-56'} rounded-xl p-2`}
           style={{
@@ -135,6 +159,36 @@ export function Navbar({ regiones, hayNacionales }: NavbarProps) {
     setSubAbierto(null)
   }
 
+  // Menú móvil accesible: al abrir, el foco entra al primer enlace; Tab queda
+  // atrapado entre el botón y el menú; Escape cierra y devuelve el foco al botón.
+  const toggleRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    menuRef.current?.querySelector<HTMLElement>('a[href], button')?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false)
+        setSubAbierto(null)
+        toggleRef.current?.focus()
+        return
+      }
+      if (e.key !== 'Tab' || !menuRef.current || !toggleRef.current) return
+      const enfocables = [
+        toggleRef.current,
+        ...menuRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'),
+      ]
+      const primero = enfocables[0]
+      const ultimo = enfocables[enfocables.length - 1]
+      const activo = document.activeElement
+      if (e.shiftKey && activo === primero) { e.preventDefault(); ultimo.focus() }
+      else if (!e.shiftKey && activo === ultimo) { e.preventDefault(); primero.focus() }
+      else if (!enfocables.includes(activo as HTMLElement)) { e.preventDefault(); primero.focus() }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open])
+
   return (
     <header
       className="fixed inset-x-0 top-0 z-40 transition-all duration-300"
@@ -187,6 +241,7 @@ export function Navbar({ regiones, hayNacionales }: NavbarProps) {
 
         {/* Hamburger móvil */}
         <button
+          ref={toggleRef}
           type="button"
           onClick={() => setOpen(o => !o)}
           aria-expanded={open}
@@ -202,6 +257,7 @@ export function Navbar({ regiones, hayNacionales }: NavbarProps) {
       {/* Menú móvil */}
       {open && (
         <div
+          ref={menuRef}
           id="mobile-menu"
           className="max-h-[calc(100svh-72px)] overflow-y-auto md:hidden"
           style={{ background: 'var(--overlay)', borderTop: '1px solid var(--border)' }}

@@ -41,5 +41,12 @@ export function CountUp({
     return () => io.disconnect()
   }, [to, duration])
 
-  return <span ref={ref}>{prefix}{val.toLocaleString('es-CO')}{suffix}</span>
+  // El lector de pantalla oye siempre el valor final (sr-only); el número
+  // animado es solo visual (antes se anunciaba "0").
+  return (
+    <span ref={ref}>
+      <span aria-hidden="true">{prefix}{val.toLocaleString('es-CO')}{suffix}</span>
+      <span className="sr-only">{prefix}{to.toLocaleString('es-CO')}{suffix}</span>
+    </span>
+  )
 }

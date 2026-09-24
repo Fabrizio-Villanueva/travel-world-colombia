@@ -6,6 +6,8 @@ import { BackgroundSlider } from './BackgroundSlider'
 import { HeroContent } from './HeroContent'
 import { ThumbnailBar } from './ThumbnailBar'
 import { heroBg, glowColor } from '@/lib/hero'
+import { SITE } from '@/lib/site'
+import { useReducedMotion } from '@/components/ui/useReducedMotion'
 
 interface HeroSectionProps {
   destinos: Destino[]
@@ -36,10 +38,20 @@ export function HeroSection({ destinos }: HeroSectionProps) {
     setActiveIndex(i)
   }
 
+  // Pausa (WCAG 2.2.2): botón visible + hover sobre el texto + foco de teclado
+  // dentro del hero. Con "reducir movimiento" arranca pausado (sin autoplay)
+  // salvo que el usuario lo reanude a mano.
+  const reducir = useReducedMotion()
+  const [pausaUsuario, setPausaUsuario] = useState<boolean | null>(null)
+  const [hover, setHover] = useState(false)
+  const [foco, setFoco] = useState(false)
+  const pausadoBoton = pausaUsuario ?? reducir
+  const pausado = pausadoBoton || hover || foco
+
   // Auto-loop: avanza al siguiente destino cada 4s (crossfade). Cada
   // selección manual reinicia el temporizador (al depender de activeIndex).
   useEffect(() => {
-    if (destinos.length <= 1) return
+    if (destinos.length <= 1 || pausado) return
     const id = setTimeout(() => {
       const next = (activeIndex + 1) % destinos.length
       const url = heroBg(destinos[next])
@@ -49,17 +61,35 @@ export function HeroSection({ destinos }: HeroSectionProps) {
       setActiveIndex(next)
     }, 4000)
     return () => clearTimeout(id)
-  }, [activeIndex, destinos])
+  }, [activeIndex, destinos, pausado])
 
   const active = destinos[activeIndex]
   if (!active) return null
 
   return (
     <section
-      aria-label={`Destino destacado: ${active.nombre}`}
+      aria-label="Destinos destacados"
+      aria-roledescription="carrusel"
       className="tema-oscuro relative flex w-full flex-col overflow-hidden"
       style={{ height: '100svh' }}
+      onFocus={e => {
+        // Solo foco de teclado (:focus-visible) y no el propio botón de pausa:
+        // si no, un clic en "Reanudar" o en una miniatura dejaba el carrusel
+        // pausado hasta hacer clic fuera.
+        const t = e.target as HTMLElement
+        setFoco(t.matches(':focus-visible') && !t.closest('[data-pausa]'))
+      }}
+      onBlur={e => {
+        // Solo al salir del hero (no al moverse entre controles internos).
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFoco(false)
+      }}
     >
+      {/* h1 fijo de la home: el nombre del destino rota, así que no puede ser
+          el encabezado principal de la página. */}
+      <h1 className="sr-only">
+        {SITE.nombre} — agencia de viajes en {SITE.ciudad}, {SITE.region}
+      </h1>
+
       <BackgroundSlider layerA={layers.a} layerB={layers.b} showA={layers.showA} />
 
       {/* Glow — color según la región del destino */}
@@ -74,14 +104,21 @@ export function HeroSection({ destinos }: HeroSectionProps) {
         }}
       />
 
-      {/* Contenido — remount por key dispara el fadeUp en cada cambio */}
+      {/* Contenido — remount por key dispara el fadeUp en cada cambio.
+          Sin aria-live: con autoplay spamearía al lector de pantalla. */}
       <div className="flex flex-1 flex-col justify-center pt-20">
         <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center">
-          <HeroContent key={active.id} destino={active} />
+          <HeroContent key={active.id} destino={active} onHover={setHover} />
         </div>
       </div>
 
-      <ThumbnailBar destinos={destinos} activeIndex={activeIndex} onSelect={select} />
+      <ThumbnailBar
+        destinos={destinos}
+        activeIndex={activeIndex}
+        onSelect={select}
+        pausado={pausadoBoton}
+        onTogglePausa={destinos.length > 1 ? () => setPausaUsuario(!pausadoBoton) : undefined}
+      />
     </section>
   )
 }

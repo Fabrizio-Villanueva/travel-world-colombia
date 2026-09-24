@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, Phone, Mail, Clock, Lock } from 'lucide-react'
 import { SITE, SOCIALS, WHATSAPP, NAV_LINKS, whatsappUrl } from '@/lib/site'
+import { NuevaPestana, NUEVA_PESTANA } from '@/components/ui/NuevaPestana'
 
 type IconProps = { size?: number }
 
@@ -71,11 +72,11 @@ export function Footer() {
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={label}
+                aria-label={`${label}${NUEVA_PESTANA}`}
                 className="flex h-9 w-9 items-center justify-center rounded-sm border transition-all hover:border-orange hover:text-orange"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
               >
-                <Icon size={18} />
+                <Icon size={18} aria-hidden />
               </a>
             ))}
           </div>
@@ -118,6 +119,8 @@ export function Footer() {
               <Phone size={16} className="shrink-0 text-orange" />
               <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" className="hover:text-orange">
                 {WHATSAPP.telefonoDisplay}
+                <span className="sr-only"> por WhatsApp</span>
+                <NuevaPestana />
               </a>
             </li>
             <li className="flex items-center gap-2">

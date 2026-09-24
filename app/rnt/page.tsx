@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { LegalShell, LegalH2, LegalP, LegalList } from '@/components/legal/LegalShell'
 import { SITE } from '@/lib/site'
+import { NuevaPestana } from '@/components/ui/NuevaPestana'
 
 export const metadata: Metadata = {
   title: 'Registro Nacional de Turismo',
@@ -44,6 +45,7 @@ export default function RntPage() {
           style={{ color: 'var(--text-primary)' }}
         >
           rues.org.co/registro-nt
+          <NuevaPestana />
         </a>
         .
       </LegalP>

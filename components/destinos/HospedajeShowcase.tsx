@@ -5,6 +5,7 @@ import Image from '@/components/ui/Foto'
 import { Star, MapPin, BedDouble, Check, MessageCircle } from 'lucide-react'
 import type { OpcionHospedaje } from '@/types/destino'
 import { whatsappHospedajeUrl } from '@/lib/site'
+import { NuevaPestana } from '@/components/ui/NuevaPestana'
 
 /**
  * Sección "Hospedaje" del producto (pedido del cliente, sep-2026): una tarjeta
@@ -99,9 +100,9 @@ export function HospedajeShowcase({ opciones, destino }: { opciones: OpcionHospe
                 {o.titulo}
               </h3>
               {o.estrellas ? (
-                <span className="flex shrink-0 gap-0.5 pt-1" aria-label={`${o.estrellas} estrellas`}>
+                <span className="flex shrink-0 gap-0.5 pt-1" role="img" aria-label={`${o.estrellas} estrellas`}>
                   {Array.from({ length: o.estrellas }).map((_, i) => (
-                    <Star key={i} size={15} fill="var(--gold)" style={{ color: 'var(--gold)' }} />
+                    <Star key={i} size={15} fill="var(--gold)" style={{ color: 'var(--gold)' }} aria-hidden />
                   ))}
                 </span>
               ) : null}
@@ -199,8 +200,9 @@ export function HospedajeShowcase({ opciones, destino }: { opciones: OpcionHospe
             className="mt-auto flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 font-plus-jakarta text-sm font-bold transition-transform duration-150 active:scale-[0.99]"
             style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}
           >
-            <MessageCircle size={17} />
+            <MessageCircle size={17} aria-hidden />
             Consultar esta opción
+            <NuevaPestana />
           </a>
         </div>
       </div>

@@ -96,6 +96,9 @@ export function InfoClaveCarousel({ items }: { items: InfoClave[] }) {
         type="button"
         onClick={() => desplazar(-1)}
         aria-label="Datos anteriores"
+        // Invisible (opacity 0) = fuera del orden de tabulación y del lector.
+        aria-hidden={!canPrev || undefined}
+        tabIndex={canPrev ? undefined : -1}
         className="absolute -left-5 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-opacity lg:flex"
         style={{
           background: '#fff',
@@ -106,12 +109,15 @@ export function InfoClaveCarousel({ items }: { items: InfoClave[] }) {
           pointerEvents: canPrev ? 'auto' : 'none',
         }}
       >
-        <ChevronLeft size={18} />
+        <ChevronLeft size={18} aria-hidden />
       </button>
       <button
         type="button"
         onClick={() => desplazar(1)}
         aria-label="Más datos"
+        // Invisible (opacity 0) = fuera del orden de tabulación y del lector.
+        aria-hidden={!canNext || undefined}
+        tabIndex={canNext ? undefined : -1}
         className="absolute -right-5 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-opacity lg:flex"
         style={{
           background: '#fff',
@@ -122,7 +128,7 @@ export function InfoClaveCarousel({ items }: { items: InfoClave[] }) {
           pointerEvents: canNext ? 'auto' : 'none',
         }}
       >
-        <ChevronRight size={18} />
+        <ChevronRight size={18} aria-hidden />
       </button>
     </div>
   )

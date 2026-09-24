@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useState } from 'react'
 import { EQUIPO, inicialesDe } from '@/lib/equipo'
 import { SectionTag } from '@/components/ui/SectionTag'
+import { Pausable } from '@/components/ui/Pausable'
 
 export function EquipoSection() {
   // Lista duplicada para un loop continuo y sin saltos (marquee).
@@ -51,12 +52,15 @@ export function EquipoSection() {
         </div>
       </div>
 
-      {/* Marquee continuo (full-bleed). Corre siempre; se pausa solo
-          mientras el cursor está sobre una carta. */}
+      {/* Marquee continuo (full-bleed). Se pausa con el cursor sobre una
+          carta, con el foco dentro y con el botón visible de pausa (WCAG 2.2.2).
+          Solo se fija 'paused' inline: un 'running' inline pisaría las pausas
+          por CSS (foco / botón). */}
+      <Pausable clasePausado="equipo-marquee-pausado" etiqueta="carrusel del equipo" className="relative z-10">
       <div className="equipo-marquee relative z-10 -mx-6 mt-2">
         <div
           className="equipo-marquee-track flex w-max"
-          style={{ animationPlayState: paused ? 'paused' : 'running' }}
+          style={paused ? { animationPlayState: 'paused' } : undefined}
         >
           {loop.map((m, i) => {
             const Badge = m.badge
@@ -123,6 +127,7 @@ export function EquipoSection() {
           })}
         </div>
       </div>
+      </Pausable>
     </section>
   )
 }

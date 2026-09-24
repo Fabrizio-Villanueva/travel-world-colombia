@@ -8,6 +8,7 @@ import { fbCustomEvent } from '@/lib/analytics/fbpixel'
 import { DestinoCard } from './DestinoCard'
 import type { SeleccionMapa } from './MapaDestinos'
 import { CategoriasDestinos, grupos as gruposCategorias } from './CategoriasDestinos'
+import { scrollBehavior } from '@/components/ui/useReducedMotion'
 
 // El mapa (y sus ~120 KB de geografía) se cargan en un chunk aparte: no pesan
 // en el bundle inicial de /destinos ni bloquean el primer render del listado.
@@ -39,7 +40,12 @@ export type Filtro =
 const esNacional = (d: Destino) => d.pais === 'Colombia'
 const minOrden = (ds: Destino[]) => Math.min(...ds.map(d => d.orden))
 
-const TRANSP_LABEL: Record<string, string> = { bus: '🚌 En bus', avion: '✈️ En avión', otros: 'Otros planes nacionales' }
+// Emoji aparte del texto: se pinta con aria-hidden (el lector lee solo el texto).
+const TRANSP_LABEL: Record<string, { emoji?: string; texto: string }> = {
+  bus: { emoji: '🚌', texto: 'En bus' },
+  avion: { emoji: '✈️', texto: 'En avión' },
+  otros: { texto: 'Otros planes nacionales' },
+}
 const TRANSP_ORDEN: Record<string, number> = { bus: 0, avion: 1, otros: 2 }
 
 /** Agrupa manteniendo el orden de inserción; devuelve [clave, destinos][]. */
@@ -80,11 +86,11 @@ function normalizarFiltro(raw: string | null, regiones: Set<string>, paises: Set
   return 'todos'
 }
 
-function Grid({ destinos }: { destinos: Destino[] }) {
+function Grid({ destinos, nivel }: { destinos: Destino[]; nivel?: 3 | 4 }) {
   return (
     <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {destinos.map((d, i) => (
-        <DestinoCard key={d.id} d={d} i={i} />
+        <DestinoCard key={d.id} d={d} i={i} nivel={nivel} />
       ))}
     </ul>
   )
@@ -110,13 +116,15 @@ function Caja({ icon, titulo, total, children }: { icon: React.ReactNode; titulo
   )
 }
 
-function SubGrupo({ titulo, destinos }: { titulo: string; destinos: Destino[] }) {
+// Esquema de títulos: h2 (caja) > h3 (subgrupo) > h4 (tarjetas del subgrupo).
+function SubGrupo({ titulo, emoji, destinos }: { titulo: string; emoji?: string; destinos: Destino[] }) {
   return (
     <div className="mb-8 last:mb-0">
       <h3 className="mb-3 font-plus-jakarta text-sm font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--text-dim)' }}>
+        {emoji && <span aria-hidden="true">{emoji} </span>}
         {titulo}
       </h3>
-      <Grid destinos={destinos} />
+      <Grid destinos={destinos} nivel={4} />
     </div>
   )
 }
@@ -132,7 +140,9 @@ function SeccionNacional({ destinos }: { destinos: Destino[] }) {
       {soloSinEtiqueta ? (
         <Grid destinos={destinos} />
       ) : (
-        grupos.map(([k, lista]) => <SubGrupo key={k} titulo={TRANSP_LABEL[k] ?? 'Otros planes'} destinos={lista} />)
+        grupos.map(([k, lista]) => (
+          <SubGrupo key={k} titulo={TRANSP_LABEL[k]?.texto ?? 'Otros planes'} emoji={TRANSP_LABEL[k]?.emoji} destinos={lista} />
+        ))
       )}
     </Caja>
   )
@@ -217,7 +227,7 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
     // clearTimeout del primer montaje cancelaba el scroll; si el componente se
     // desmonta antes de disparar, el getElementById devuelve null y no pasa nada.
     setTimeout(() => {
-      document.getElementById('resultados')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      document.getElementById('resultados')?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' })
     }, 150)
   }, [filtro])
 
@@ -225,8 +235,12 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
    * Cambia el filtro y lo refleja en la URL con el History API nativo (shallow:
    * sin ronda al servidor). `scroll` acerca el listado tras elegir una tarjeta
    * o un país del mapa; `origen` reporta el uso del filtro al píxel de Meta.
+   * `foco` fuerza a dónde va el foco de teclado tras el cambio (ver abajo).
    */
-  const setFiltro = (f: Filtro, opts?: { scroll?: boolean; origen?: 'tarjeta' | 'mapa' | 'chip' }) => {
+  const setFiltro = (
+    f: Filtro,
+    opts?: { scroll?: boolean; origen?: 'tarjeta' | 'mapa' | 'chip'; foco?: 'resultados' | 'categorias' },
+  ) => {
     const url = f === 'todos' ? window.location.pathname : `${window.location.pathname}?f=${encodeURIComponent(f)}`
     window.history.replaceState(null, '', url)
     window.dispatchEvent(new Event(EVENTO_FILTRO))
@@ -235,16 +249,28 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
       // Diferido: al filtrar las categorías se ocultan y #resultados cambia de
       // posición, así que hay que medir el scroll DESPUÉS del re-render.
       setTimeout(() => {
-        document.getElementById('resultados')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        document.getElementById('resultados')?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' })
       }, 50)
     }
+    // Gestión del foco (teclado/lector de pantalla): al filtrar, el control
+    // pulsado (tarjeta, chip, "Volver") desaparece y el foco caía al <body>.
+    // Tras el re-render se mueve al contenedor pedido; tarjetas y chips llevan
+    // al listado. Sin destino pedido (p. ej. el mapa, que sigue en pantalla)
+    // solo se rescata si el foco se perdió. preventScroll: el scroll (suave o
+    // no) ya lo decide el bloque de arriba.
+    const pedido = opts?.foco ?? (opts?.origen === 'tarjeta' || opts?.origen === 'chip' ? 'resultados' : null)
+    setTimeout(() => {
+      const perdido = !document.activeElement || document.activeElement === document.body
+      const destino = pedido ?? (perdido ? (f === 'todos' ? 'categorias' : 'resultados') : null)
+      if (destino) document.getElementById(destino)?.focus({ preventScroll: true })
+    }, 0)
   }
 
   /** Vuelve al menú de categorías (quita el filtro) y lo deja a la vista. */
   const volverAlMenu = () => {
-    setFiltro('todos')
+    setFiltro('todos', { foco: 'categorias' })
     setTimeout(() => {
-      document.getElementById('categorias')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      document.getElementById('categorias')?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' })
     }, 50)
   }
 
@@ -264,8 +290,8 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
   // Facetas transversales que ni las tarjetas ni el mapa expresan; solo se
   // muestran en el menú (con filtro activo, el botón de volver las reemplaza).
   const chips = ([
-    { key: 'favoritos', label: '⭐ Favoritos', n: favoritos.length },
-    { key: 'fin_ano', label: '🎄 Salidas fin de año', n: finAno.length },
+    { key: 'favoritos', emoji: '⭐', label: 'Favoritos', n: favoritos.length },
+    { key: 'fin_ano', emoji: '🎄', label: 'Salidas fin de año', n: finAno.length },
   ] as const).filter(c => c.n > 0)
 
   const nacionalesDeTransp = transpSel
@@ -289,6 +315,16 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
   // filtrado, con un botón para volver al menú.
   const filtrando = filtro !== 'todos'
 
+  // Número de resultados de la vista filtrada (se anuncia por aria-live).
+  const nResultados =
+    filtro === 'favoritos' ? favoritos.length
+    : filtro === 'fin_ano' ? finAno.length
+    : regionSel ? internacionales.filter(d => (d.region ?? 'Otros destinos') === regionSel).length
+    : paisSel ? destinosDePais.length
+    : transpSel ? nacionalesDeTransp.length
+    : filtro === 'nacional' ? nacionales.length
+    : 0
+
   const botonVolver = (
     <button
       type="button"
@@ -296,7 +332,7 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
       className="flex items-center gap-2 rounded-full px-6 py-2.5 font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase transition-all duration-200"
       style={{ background: 'var(--orange)', color: 'var(--orange-contrast)', border: '1px solid var(--orange)' }}
     >
-      <ArrowLeft size={14} /> Volver a todos los destinos
+      <ArrowLeft size={14} aria-hidden /> Volver a todos los destinos
     </button>
   )
 
@@ -313,7 +349,7 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
           className="mb-3 w-full rounded-full px-5 py-2.5 font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase sm:hidden"
           style={{ background: 'var(--bg-alt)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}
         >
-          🗺️ {mapaAbierto ? 'Ocultar el mapa' : 'Explorar el mapa'}
+          <span aria-hidden="true">🗺️</span> {mapaAbierto ? 'Ocultar el mapa' : 'Explorar el mapa'}
         </button>
         <div className={`${mapaAbierto ? 'block' : 'hidden'} sm:block`}>
           <MapaDestinos
@@ -328,7 +364,7 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
       {/* Menú de categorías (solo sin filtro): navegación rápida por
           transporte, región y país; aplican el mismo filtro que el mapa. */}
       {!filtrando && (
-        <div id="categorias" className="scroll-mt-24">
+        <div id="categorias" tabIndex={-1} aria-label="Categorías de destinos" className="scroll-mt-24 outline-none">
           <CategoriasDestinos grupos={grupos} filtro={filtro} onSelect={f => setFiltro(f, { scroll: f !== 'todos', origen: 'tarjeta' })} />
         </div>
       )}
@@ -346,12 +382,17 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
                 className="flex items-center gap-1.5 rounded-full px-5 py-2 font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase transition-all duration-200"
                 style={{ background: 'var(--bg-alt)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}
               >
-                {c.label} · {c.n}
+                <span aria-hidden="true">{c.emoji}</span> {c.label} · {c.n}
               </button>
             ))}
       </div>
 
-      <div id="resultados" className="flex flex-col gap-10 scroll-mt-24">
+      {/* Anuncio para lectores de pantalla al cambiar el filtro */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {filtrando ? `${nResultados} destino${nResultados !== 1 ? 's' : ''} encontrado${nResultados !== 1 ? 's' : ''}` : ''}
+      </p>
+
+      <div id="resultados" tabIndex={-1} aria-label="Resultados" className="flex flex-col gap-10 scroll-mt-24 outline-none">
         {filtro === 'favoritos' && (
           <Caja icon={<Star size={18} />} titulo="Favoritos" total={favoritos.length}>
             <Grid destinos={favoritos} />

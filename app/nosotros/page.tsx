@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { EquipoSection } from '@/components/equipo/EquipoSection'
 import { FaqSection } from '@/components/faq/FaqSection'
 import { CountUp } from '@/components/ui/CountUp'
+import { NuevaPestana } from '@/components/ui/NuevaPestana'
 import { SITE, whatsappUrl } from '@/lib/site'
 import { HOTELES_CRUCEROS, AEROLINEAS, type Alianza } from '@/lib/alianzas'
 
@@ -70,7 +71,7 @@ export default function NosotrosPage() {
         {/* Imagen de fondo — paisaje andino del Sumapaz */}
         <Image
           src="/img/paginas/paisaje-andino-sumapaz-fusagasuga.webp"
-          alt="Paisaje andino del Sumapaz cerca de Fusagasugá al amanecer — Travel World Colombia"
+          alt=""
           fill
           priority
           sizes="100vw"
@@ -335,15 +336,15 @@ export default function NosotrosPage() {
                 <div className="mt-4 flex flex-wrap gap-3 justify-center sm:justify-start">
                   <span
                     className="rounded-full px-4 py-1.5 font-inter text-xs"
-                    style={{ background: 'rgba(34,197,94,0.12)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}
+                    style={{ background: 'rgba(34,197,94,0.12)', color: '#15803d', border: '1px solid rgba(34,197,94,0.3)' }}
                   >
-                    ✓ Agencia legalmente constituida
+                    <span aria-hidden="true">✓</span> Agencia legalmente constituida
                   </span>
                   <span
                     className="rounded-full px-4 py-1.5 font-inter text-xs"
-                    style={{ background: 'rgba(34,197,94,0.12)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}
+                    style={{ background: 'rgba(34,197,94,0.12)', color: '#15803d', border: '1px solid rgba(34,197,94,0.3)' }}
                   >
-                    ✓ Certificado vigente
+                    <span aria-hidden="true">✓</span> Certificado vigente
                   </span>
                 </div>
                 <a
@@ -353,7 +354,8 @@ export default function NosotrosPage() {
                   className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-2.5 font-inter text-sm font-semibold transition-opacity hover:opacity-85"
                   style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}
                 >
-                  Verificar en el RUES →
+                  Verificar en el RUES <span aria-hidden="true">→</span>
+                  <NuevaPestana />
                 </a>
               </div>
             </div>
@@ -397,15 +399,15 @@ export default function NosotrosPage() {
                 <div className="mt-4 flex flex-wrap gap-3 justify-center sm:justify-start">
                   <span
                     className="rounded-full px-4 py-1.5 font-inter text-xs"
-                    style={{ background: 'rgba(34,197,94,0.12)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}
+                    style={{ background: 'rgba(34,197,94,0.12)', color: '#15803d', border: '1px solid rgba(34,197,94,0.3)' }}
                   >
-                    ✓ Mayorista de turismo
+                    <span aria-hidden="true">✓</span> Mayorista de turismo
                   </span>
                   <span
                     className="rounded-full px-4 py-1.5 font-inter text-xs"
-                    style={{ background: 'rgba(34,197,94,0.12)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}
+                    style={{ background: 'rgba(34,197,94,0.12)', color: '#15803d', border: '1px solid rgba(34,197,94,0.3)' }}
                   >
-                    ✓ Certificado vigente
+                    <span aria-hidden="true">✓</span> Certificado vigente
                   </span>
                 </div>
                 <a
@@ -415,7 +417,8 @@ export default function NosotrosPage() {
                   className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-2.5 font-inter text-sm font-semibold transition-opacity hover:opacity-85"
                   style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}
                 >
-                  Verificar en el RUES →
+                  Verificar en el RUES <span aria-hidden="true">→</span>
+                  <NuevaPestana />
                 </a>
               </div>
             </div>

@@ -3,7 +3,7 @@
 import { useRef, useSyncExternalStore } from 'react'
 import type { CSSProperties } from 'react'
 import Image from '@/components/ui/Foto'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 import type { Destino } from '@/types/destino'
 import { heroThumb } from '@/lib/hero'
 
@@ -33,6 +33,10 @@ interface ThumbnailBarProps {
   destinos:    Destino[]
   activeIndex: number
   onSelect:    (index: number) => void
+  /** Estado del autoplay (solo el botón; hover/foco no cuentan). */
+  pausado?:       boolean
+  /** Si viene, se muestra el botón Pausar/Reanudar junto a los puntos. */
+  onTogglePausa?: () => void
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -145,7 +149,7 @@ const ARROW_STYLE: CSSProperties = {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function ThumbnailBar({ destinos, activeIndex, onSelect }: ThumbnailBarProps) {
+export function ThumbnailBar({ destinos, activeIndex, onSelect, pausado = false, onTogglePausa }: ThumbnailBarProps) {
   const touchX  = useRef<number | null>(null)
   const total   = destinos.length
   const esMovil = useEsMovil()
@@ -167,19 +171,28 @@ export function ThumbnailBar({ destinos, activeIndex, onSelect }: ThumbnailBarPr
     touchX.current = null
   }
 
-  // ── Shared dots ──
+  // ── Shared dots + pausa ──
+  // Botones simples (no role="tab": no hay tabpanel); el activo lleva aria-current.
   const Dots = (
-    <div
-      className="flex items-center justify-center gap-1.5 pb-6 pt-3"
-      role="tablist"
-      aria-label="Destinos disponibles"
-    >
+    <div className="flex items-center justify-center gap-1.5 pb-6 pt-3">
+      {onTogglePausa && (
+        <button
+          type="button"
+          onClick={onTogglePausa}
+          data-pausa
+          aria-label={pausado ? 'Reanudar carrusel' : 'Pausar carrusel'}
+          className="mr-2 grid h-7 w-7 place-items-center rounded-full text-white/85 transition-colors hover:text-white"
+          style={{ border: '1.5px solid rgba(255,255,255,0.45)', background: 'rgba(13, 30, 60,0.45)' }}
+        >
+          {pausado ? <Play size={12} aria-hidden /> : <Pause size={12} aria-hidden />}
+        </button>
+      )}
+      <div className="flex items-center gap-1.5" role="group" aria-label="Destinos disponibles">
       {destinos.map((d, i) => (
         <button
           key={d.id}
           type="button"
-          role="tab"
-          aria-selected={i === activeIndex}
+          aria-current={i === activeIndex ? 'true' : undefined}
           aria-label={`Ir a ${d.nombre}`}
           onClick={() => onSelect(i)}
           style={{ padding: '4px 2px', background: 'none', border: 'none', cursor: 'pointer' }}
@@ -196,6 +209,7 @@ export function ThumbnailBar({ destinos, activeIndex, onSelect }: ThumbnailBarPr
           />
         </button>
       ))}
+      </div>
     </div>
   )
 
@@ -248,6 +262,9 @@ export function ThumbnailBar({ destinos, activeIndex, onSelect }: ThumbnailBarPr
           >
             {destinos.map((d, i) => {
               const diff = circularDiff(i, activeIndex, total)
+              // Más allá de ±2 la miniatura es invisible (opacity 0): fuera del
+              // orden de tabulación y del árbol de accesibilidad.
+              const oculto = Math.abs(diff) > 2
               return (
                 <button
                   key={d.id}
@@ -255,11 +272,13 @@ export function ThumbnailBar({ destinos, activeIndex, onSelect }: ThumbnailBarPr
                   onClick={() => diff !== 0 ? onSelect(i) : undefined}
                   aria-label={`Ver destino: ${d.nombre}`}
                   aria-pressed={i === activeIndex}
+                  aria-hidden={oculto || undefined}
+                  tabIndex={oculto ? -1 : undefined}
                   style={cfStyle(diff)}
                 >
                   <Image
                     src={heroThumb(d)}
-                    alt={d.nombre}
+                    alt=""
                     width={80}
                     height={80}
                     className="h-full w-full object-cover"
@@ -349,7 +368,7 @@ export function ThumbnailBar({ destinos, activeIndex, onSelect }: ThumbnailBarPr
               >
                 <Image
                   src={heroThumb(d)}
-                  alt={d.nombre}
+                  alt=""
                   width={54}
                   height={54}
                   className="h-full w-full object-cover"

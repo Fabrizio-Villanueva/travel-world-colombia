@@ -16,9 +16,9 @@ export function TrustBadges({ className = '' }: TrustBadgesProps) {
         <span style={{ color: 'var(--text-primary)' }}>
           {SITE.reseñas} reseñas
         </span>
-        <span className="flex" aria-label="5 estrellas">
+        <span className="flex" role="img" aria-label="5 de 5 estrellas">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Star key={i} size={14} className="fill-gold text-gold" />
+            <Star key={i} size={14} className="fill-gold text-gold" aria-hidden />
           ))}
         </span>
       </span>

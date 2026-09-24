@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { DollarSign, ShieldCheck, MessageCircle, ExternalLink } from 'lucide-react'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { BotonCopiar } from '@/components/ui/BotonCopiar'
+import { NuevaPestana } from '@/components/ui/NuevaPestana'
 import { WHATSAPP } from '@/lib/site'
 
 /**
@@ -70,7 +71,7 @@ function TarjetaCuenta({
       <div className="flex items-center gap-4">
         {/* Caja fija + object-contain: los logos tienen proporciones muy distintas. */}
         <span className="relative h-10 w-24 shrink-0 sm:w-28">
-          <Image src={logo.src} alt={banco} fill sizes="112px" className="object-contain object-left" />
+          <Image src={logo.src} alt="" fill sizes="112px" className="object-contain object-left" />
         </span>
         <div>
           <p className="font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
@@ -81,7 +82,10 @@ function TarjetaCuenta({
           </p>
         </div>
       </div>
-      <BotonCopiar texto={numero} />
+      <BotonCopiar
+        texto={numero}
+        ariaLabel={numero.includes('@') ? `Copiar correo de ${banco}` : `Copiar número de cuenta ${banco}`}
+      />
     </div>
   )
 }
@@ -122,7 +126,7 @@ export default function PagosPage() {
             <div className="flex flex-col gap-4 rounded-2xl p-6 sm:p-8" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
               <Image
                 src={LOGOS.pse.src}
-                alt="PSE — Pagos Seguros en Línea"
+                alt=""
                 width={LOGOS.pse.w}
                 height={LOGOS.pse.h}
                 className="h-14 w-14 rounded-full"
@@ -143,7 +147,8 @@ export default function PagosPage() {
                 className="flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 font-plus-jakarta text-sm font-bold transition-transform duration-150 active:scale-[0.99]"
                 style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}
               >
-                Haz tu pago aquí <ExternalLink size={15} />
+                Haz tu pago aquí<span className="sr-only"> con PSE</span> <ExternalLink size={15} aria-hidden />
+                <NuevaPestana />
               </a>
             </div>
 
@@ -179,7 +184,8 @@ export default function PagosPage() {
                 className="flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 font-plus-jakarta text-sm font-bold transition-transform duration-150 active:scale-[0.99]"
                 style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}
               >
-                Haz tu pago aquí <ExternalLink size={15} />
+                Haz tu pago aquí<span className="sr-only"> con tarjeta de crédito</span> <ExternalLink size={15} aria-hidden />
+                <NuevaPestana />
               </a>
             </div>
           </div>
@@ -245,8 +251,9 @@ export default function PagosPage() {
             className="flex shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-3.5 font-plus-jakarta text-sm font-bold transition-transform duration-150 active:scale-[0.99]"
             style={{ background: 'var(--gold)', color: 'var(--navy)' }}
           >
-            <MessageCircle size={17} />
+            <MessageCircle size={17} aria-hidden />
             Enviar comprobante
+            <NuevaPestana />
           </a>
         </section>
       </div>

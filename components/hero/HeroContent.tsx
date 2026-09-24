@@ -6,15 +6,19 @@ import { initials } from '@/lib/hero'
 
 interface HeroContentProps {
   destino: Destino
+  /** Hover sobre el texto: pausa el carrusel del hero. */
+  onHover?: (dentro: boolean) => void
 }
 
 /** Contenido textual del hero — kana, título, frase, autor y CTAs. */
-export function HeroContent({ destino }: HeroContentProps) {
+export function HeroContent({ destino, onHover }: HeroContentProps) {
   return (
     <div
       // key remount en el padre dispara este fadeUp en cada cambio de destino
       style={{ animation: 'fadeUp 0.35s ease both' }}
       className="relative z-10 flex max-w-[580px] flex-1 flex-col justify-center px-6 sm:px-10"
+      onMouseEnter={() => onHover?.(true)}
+      onMouseLeave={() => onHover?.(false)}
     >
       {destino.nombre_local && (
         <p
@@ -24,7 +28,8 @@ export function HeroContent({ destino }: HeroContentProps) {
         </p>
       )}
 
-      <h1
+      {/* No es <h1>: rota con el carrusel. El h1 fijo está en HeroSection. */}
+      <p
         className="text-4xl sm:text-6xl"
         style={{
           fontFamily: 'var(--font-plus-jakarta)',
@@ -36,7 +41,7 @@ export function HeroContent({ destino }: HeroContentProps) {
         }}
       >
         {destino.nombre}
-      </h1>
+      </p>
 
       <div
         className="my-[18px] h-0.5 w-11 rounded-sm"
@@ -45,8 +50,9 @@ export function HeroContent({ destino }: HeroContentProps) {
 
       {destino.frase_hero && (
         <p
-          className="max-w-[330px] font-inter font-light"
-          style={{ fontSize: 'clamp(11px, 2.8vw, 13px)', lineHeight: 1.8, color: 'var(--text-dim)', textShadow: '0 1px 12px rgba(8, 18, 38,0.6)' }}
+          className="max-w-[330px] rounded-md font-inter font-light"
+          // Panel translúcido detrás de la frase: garantiza contraste sobre fotos claras.
+          style={{ fontSize: 'clamp(12px, 2.8vw, 13px)', lineHeight: 1.8, color: 'rgba(255,255,255,0.92)', textShadow: '0 1px 12px rgba(8, 18, 38,0.6)', background: 'rgba(13, 30, 60,0.55)', padding: '6px 10px', marginLeft: '-10px' }}
         >
           {destino.frase_hero}
         </p>
@@ -55,6 +61,7 @@ export function HeroContent({ destino }: HeroContentProps) {
       {(destino.autor_frase || destino.cargo_autor) && (
         <div className="mt-4 flex items-center gap-2.5">
           <div
+            aria-hidden
             className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
             style={{
               background: 'linear-gradient(135deg, var(--orange), var(--gold))',
@@ -65,12 +72,12 @@ export function HeroContent({ destino }: HeroContentProps) {
           </div>
           <div>
             {destino.autor_frase && (
-              <div className="font-cinzel text-[10px] tracking-[0.2em] text-white">
+              <div className="font-cinzel text-[11px] tracking-[0.2em] text-white" style={{ textShadow: '0 1px 8px rgba(8, 18, 38,0.8)' }}>
                 {destino.autor_frase}
               </div>
             )}
             {destino.cargo_autor && (
-              <div className="text-[9px] uppercase tracking-[0.12em]" style={{ color: 'var(--text-dim)' }}>
+              <div className="text-[11px] uppercase tracking-[0.12em]" style={{ color: 'rgba(255,255,255,0.85)', textShadow: '0 1px 8px rgba(8, 18, 38,0.8)' }}>
                 {destino.cargo_autor}
               </div>
             )}

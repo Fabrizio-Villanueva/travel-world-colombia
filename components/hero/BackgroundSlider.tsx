@@ -34,13 +34,14 @@ export function BackgroundSlider({ layerA, layerB, showA }: BackgroundSliderProp
       />
       {/* Overlay — doble gradiente suave (izq→der + abajo→arriba).
           Protege el texto a la izquierda y los thumbnails abajo, dejando
-          que la foto resalte en el centro y la derecha. */}
+          que la foto resalte en el centro y la derecha. Opacidad reforzada
+          (0.82→0.55) donde va el texto para cumplir contraste AA. */}
       <div
         aria-hidden
         className="absolute inset-0 z-[1]"
         style={{
           background:
-            'linear-gradient(to right, rgba(13, 30, 60,.70) 0%, rgba(13, 30, 60,.30) 32%, rgba(13, 30, 60,0) 60%), linear-gradient(to top, rgba(13, 30, 60,.60) 0%, rgba(13, 30, 60,0) 38%)',
+            'linear-gradient(to right, rgba(13, 30, 60,.82) 0%, rgba(13, 30, 60,.55) 32%, rgba(13, 30, 60,0) 60%), linear-gradient(to top, rgba(13, 30, 60,.60) 0%, rgba(13, 30, 60,0) 38%)',
         }}
       />
     </>

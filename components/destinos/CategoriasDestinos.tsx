@@ -132,12 +132,13 @@ export function CategoriasDestinos({
           {/* El color va en clase, no inline: el inline pisaría el hover amarillo.
               text-gold (no --orange): sobre este navy el acento es amarillo aunque
               la sección viva en tema claro (donde --orange es azul). */}
-          <span
+          {/* h2: el título del grupo es un encabezado real (antes <span>). */}
+          <h2
             className="mb-4 inline-block rounded-lg px-4 py-1.5 font-plus-jakarta text-xs font-extrabold uppercase tracking-[0.14em] text-white transition-colors hover:text-gold"
             style={{ background: 'rgb(13, 30, 60)' }}
           >
             {g.titulo}
-          </span>
+          </h2>
           {/* Misma grilla y altura que las tarjetas de producto (DestinoCard:
               h-56) — pedido del cliente: "del mismo tamaño que los productos". */}
           <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -172,7 +173,7 @@ export function CategoriasDestinos({
                         {c.titulo}
                       </span>
                       <span className="font-inter text-[11px] font-medium" style={{ color: activo ? 'var(--orange)' : 'rgba(255,255,255,0.75)' }}>
-                        {c.n} programa{c.n !== 1 ? 's' : ''}{activo ? ' · viendo ✓' : ''}
+                        {c.n} programa{c.n !== 1 ? 's' : ''}{activo ? <> · viendo <span aria-hidden="true">✓</span></> : ''}
                       </span>
                     </span>
                   </button>

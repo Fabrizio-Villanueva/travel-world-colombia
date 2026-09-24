@@ -4,6 +4,12 @@ import { Compass, ShieldCheck, Headset, Star, ArrowRight } from 'lucide-react'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { Reveal } from '@/components/ui/Reveal'
 import { SITE, SOCIALS } from '@/lib/site'
+import { NuevaPestana } from '@/components/ui/NuevaPestana'
+
+// Amarillo de marca fijo: dentro de las tarjetas azules --orange puede ser el
+// MISMO azul (tema claro) y quedaba azul sobre azul (1:1). #FFCC29 sobre
+// #2957A4 da 4,6:1.
+const AMARILLO = '#FFCC29'
 
 /* ─────────── Logo de Google (marca, SVG inline) ─────────── */
 function GoogleG({ size = 16 }: { size?: number }) {
@@ -18,11 +24,11 @@ function GoogleG({ size = 16 }: { size?: number }) {
 }
 
 /* ─────────── Fila de estrellas ─────────── */
-function Stars({ size = 14, color = 'var(--orange)' }: { size?: number; color?: string }) {
+function Stars({ size = 14, color = AMARILLO }: { size?: number; color?: string }) {
   return (
-    <span className="flex gap-0.5" aria-label="5 estrellas">
+    <span className="flex gap-0.5" role="img" aria-label="5 de 5 estrellas">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} size={size} style={{ color, fill: color }} />
+        <Star key={i} size={size} style={{ color, fill: color }} aria-hidden />
       ))}
     </span>
   )
@@ -36,7 +42,8 @@ function AvatarStack({ fotos, borderColor }: { fotos: string[]; borderColor: str
         <Image
           key={src + i}
           src={src}
-          alt="Viajero de Travel World Colombia"
+          // Decorativa: el texto "+N viajeros" de al lado ya da el dato.
+          alt=""
           width={40}
           height={40}
           className="h-10 w-10 rounded-full object-cover"
@@ -150,7 +157,7 @@ export function PorQueElegirnos() {
                       : { background: 'color-mix(in srgb, var(--orange) 20%, transparent)' }
                   }
                 >
-                  <Icon size={24} style={{ color: featured ? '#fff' : 'var(--orange)' }} strokeWidth={2} />
+                  <Icon size={24} style={{ color: featured ? '#fff' : AMARILLO }} strokeWidth={2} aria-hidden />
                 </div>
 
                 {/* Título + descripción */}
@@ -173,7 +180,7 @@ export function PorQueElegirnos() {
                     <AvatarStack fotos={card.fotos} borderColor={borderAvatar} />
                     <span
                       className="font-plus-jakarta text-sm font-bold"
-                      style={{ color: featured ? '#fff' : 'var(--orange)' }}
+                      style={{ color: featured ? '#fff' : AMARILLO }}
                     >
                       +{SITE.reseñas} viajeros
                     </span>
@@ -225,7 +232,8 @@ export function PorQueElegirnos() {
               <GoogleG size={18} />
             </span>
             Ver todas las reseñas
-            <ArrowRight size={15} />
+            <ArrowRight size={15} aria-hidden />
+            <NuevaPestana />
           </a>
         </div>
       </div>

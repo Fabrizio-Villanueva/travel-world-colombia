@@ -24,7 +24,7 @@
   --white:         #ffffff;
   --text-primary:  #f0ece4;
   --text-dim:      rgba(255, 255, 255, 0.6);
-  --text-muted:    rgba(255, 255, 255, 0.35);
+  --text-muted:    rgba(255, 255, 255, 0.55); /* 0.35 no llegaba a 4.5:1 (AA) */
 
   /* UI */
   --border:        rgba(255, 255, 255, 0.1);
@@ -45,7 +45,7 @@
   --bg-alt:       #f4f7fb;
   --text-primary: #0d1e3c;
   --text-dim:     rgba(13, 30, 60, 0.66);
-  --text-muted:   rgba(13, 30, 60, 0.45);
+  --text-muted:   rgba(13, 30, 60, 0.62); /* 0.45 no llegaba a 4.5:1 (AA) */
   --border:       rgba(13, 30, 60, 0.10);
   --card-bg:      #ffffff;
   --card-hover:   rgba(41, 87, 164, 0.06);
@@ -67,7 +67,7 @@
   --bg-alt:       #081226;
   --text-primary: #f0ece4;
   --text-dim:     rgba(255, 255, 255, 0.6);
-  --text-muted:   rgba(255, 255, 255, 0.35);
+  --text-muted:   rgba(255, 255, 255, 0.55); /* 0.35 no llegaba a 4.5:1 (AA) */
   --border:       rgba(255, 255, 255, 0.1);
   --card-bg:      rgba(41, 87, 164, 0.35);
   --overlay:      rgba(5, 8, 18, 0.92);
@@ -295,8 +295,15 @@ body {
 .marquee-left  { animation: marqueeLeft  64s linear infinite; }
 .marquee-right { animation: marqueeRight 64s linear infinite; }
 
-/* Pausa al pasar el mouse sobre cualquiera de las dos filas */
-.marquee:hover .marquee-track { animation-play-state: paused; }
+/* Pausa al pasar el mouse o al tabular dentro (WCAG 2.2.2); el botón de
+   pausa de la sección añade .marquee-pausado al contenedor. */
+.marquee:hover .marquee-track,
+.marquee:focus-within .marquee-track,
+.marquee-pausado .marquee-track { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none !important; }
+}
 
 @keyframes marqueeLeft {
   from { transform: translateX(0); }
@@ -448,7 +455,8 @@ body {
   transform: translateY(-8px);
   box-shadow: 0 20px 40px -10px color-mix(in srgb, var(--orange) 20%, transparent), 0 0 20px color-mix(in srgb, var(--orange) 10%, transparent);
 }
-/* Marquee continuo del equipo — loop infinito, pausa al hover */
+/* Marquee continuo del equipo — loop infinito, pausa al hover, al foco
+   dentro y con el botón de pausa (.equipo-marquee-pausado) */
 .equipo-marquee {
   -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
@@ -457,6 +465,8 @@ body {
   animation: equipo-marquee 60s linear infinite;
   will-change: transform;
 }
+.equipo-marquee:focus-within .equipo-marquee-track,
+.equipo-marquee-pausado .equipo-marquee-track { animation-play-state: paused; }
 @keyframes equipo-marquee {
   from { transform: translateX(-50%); }
   to   { transform: translateX(0); }
@@ -469,7 +479,10 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    /* Sin esto las animaciones infinite seguían ciclando (a 0.01ms). */
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

@@ -10,10 +10,13 @@ import { precioDesde } from '@/lib/precio'
  * home, /destinos y /cruceros. `i` solo escalona la animación de entrada.
  * `entrada`: 'stagger' (listados, por defecto) · 'fade' (cargar más del home)
  * · 'none' (cards iniciales del home, sin animación).
+ * `nivel`: nivel del encabezado del nombre (h3 por defecto; h4 cuando la
+ * grilla vive bajo un subgrupo h3, para no romper el esquema de títulos).
  */
 export function DestinoCard({
-  d, i = 0, entrada = 'stagger',
-}: { d: Destino; i?: number; entrada?: 'stagger' | 'fade' | 'none' }) {
+  d, i = 0, entrada = 'stagger', nivel = 3,
+}: { d: Destino; i?: number; entrada?: 'stagger' | 'fade' | 'none'; nivel?: 3 | 4 }) {
+  const Titulo = nivel === 4 ? 'h4' : 'h3'
   const anim =
     entrada === 'stagger'
       ? { className: 'animate-fade-up', style: { animationDelay: `${Math.min(i, 8) * 60}ms`, animationFillMode: 'both' as const } }
@@ -26,7 +29,8 @@ export function DestinoCard({
         <div className="relative h-56 overflow-hidden">
           <Image
             src={destinoCardImg(d)}
-            alt={d.duracion ? `${d.nombre}, ${d.pais} — paquete de viaje de ${d.duracion}` : `${d.nombre}, ${d.pais} — paquete de viaje`}
+            // Decorativa: el enlace ya se nombra con el título de la tarjeta.
+            alt=""
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -52,7 +56,7 @@ export function DestinoCard({
                   className="rounded-sm px-2 py-1 font-plus-jakarta text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm"
                   style={{ background: 'rgba(8, 18, 38,0.8)', color: '#fff' }}
                 >
-                  🎄 Fin de año
+                  <span aria-hidden="true">🎄</span> Fin de año
                 </span>
               )}
             </div>
@@ -81,9 +85,9 @@ export function DestinoCard({
           <span className="flex items-center gap-1 font-inter text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
             <MapPin size={11} /> {d.pais}
           </span>
-          <h3 className="font-plus-jakarta text-base font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+          <Titulo className="font-plus-jakarta text-base font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
             {d.nombre}
-          </h3>
+          </Titulo>
           {d.descripcion && (
             <p className="line-clamp-2 font-inter text-base leading-relaxed" style={{ color: 'var(--text-muted)' }}>
               {d.descripcion}

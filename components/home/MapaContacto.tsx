@@ -3,6 +3,9 @@ import { SITE, WHATSAPP, SOCIALS } from '@/lib/site'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { Button } from '@/components/ui/Button'
 import { whatsappUrl } from '@/lib/site'
+import { NuevaPestana } from '@/components/ui/NuevaPestana'
+
+const esExterno = (href: string) => !href.startsWith('mailto:') && !href.startsWith('tel:')
 
 const infoItems = [
   {
@@ -94,15 +97,27 @@ export function MapaContacto() {
                       {label}
                     </p>
                     {href ? (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-inter text-sm transition-colors duration-200 hover:underline"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        {value}
-                      </a>
+                      // mailto:/tel: abren la app del sistema: sin pestaña nueva.
+                      esExterno(href) ? (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-inter text-sm transition-colors duration-200 hover:underline"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
+                          {value}
+                          <NuevaPestana />
+                        </a>
+                      ) : (
+                        <a
+                          href={href}
+                          className="font-inter text-sm transition-colors duration-200 hover:underline"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
+                          {value}
+                        </a>
+                      )
                     ) : (
                       <p className="font-inter text-sm" style={{ color: 'var(--text-primary)' }}>
                         {value}

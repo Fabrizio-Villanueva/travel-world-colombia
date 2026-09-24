@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useReducedMotion } from '@/components/ui/useReducedMotion'
 import { MAPA_VIEWBOX, PAIS_PATHS, PAIS_XY, PAIS_REGION, FONDO_REGIONES, COLOMBIA_XY } from './mapa-mundo'
 
 /**
@@ -85,21 +86,28 @@ function Pill({
 
 export function MapaDestinos({ paises, nacionales, seleccion, onSelect }: MapaDestinosProps) {
   const [hover, setHover] = useState<string | null>(null)
+  // Foco de teclado: muestra la pastilla y un contorno blanco (capa aparte).
+  const [foco, setFoco] = useState<string | null>(null)
+  const reducir = useReducedMotion()
+  const focoProps = (clave: string) => ({
+    onFocus: () => setFoco(clave),
+    onBlur: () => setFoco(f => (f === clave ? null : f)),
+  })
 
   const togglePais = (pais: string) =>
     onSelect(seleccion === `pais:${pais}` ? null : `pais:${pais}`)
   const nacionalActivo = seleccion === 'nacional'
   const regionSel = seleccion?.startsWith('region:') ? seleccion.slice(7) : null
 
-  // Países del catálogo con programas, ordenados para que el activo/hover se
-  // dibuje al final (su borde queda por encima de los vecinos).
-  const conProgramas = [...paises.entries()].sort(([a], [b]) =>
-    (seleccion === `pais:${a}` || hover === a ? 1 : 0) - (seleccion === `pais:${b}` || hover === b ? 1 : 0)
-  )
+  // Países del catálogo con programas. Orden estable a propósito: antes se
+  // reordenaban para dibujar el activo al final, pero mover el <path> enfocado
+  // en el DOM le quitaba el foco de teclado. El borde del activo se pinta ahora
+  // en una capa aparte, encima de todo.
+  const conProgramas = [...paises.entries()]
 
   // País del que hay que mostrar pastilla: el seleccionado, o el que está en hover.
   const paisSel = seleccion?.startsWith('pais:') ? seleccion.slice(5) : null
-  const paisPill = hover && paises.has(hover) ? hover : paisSel
+  const paisPill = hover && paises.has(hover) ? hover : foco && paises.has(foco) ? foco : paisSel
 
   return (
     <div
@@ -129,7 +137,7 @@ export function MapaDestinos({ paises, nacionales, seleccion, onSelect }: MapaDe
         {PAIS_PATHS['Colombia'] && (
           <path
             d={PAIS_PATHS['Colombia']}
-            fill={nacionalActivo || hover === 'CO' ? 'var(--orange)' : nacionales > 0 ? '#33507f' : tinteZona('Suramérica')}
+            fill={nacionalActivo || hover === 'CO' || foco === 'CO' ? 'var(--orange)' : nacionales > 0 ? '#33507f' : tinteZona('Suramérica')}
             stroke={nacionalActivo ? 'color-mix(in srgb, var(--orange) 70%, #000)' : 'rgba(8, 18, 38, 0.9)'}
             strokeWidth={0.7}
             onClick={nacionales > 0 ? () => onSelect(nacionalActivo ? null : 'nacional') : undefined}
@@ -147,7 +155,7 @@ export function MapaDestinos({ paises, nacionales, seleccion, onSelect }: MapaDe
           const enRegion = regionSel !== null && region === regionSel
           const fill = activo
             ? 'var(--orange)'
-            : hover === pais
+            : hover === pais || foco === pais
               ? 'color-mix(in srgb, var(--orange) 55%, #7a92c4)'
               : enRegion
                 ? 'color-mix(in srgb, var(--orange) 40%, #33507f)'
@@ -167,6 +175,9 @@ export function MapaDestinos({ paises, nacionales, seleccion, onSelect }: MapaDe
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePais(pais) } }}
               onMouseEnter={() => setHover(pais)}
               onMouseLeave={() => setHover(null)}
+              {...focoProps(pais)}
+              // Sin outline nativo (en SVG sale como caja rectangular): el foco
+              // se muestra con el contorno blanco de la capa de foco de abajo.
               style={{ cursor: 'pointer', outline: 'none', transition: 'fill .2s' }}
             />
           )
@@ -177,7 +188,7 @@ export function MapaDestinos({ paises, nacionales, seleccion, onSelect }: MapaDe
         {conProgramas.map(([pais, { n }]) => {
           const xy = PAIS_XY[pais]
           if (!xy) return null
-          const activo = seleccion === `pais:${pais}` || hover === pais
+          const activo = seleccion === `pais:${pais}` || hover === pais || foco === pais
           return (
             <g
               key={`pin-${pais}`}
@@ -189,9 +200,14 @@ export function MapaDestinos({ paises, nacionales, seleccion, onSelect }: MapaDe
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePais(pais) } }}
               onMouseEnter={() => setHover(pais)}
               onMouseLeave={() => setHover(null)}
+              {...focoProps(pais)}
               style={{ cursor: 'pointer', outline: 'none' }}
             >
               <circle cx={xy[0]} cy={xy[1]} r={12} fill="transparent" />
+              {/* Anillo de foco visible (el outline está anulado) */}
+              {foco === pais && !PAIS_PATHS[pais] && (
+                <circle cx={xy[0]} cy={xy[1]} r={8} fill="none" stroke="#fff" strokeWidth={2} />
+              )}
               <circle cx={xy[0]} cy={xy[1]} r={3.5} fill={activo ? 'var(--orange)' : '#FFD84D'} stroke="rgba(0,0,0,0.4)" />
             </g>
           )
@@ -208,24 +224,29 @@ export function MapaDestinos({ paises, nacionales, seleccion, onSelect }: MapaDe
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(nacionalActivo ? null : 'nacional') } }}
             onMouseEnter={() => setHover('CO')}
             onMouseLeave={() => setHover(null)}
+            {...focoProps('CO')}
             style={{ cursor: 'pointer', outline: 'none' }}
           >
             <circle cx={COLOMBIA_XY[0]} cy={COLOMBIA_XY[1]} r={16} fill="transparent" />
+            {/* <animate> ignora el CSS de movimiento reducido: solo se monta si se permite */}
             <circle cx={COLOMBIA_XY[0]} cy={COLOMBIA_XY[1]} r={9} fill="color-mix(in srgb, var(--orange) 30%, transparent)">
-              <animate attributeName="r" values="7;12;7" dur="2.4s" repeatCount="indefinite" />
+              {!reducir && <animate attributeName="r" values="7;12;7" dur="2.4s" repeatCount="indefinite" />}
             </circle>
+            {foco === 'CO' && (
+              <circle cx={COLOMBIA_XY[0]} cy={COLOMBIA_XY[1]} r={14} fill="none" stroke="#fff" strokeWidth={2} />
+            )}
             <circle
               cx={COLOMBIA_XY[0]}
               cy={COLOMBIA_XY[1]}
               r={4.5}
-              fill={nacionalActivo || hover === 'CO' ? 'var(--orange)' : '#FFD84D'}
+              fill={nacionalActivo || hover === 'CO' || foco === 'CO' ? 'var(--orange)' : '#FFD84D'}
               stroke="rgba(0,0,0,0.4)"
             />
             <Pill
               x={COLOMBIA_XY[0] - 78}
               y={COLOMBIA_XY[1] + 22}
               texto={`Colombia · ${nacionales}`}
-              activo={nacionalActivo || hover === 'CO'}
+              activo={nacionalActivo || hover === 'CO' || foco === 'CO'}
               onClick={() => onSelect(nacionalActivo ? null : 'nacional')}
               onHover={() => setHover('CO')}
               onLeave={() => setHover(null)}
@@ -233,13 +254,23 @@ export function MapaDestinos({ paises, nacionales, seleccion, onSelect }: MapaDe
           </g>
         )}
 
-        {/* Pastilla del país en hover o seleccionado (encima de todo) */}
+        {/* Borde del país seleccionado, encima de sus vecinos */}
+        {paisSel && PAIS_PATHS[paisSel] && (
+          <path d={PAIS_PATHS[paisSel]} fill="none" stroke="color-mix(in srgb, var(--orange) 70%, #000)" strokeWidth={0.7} pointerEvents="none" />
+        )}
+
+        {/* Capa de foco: contorno blanco del país enfocado con teclado */}
+        {foco && PAIS_PATHS[foco] && paises.has(foco) && (
+          <path d={PAIS_PATHS[foco]} fill="none" stroke="#fff" strokeWidth={2} pointerEvents="none" />
+        )}
+
+        {/* Pastilla del país en hover, foco o seleccionado (encima de todo) */}
         {paisPill && PAIS_XY[paisPill] && (
           <Pill
             x={PAIS_XY[paisPill][0]}
             y={PAIS_XY[paisPill][1] - 16}
             texto={`${paisPill} · ${paises.get(paisPill)?.n ?? 0}`}
-            activo={seleccion === `pais:${paisPill}` || hover === paisPill}
+            activo={seleccion === `pais:${paisPill}` || hover === paisPill || foco === paisPill}
             onClick={() => togglePais(paisPill)}
             onHover={() => setHover(paisPill)}
             onLeave={() => setHover(null)}
