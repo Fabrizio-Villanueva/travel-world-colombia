@@ -12,6 +12,7 @@ import { enHorario, humanoTomoElChat, registrarEnvio } from '@/lib/agente/conver
 import { fechaBogota, sincronizarCrm } from '@/lib/agente/crm'
 import { extraerFotos } from '@/lib/agente/conocimiento'
 import { registrarEvento } from '@/lib/agente/eventos'
+import { esFestivo } from '@/lib/agente/festivos'
 import {
   CAMPO_IA_NOMBRE,
   HORARIO,
@@ -51,10 +52,15 @@ export interface ResumenSeguimientos {
 }
 
 export async function correrSeguimientos(limite = 8): Promise<ResumenSeguimientos> {
-  // §5: nunca antes de las 8am ni después de las 8pm, ni en domingo. La fila
-  // no se pierde: `programado_para <= hoy` la recoge en la corrida siguiente.
+  // Ley 2300 de 2023: solo L-V 8-19 y sábados 8-15, nunca domingos ni
+  // festivos. La fila no se pierde: `programado_para <= hoy` la recoge en la
+  // corrida siguiente.
   if (!horaDeSeguimiento()) {
-    return { revisados: 0, enviados: 0, notas: ['fuera de la ventana de seguimiento (8-20 Bogotá, domingos no)'] }
+    return {
+      revisados: 0,
+      enviados: 0,
+      notas: ['fuera de la ventana de seguimiento (L-V 8-19, sáb 8-15 Bogotá; domingos y festivos no)'],
+    }
   }
 
   const admin = createAdminClient()
@@ -155,7 +161,7 @@ async function atenderSeguimiento(fila: FilaSeguimiento): Promise<string> {
   }
 
   // Si el modelo escribió pero olvidó programar el siguiente intento, la
-  // cadena de decaimiento no se corta: 3 días por intento, esquivando domingo.
+  // cadena de decaimiento no se corta: 3 días por intento, esquivando domingos y festivos.
   if (habla && intento < MAX_INTENTOS_SEGUIMIENTO && !decision.seguimiento) {
     decision.seguimiento = {
       proximo_contacto: fechaEnDias(3 * intento),
@@ -205,7 +211,11 @@ async function cerrar(fila: FilaSeguimiento, motivo: string): Promise<string> {
   return `cerrado: ${motivo}`
 }
 
-/** Ventana de seguimiento de §5: 8-20 hora de Colombia, nunca en domingo. */
+/**
+ * Ventana de contacto comercial de la Ley 2300 de 2023 ("Dejen de fregar"):
+ * L-V 7:00-19:00 y sábados 8:00-15:00, nunca domingos ni festivos. Aquí se usa
+ * L-V desde las 8 (un margen), en hora de Colombia.
+ */
 function horaDeSeguimiento(ahora = new Date()): boolean {
   const f = new Intl.DateTimeFormat('en-US', {
     timeZone: HORARIO.zona,
@@ -216,13 +226,18 @@ function horaDeSeguimiento(ahora = new Date()): boolean {
 
   const dia = f.find(p => p.type === 'weekday')?.value ?? ''
   const hora = Number(f.find(p => p.type === 'hour')?.value ?? -1)
-  return dia !== 'Sun' && hora >= 8 && hora < 20
+  const fecha = new Intl.DateTimeFormat('en-CA', { timeZone: HORARIO.zona }).format(ahora)
+  if (dia === 'Sun' || esFestivo(fecha)) return false
+  if (dia === 'Sat') return hora >= 8 && hora < 15
+  return hora >= 8 && hora < 19
 }
 
-/** Fecha de Bogotá + n días en YYYY-MM-DD; si cae domingo, corre al lunes. */
+/** Fecha de Bogotá + n días en YYYY-MM-DD; si cae domingo o festivo, corre al siguiente día hábil. */
 function fechaEnDias(dias: number): string {
   const base = new Date(`${fechaBogota()}T12:00:00Z`)
   base.setUTCDate(base.getUTCDate() + dias)
-  if (base.getUTCDay() === 0) base.setUTCDate(base.getUTCDate() + 1)
+  while (base.getUTCDay() === 0 || esFestivo(base.toISOString().slice(0, 10))) {
+    base.setUTCDate(base.getUTCDate() + 1)
+  }
   return base.toISOString().slice(0, 10)
 }

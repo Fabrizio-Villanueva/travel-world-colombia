@@ -141,8 +141,9 @@ razonando sobre el contexto. Variables que pesan:
   seguimiento largo, con enfoque en plan de pagos o temporada baja.
 - **Número de intentos** — decaimiento: cada reintento espacia más y cambia de
   ángulo. Máximo 3-4, luego `dormido`.
-- **Hora y día** — nunca antes de las 8am ni después de las 8pm hora Colombia;
-  evitar domingos (la agencia cierra).
+- **Hora y día** — Ley 2300 de 2023 ("Dejen de fregar"): L-V 8am-7pm y
+  sábados 8am-3pm hora Colombia; nunca domingos ni festivos
+  (`lib/agente/festivos.ts`).
 
 **Cada seguimiento debe aportar algo nuevo.** Prohibido el "¿sigues interesado?"
 a secas. Ejemplos de ángulos: una foto del destino, una fecha con cupo, un

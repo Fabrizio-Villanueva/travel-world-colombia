@@ -6,7 +6,7 @@ import { z } from 'zod'
  * ⚠️ FORMA REAL (verificada con tráfico de producción el 2026-08-03): la acción
  * "Webhook personalizado" de GHL manda ÚNICAMENTE los datos del contacto —
  *
- *     { "id": "toX9eLYXnTq6JlETo78C", "name": "Nath ✨", "email": "", "phone": "310 3548495" }
+ *     { "id": "<contactId>", "name": "Nombre ✨", "email": "", "phone": "300 0000000" }
  *
  * — sin el texto del mensaje, sin conversación y sin dirección. El `id` es el
  * del CONTACTO. Por eso el webhook se trata como un "campanazo" y el contenido
