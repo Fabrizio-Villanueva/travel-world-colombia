@@ -37,7 +37,7 @@ export async function submitCotizacion(raw: unknown): Promise<ActionResult> {
 
   const d = parsed.data
   const telefono = `+57${d.whatsapp}`
-  const fecha_viaje = `${d.fecha_mes} ${d.fecha_año}`
+  const fecha_viaje = [d.fecha_mes, d.fecha_año].filter(Boolean).join(' ') || undefined
 
   // Pseudo-email requerido por GHL para crear contacto
   const email = `${d.whatsapp}@contacto.travelworldcolombia.com`

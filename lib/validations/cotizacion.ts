@@ -12,6 +12,13 @@ export const MESES = [
   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
 ] as const
 
+// Los selects y radios sin elegir llegan como '' / null / NaN: se tratan como
+// "no respondió" para que los campos opcionales pasen la validación.
+const vacioAUndefined = (v: unknown) =>
+  v === '' || v === null || (typeof v === 'number' && Number.isNaN(v)) ? undefined : v
+
+// Minimización de datos (Ley 1581): para cotizar bastan nombre, WhatsApp y
+// destino. Viajeros, fechas y presupuesto ayudan al asesor pero son opcionales.
 export const cotizacionSchema = z.object({
   nombre: z
     .string()
@@ -28,25 +35,40 @@ export const cotizacionSchema = z.object({
 
   destino_interes: z.string().min(1, 'Selecciona un destino').max(100),
 
-  num_viajeros: z
-    .number({ error: 'Número inválido' })
-    .int()
-    .min(1, 'Mínimo 1 viajero')
-    .max(20, 'Máximo 20 viajeros'),
+  num_viajeros: z.preprocess(
+    v => {
+      const x = vacioAUndefined(v)
+      return x === undefined ? undefined : Number(x)
+    },
+    z
+      .number({ error: 'Número inválido' })
+      .int()
+      .min(1, 'Mínimo 1 viajero')
+      .max(20, 'Máximo 20 viajeros')
+      .optional()
+  ),
 
-  fecha_mes: z.enum(MESES, { error: 'Selecciona un mes' }),
-  fecha_año: z
-    .string()
-    .regex(/^\d{4}$/, 'Selecciona un año')
-    .refine(v => {
-      const año = Number(v)
-      const actual = new Date().getFullYear()
-      return año >= actual && año <= actual + 3
-    }, 'Selecciona un año válido'),
+  fecha_mes: z.preprocess(vacioAUndefined, z.enum(MESES, { error: 'Selecciona un mes válido' }).optional()),
+  fecha_año: z.preprocess(
+    vacioAUndefined,
+    z
+      .string()
+      .regex(/^\d{4}$/, 'Selecciona un año')
+      .refine(v => {
+        const año = Number(v)
+        const actual = new Date().getFullYear()
+        return año >= actual && año <= actual + 3
+      }, 'Selecciona un año válido')
+      .optional()
+  ),
 
-  presupuesto: z.enum(
-    ['menos-2m', '2m-5m', '5m-10m', 'mas-10m'] as const,
-    { error: 'Selecciona un rango de presupuesto' }
+  presupuesto: z.preprocess(
+    vacioAUndefined,
+    z
+      .enum(['menos-2m', '2m-5m', '5m-10m', 'mas-10m'] as const, {
+        error: 'Selecciona un rango de presupuesto',
+      })
+      .optional()
   ),
 
   mensaje: z.string().max(1000, 'Máximo 1000 caracteres').optional(),
@@ -56,3 +78,5 @@ export const cotizacionSchema = z.object({
 })
 
 export type CotizacionInput = z.infer<typeof cotizacionSchema>
+/** Valores crudos del formulario (antes de validar). */
+export type CotizacionFormValues = z.input<typeof cotizacionSchema>
