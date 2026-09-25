@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
+import Link from 'next/link'
 import { DollarSign, ShieldCheck, MessageCircle, ExternalLink } from 'lucide-react'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { BotonCopiar } from '@/components/ui/BotonCopiar'
@@ -9,19 +10,22 @@ import { WHATSAPP } from '@/lib/site'
 /**
  * Página de pagos, rescatada del WordPress viejo (snapshot Wayback 2026-06-14):
  * botón PSE (portal de pagos Davivienda del comercio Vamos Por Más SAS), pago
- * con tarjeta (checkout Wompi, +5% datáfono virtual), consignación nacional
- * (Bancolombia / Davivienda) y pagos desde EE. UU. (Zelle / Chase).
+ * con tarjeta (datáfono virtual de Prix, +5%), consignación nacional
+ * (Bancolombia / Davivienda) y pagos en dólares: en línea desde Colombia (Prix)
+ * o desde EE. UU. (Zelle / Chase).
  */
 
 export const metadata: Metadata = {
   title: 'Pagos',
   description:
-    'Paga tu viaje de forma segura: PSE sin costo, tarjeta de crédito, consignación en Bancolombia o Davivienda, y Zelle o Chase desde Estados Unidos.',
+    'Paga tu viaje de forma segura: PSE sin costo, tarjeta de crédito, consignación en Bancolombia o Davivienda, y pagos en dólares desde Colombia o por Zelle y Chase desde Estados Unidos.',
   alternates: { canonical: '/pagos' },
 }
 
 const PSE_URL = 'https://portalpagos.davivienda.com/#/comercio/9012/VAMOS%20POR%20MAS%20SAS'
-const WOMPI_URL = 'https://checkout.wompi.co/l/VPOS_Gkcr2Y'
+const TARJETA_URL = 'https://app.prix.la/pay/3fa8934a281d1d399913c69f18e5b0a9c9c3726e6e2123dc3bb421d73ea67265'
+/** Datáfono virtual de Prix para cobrar en dólares a clientes en Colombia. */
+const DOLARES_COLOMBIA_URL = 'https://app.prix.la/pay/ac7c4d06d8e3b3902b80c58f32758166550a396ff8492bb74169dbe4a2365676'
 
 /** Logos de los medios de pago (en /public/img/pagos, recortados a 160 px de alto). */
 const LOGOS = {
@@ -68,16 +72,16 @@ function TarjetaCuenta({
       className="flex flex-wrap items-center justify-between gap-3 rounded-2xl p-5"
       style={{ background: '#fff', border: '1px solid var(--border)' }}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 items-center gap-4">
         {/* Caja fija + object-contain: los logos tienen proporciones muy distintas. */}
         <span className="relative h-10 w-24 shrink-0 sm:w-28">
           <Image src={logo.src} alt="" fill sizes="112px" className="object-contain object-left" />
         </span>
-        <div>
+        <div className="min-w-0">
           <p className="font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
             {banco} · {tipo}
           </p>
-          <p className="mt-0.5 font-plus-jakarta text-lg font-extrabold tracking-wide" style={{ color: 'var(--text-primary)' }}>
+          <p className="mt-0.5 break-all font-plus-jakarta text-lg font-extrabold tracking-wide" style={{ color: 'var(--text-primary)' }}>
             {numero}
           </p>
         </div>
@@ -110,7 +114,7 @@ export default function PagosPage() {
           </h1>
           <p className="mt-5 max-w-lg font-inter text-sm leading-relaxed sm:text-base" style={{ color: 'var(--text-primary)', opacity: 0.9 }}>
             Elige el medio que prefieras: pago en línea con PSE o tarjeta, consignación en
-            Colombia, o Zelle y Chase desde Estados Unidos.
+            Colombia, o pagos en dólares desde Colombia y Estados Unidos.
           </p>
         </div>
       </section>
@@ -178,7 +182,7 @@ export default function PagosPage() {
                 </p>
               </div>
               <a
-                href={WOMPI_URL}
+                href={TARJETA_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 font-plus-jakarta text-sm font-bold transition-transform duration-150 active:scale-[0.99]"
@@ -206,13 +210,56 @@ export default function PagosPage() {
           </div>
         </section>
 
-        {/* ── Pagos desde Estados Unidos ── */}
+        {/* ── Pagos en dólares: desde Colombia (en línea) y desde Estados Unidos ── */}
         <section className="mb-14">
           <h2 className="mb-2 flex items-center gap-2.5 font-plus-jakarta text-2xl font-extrabold tracking-tight sm:text-3xl" style={{ color: 'var(--text-primary)' }}>
-            <DollarSign size={26} style={{ color: 'var(--orange)' }} />
-            Pagos en dólares (Estados Unidos)
+            <DollarSign size={26} style={{ color: 'var(--orange)' }} aria-hidden />
+            Pagos en dólares
           </h2>
-          <p className="mb-6 font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
+          <p className="mb-8 font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
+            Paga en dólares en línea desde Colombia, o desde Estados Unidos por Zelle o Chase Bank.
+          </p>
+
+          <h3 className="mb-3 font-plus-jakarta text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+            Desde Colombia
+          </h3>
+          <div
+            className="mb-10 flex flex-col gap-5 rounded-2xl p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
+            style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex items-start gap-4">
+              <span
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+                style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}
+              >
+                <DollarSign size={22} aria-hidden />
+              </span>
+              <div>
+                <p className="font-plus-jakarta text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+                  Pago en dólares desde Colombia
+                </p>
+                <p className="mt-1 max-w-xl font-inter text-sm leading-relaxed" style={{ color: 'var(--text-dim)' }}>
+                  Si tu viaje está cotizado en dólares, págalo en línea desde Colombia a través de
+                  nuestro datáfono virtual.
+                </p>
+              </div>
+            </div>
+            <a
+              href={DOLARES_COLOMBIA_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-3.5 font-plus-jakarta text-sm font-bold transition-transform duration-150 active:scale-[0.99]"
+              style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}
+            >
+              Haz tu pago aquí<span className="sr-only"> en dólares desde Colombia</span> <ExternalLink size={15} aria-hidden />
+              <NuevaPestana />
+            </a>
+          </div>
+
+          <h3 className="mb-1 font-plus-jakarta text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+            Desde Estados Unidos
+          </h3>
+          <p className="mb-4 font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
             Si estás en Estados Unidos, puedes pagar por Zelle o consignar en nuestra cuenta de
             Chase Bank.
           </p>
@@ -256,6 +303,20 @@ export default function PagosPage() {
             <NuevaPestana />
           </a>
         </section>
+
+        {/* ── Aviso legal: pagar implica aceptar los términos de la agencia ── */}
+        <p className="mt-6 font-inter text-xs leading-relaxed sm:text-sm" style={{ color: 'var(--text-dim)' }}>
+          Al realizar un pago por cualquiera de los medios de esta página, declaras que conoces y
+          aceptas nuestros{' '}
+          <Link href="/terminos-y-condiciones" className="font-semibold underline underline-offset-2" style={{ color: 'var(--text-primary)' }}>
+            Términos y condiciones
+          </Link>
+          , incluidas las condiciones de reserva, cambios, cancelaciones y reembolsos, y nuestra{' '}
+          <Link href="/privacidad" className="font-semibold underline underline-offset-2" style={{ color: 'var(--text-primary)' }}>
+            Política de privacidad
+          </Link>
+          . Si tienes dudas, escríbenos antes de pagar.
+        </p>
       </div>
     </div>
   )
