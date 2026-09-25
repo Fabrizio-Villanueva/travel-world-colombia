@@ -3,24 +3,18 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Menu, X, ChevronDown } from 'lucide-react'
+import { Menu, X, ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { NAV_LINKS, SERVICIOS_MENU, SITE } from '@/lib/site'
 import { scrollBehavior } from '@/components/ui/useReducedMotion'
+import type { ColumnaMenu, ItemMenu } from '@/lib/menuDestinos'
 
 interface NavbarProps {
-  /** Regiones (continentes) con destinos activos, para el submenú de Destinos. */
-  regiones: string[]
-  /** Si hay destinos en Colombia, el submenú ofrece la entrada nacional. */
-  hayNacionales: boolean
+  /** Menú "Destinos" con sus submenús por región (lo arma el layout en el servidor). */
+  destinosMenu: ItemMenu[]
 }
 
-interface SubItem {
-  label: string
-  href: string
-  /** Filtros del explorador de /destinos (?f=...) — ver goFiltro. */
-  esFiltro?: boolean
-}
+type SubItem = ItemMenu
 
 /**
  * Mismo evento que dispara el explorador de /destinos al cambiar ?f= con
@@ -54,34 +48,76 @@ const estiloLink = {
     'u-underline font-plus-jakarta text-[11px] font-bold tracking-[0.15em] uppercase text-(--text-primary) transition-colors hover:text-orange',
 } as const
 
+/** ¿El foco llegó con teclado? (con mouse, un clic deja el foco en el enlace). */
+const conTeclado = (el: EventTarget) => el instanceof HTMLElement && el.matches(':focus-visible')
+
 /**
- * Item del navbar desktop con panel desplegable (hover y foco dentro).
- * Estado en React (antes solo CSS group-hover/focus-within) para exponer
- * aria-expanded y poder cerrarlo con Escape sin sacar el foco del enlace.
+ * Item del navbar desktop con panel desplegable.
+ *
+ * Se abre al pasar el cursor y se cierra apenas sale del menú. El foco solo lo
+ * mantiene abierto si llegó con teclado: antes, el clic dejaba el foco en el
+ * enlace y el panel seguía abierto aunque el cursor ya se hubiera ido.
+ *
+ * Los ítems con `hijos` (regiones de Destinos) abren un submenú lateral con
+ * sus destinos. El cambio entre submenús espera un instante para que cruzar
+ * en diagonal hacia el submenú no active la región de abajo.
  */
 function DropdownDesktop({ label, href, items, onItemClick }: {
   label: string
   href: string
   items: SubItem[]
-  onItemClick?: (e: React.MouseEvent, item: SubItem) => void
+  onItemClick?: (e: React.MouseEvent, item: { href: string; esFiltro?: boolean }) => void
 }) {
   const [hover, setHover] = useState(false)
   const [foco, setFoco] = useState(false)
+  const [activo, setActivo] = useState<string | null>(null)
+  const timer = useRef<number | undefined>(undefined)
   const abierto = hover || foco
   const triggerRef = useRef<HTMLAnchorElement>(null)
+  const conSubmenus = items.some(i => i.hijos)
+
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  const cerrar = () => {
+    window.clearTimeout(timer.current)
+    setHover(false)
+    setFoco(false)
+    setActivo(null)
+  }
+
+  // Abre al instante si no hay otro submenú abierto; si lo hay, espera.
+  const apuntar = (clave: string) => {
+    window.clearTimeout(timer.current)
+    if (activo === null) setActivo(clave)
+    else timer.current = window.setTimeout(() => setActivo(clave), 160)
+  }
+
+  const clic = (e: React.MouseEvent, item: { href: string; esFiltro?: boolean }) => {
+    onItemClick?.(e, item)
+    cerrar()
+    ;(document.activeElement as HTMLElement | null)?.blur()
+  }
+
+  const claseItem =
+    'block rounded-lg px-4 py-2.5 font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase text-(--text-primary) transition-colors hover:bg-white/5 hover:text-orange'
+  const panel = {
+    background: 'var(--dark)',
+    border: '1px solid var(--border)',
+    boxShadow: '0 16px 40px rgba(8, 18, 38, 0.5)',
+  }
+
   return (
     <li
       className="relative"
       onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onFocus={() => setFoco(true)}
+      onMouseLeave={cerrar}
+      onFocus={e => { if (conTeclado(e.target)) setFoco(true) }}
       onBlur={e => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFoco(false)
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) cerrar()
       }}
       onKeyDown={e => {
         if (e.key === 'Escape' && abierto) {
-          setHover(false)
-          setFoco(false)
+          cerrar()
           triggerRef.current?.focus()
         }
       }}
@@ -93,38 +129,119 @@ function DropdownDesktop({ label, href, items, onItemClick }: {
         </span>
       </Link>
       {/* pt-4 mantiene el hover al cruzar el espacio entre el link y el panel.
-          Con muchos ítems el panel va a 2 columnas: si crece hacia abajo choca
-          con el botón flotante de WhatsApp (z-50, por encima del header z-40). */}
+          Con muchos ítems (y sin submenús) el panel va a 2 columnas: si crece
+          hacia abajo choca con el botón flotante de WhatsApp (z-50). */}
       <div className={`absolute left-1/2 -translate-x-1/2 pt-4 transition-all duration-200 ${abierto ? 'visible opacity-100' : 'invisible opacity-0'}`}>
         <ul
-          className={`${items.length > 8 ? 'grid w-[26rem] grid-cols-2' : 'min-w-56'} rounded-xl p-2`}
-          style={{
-            background: 'var(--dark)',
-            border: '1px solid var(--border)',
-            boxShadow: '0 16px 40px rgba(8, 18, 38, 0.5)',
-          }}
+          className={`relative ${items.length > 8 && !conSubmenus ? 'grid w-[26rem] grid-cols-2' : 'min-w-56'} rounded-xl p-2`}
+          style={panel}
         >
-          {items.map(item => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                onClick={e => onItemClick?.(e, item)}
-                className="block rounded-lg px-4 py-2.5 font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase text-(--text-primary) transition-colors hover:bg-white/5 hover:text-orange"
+          {items.map(item => {
+            const conHijos = Boolean(item.hijos?.length)
+            const visible = abierto && conHijos && activo === item.href
+            return (
+              <li
+                key={item.href}
+                onMouseEnter={() => apuntar(item.href)}
+                onFocus={e => { if (conTeclado(e.target)) setActivo(item.href) }}
               >
-                {item.label}
-              </Link>
-            </li>
-          ))}
+                <Link
+                  href={item.href}
+                  onClick={e => clic(e, item)}
+                  aria-expanded={conHijos ? visible : undefined}
+                  className={`${claseItem} ${conHijos ? 'flex items-center justify-between gap-4' : ''} ${visible ? 'bg-white/5 text-orange' : ''}`}
+                >
+                  {item.label}
+                  {conHijos && <ChevronRight size={13} aria-hidden className="hidden lg:block" />}
+                </Link>
+                {conHijos && (
+                  <Submenu
+                    visible={visible}
+                    label={item.label}
+                    columnas={item.hijos!}
+                    verTodos={item}
+                    estilo={panel}
+                    onEnter={() => window.clearTimeout(timer.current)}
+                    onClick={clic}
+                  />
+                )}
+              </li>
+            )
+          })}
         </ul>
       </div>
     </li>
   )
 }
 
-export function Navbar({ regiones, hayNacionales }: NavbarProps) {
+/** Submenú lateral de una región: sus destinos (en columnas) y "Ver todos". */
+function Submenu({ visible, label, columnas, verTodos, estilo, onEnter, onClick }: {
+  visible: boolean
+  label: string
+  columnas: ColumnaMenu[]
+  verTodos: { href: string; esFiltro?: boolean }
+  estilo: React.CSSProperties
+  onEnter: () => void
+  onClick: (e: React.MouseEvent, item: { href: string; esFiltro?: boolean }) => void
+}) {
+  // Una región sin subgrupos y con muchos destinos se reparte en 2 columnas.
+  const partir = columnas.length === 1 && columnas[0].items.length > 7
+  const anchas = columnas.length > 1 || partir
+  return (
+    // Anclado a la lista del primer nivel (no al ítem): arranca arriba, a su
+    // derecha; el pl-2 es un puente para no perder el hover al cruzar.
+    // Solo desde lg: entre md y lg (tablet) no cabe a la derecha y la región
+    // enlaza directo a su listado filtrado.
+    <div
+      onMouseEnter={onEnter}
+      className={`absolute left-full top-0 hidden pl-2 transition-opacity duration-150 lg:block ${visible ? 'visible opacity-100' : 'invisible opacity-0'}`}
+    >
+      <div className={`rounded-xl p-4 ${anchas ? 'w-[34rem]' : 'w-72'}`} style={estilo}>
+        <div className={`grid gap-x-6 gap-y-4 ${columnas.length > 1 ? 'grid-cols-2' : ''}`}>
+          {columnas.map((col, i) => (
+            <div key={col.titulo ?? i}>
+              {col.titulo && (
+                <p className="mb-2 px-3 font-plus-jakarta text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: 'var(--eyebrow)' }}>
+                  {col.titulo}
+                </p>
+              )}
+              <ul className={partir ? 'grid grid-cols-2 gap-x-6' : ''}>
+                {col.items.map(d => (
+                  <li key={d.href}>
+                    <Link
+                      href={d.href}
+                      onClick={e => onClick(e, d)}
+                      className="block rounded-lg px-3 py-2 font-inter text-[13px] leading-snug text-(--text-primary) transition-colors hover:bg-white/5 hover:text-orange"
+                    >
+                      {d.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+          <Link
+            href={verTodos.href}
+            onClick={e => onClick(e, verTodos)}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase transition-colors hover:bg-white/5"
+            style={{ color: 'var(--orange)' }}
+          >
+            Ver todos · {label} <ChevronRight size={13} aria-hidden />
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function Navbar({ destinosMenu }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
   const [subAbierto, setSubAbierto] = useState<string | null>(null)
+  // Tercer nivel en el móvil: la región desplegada dentro de "Destinos".
+  const [regionAbierta, setRegionAbierta] = useState<string | null>(null)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -133,15 +250,7 @@ export function Navbar({ regiones, hayNacionales }: NavbarProps) {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const destinosItems: SubItem[] = [
-    { label: 'Todos los destinos', href: '/destinos', esFiltro: true },
-    ...(hayNacionales ? [{ label: 'Colombia', href: '/destinos?f=nacional', esFiltro: true }] : []),
-    ...regiones.map(r => ({
-      label: r,
-      href: `/destinos?f=${encodeURIComponent(`region:${r}`)}`,
-      esFiltro: true,
-    })),
-  ]
+  const destinosItems: SubItem[] = destinosMenu
 
   const serviciosItems: SubItem[] = SERVICIOS_MENU.map(s => ({ label: s.label, href: s.href }))
 
@@ -150,13 +259,14 @@ export function Navbar({ regiones, hayNacionales }: NavbarProps) {
     '/servicios': serviciosItems,
   }
 
-  const onSubItemClick = (e: React.MouseEvent, item: SubItem) => {
+  const onSubItemClick = (e: React.MouseEvent, item: { href: string; esFiltro?: boolean }) => {
     if (item.esFiltro) goFiltro(e, item.href)
   }
 
   const cerrarMovil = () => {
     setOpen(false)
     setSubAbierto(null)
+    setRegionAbierta(null)
   }
 
   // Menú móvil accesible: al abrir, el foco entra al primer enlace; Tab queda
@@ -295,20 +405,74 @@ export function Navbar({ regiones, hayNacionales }: NavbarProps) {
                   </div>
                   {items && abierto && (
                     <ul className="mb-2 flex flex-col border-l pl-4" style={{ borderColor: 'var(--border)' }}>
-                      {items.map(item => (
-                        <li key={item.href}>
-                          <Link
-                            href={item.href}
-                            onClick={e => {
-                              onSubItemClick(e, item)
-                              cerrarMovil()
-                            }}
-                            className="block py-2.5 font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase text-(--text-dim) transition-colors hover:text-orange"
-                          >
-                            {item.label}
-                          </Link>
-                        </li>
-                      ))}
+                      {items.map(item => {
+                        const irA = (e: React.MouseEvent, destino: { href: string; esFiltro?: boolean }) => {
+                          onSubItemClick(e, destino)
+                          cerrarMovil()
+                        }
+                        const claseSub =
+                          'block flex-1 py-2.5 font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase text-(--text-dim) transition-colors hover:text-orange'
+                        if (!item.hijos?.length) {
+                          return (
+                            <li key={item.href}>
+                              <Link href={item.href} onClick={e => irA(e, item)} className={claseSub}>
+                                {item.label}
+                              </Link>
+                            </li>
+                          )
+                        }
+                        // Región con destinos: tercer nivel desplegable.
+                        const regionOn = regionAbierta === item.href
+                        return (
+                          <li key={item.href}>
+                            <div className="flex items-center">
+                              <Link href={item.href} onClick={e => irA(e, item)} className={claseSub}>
+                                {item.label}
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => setRegionAbierta(regionOn ? null : item.href)}
+                                aria-expanded={regionOn}
+                                aria-label={`${regionOn ? 'Ocultar' : 'Ver'} destinos de ${item.label}`}
+                                className="p-2.5"
+                                style={{ color: 'var(--text-dim)' }}
+                              >
+                                <ChevronDown
+                                  size={14}
+                                  className="transition-transform"
+                                  style={{ transform: regionOn ? 'rotate(180deg)' : 'none' }}
+                                />
+                              </button>
+                            </div>
+                            {regionOn && (
+                              <div className="mb-2 border-l pl-4" style={{ borderColor: 'var(--border)' }}>
+                                {item.hijos.map((col, i) => (
+                                  <div key={col.titulo ?? i} className="py-1">
+                                    {col.titulo && (
+                                      <p className="pt-1 font-plus-jakarta text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: 'var(--eyebrow)' }}>
+                                        {col.titulo}
+                                      </p>
+                                    )}
+                                    <ul>
+                                      {col.items.map(d => (
+                                        <li key={d.href}>
+                                          <Link
+                                            href={d.href}
+                                            onClick={cerrarMovil}
+                                            className="block py-2 font-inter text-[13px] text-(--text-primary) transition-colors hover:text-orange"
+                                          >
+                                            {d.label}
+                                          </Link>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </li>
+                        )
+                      })}
                     </ul>
                   )}
                 </li>

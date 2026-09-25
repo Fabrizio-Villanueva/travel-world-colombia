@@ -10,6 +10,7 @@ import { FbPixelTracker } from '@/components/analytics/FbPixelTracker'
 import { SITE, WHATSAPP, SOCIALS } from '@/lib/site'
 import { jsonLd } from '@/lib/seo/jsonLd'
 import { getDestinos } from '@/lib/destinos'
+import { menuDestinos } from '@/lib/menuDestinos'
 
 const schemaOrg = {
   '@context': 'https://schema.org',
@@ -136,14 +137,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  // Regiones reales para el submenú "Destinos" del navbar (mismo criterio que
+  // Menú "Destinos" del navbar con destinos reales (mismo criterio que
   // /destinos: sin cruceros). getDestinos está cacheado por request, así que en
   // las páginas que ya lo consultan no agrega viajes extra a Supabase.
-  const destinos = (await getDestinos()).filter(d => !d.es_crucero)
-  const regiones = [...new Set(
-    destinos.filter(d => d.pais !== 'Colombia' && d.region).map(d => d.region as string)
-  )]
-  const hayNacionales = destinos.some(d => d.pais === 'Colombia')
+  const destinosMenu = menuDestinos((await getDestinos()).filter(d => !d.es_crucero))
 
   return (
     <html
@@ -174,7 +171,7 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLd(schemaOrg) }}
         />
-        <PublicOnly><Navbar regiones={regiones} hayNacionales={hayNacionales} /></PublicOnly>
+        <PublicOnly><Navbar destinosMenu={destinosMenu} /></PublicOnly>
         <main id="contenido">{children}</main>
         <PublicOnly><Footer /></PublicOnly>
         <PublicOnly><WhatsAppButton /></PublicOnly>
