@@ -3,6 +3,7 @@ import { Star, MapPin, BedDouble, Check, MessageCircle } from 'lucide-react'
 import type { OpcionHospedaje } from '@/types/destino'
 import { whatsappHospedajeUrl } from '@/lib/site'
 import { NuevaPestana } from '@/components/ui/NuevaPestana'
+import { TextoColapsable } from '@/components/ui/TextoColapsable'
 
 /**
  * Sección "Hospedaje" del producto: cada opción (2★ hostal, 4★ hotel, cabina
@@ -65,8 +66,11 @@ function TarjetaHospedaje({ opcion: o, destino }: { opcion: OpcionHospedaje; des
       className="destino-reveal grid overflow-hidden rounded-2xl transition-shadow duration-300 hover:shadow-[0_12px_32px_rgba(8,18,38,0.12)] md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] lg:grid-cols-[18rem_minmax(0,1fr)_16rem]"
       style={{ background: '#fff', border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}
     >
-      {/* Foto */}
-      <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[220px]" style={{ background: 'var(--navy)' }}>
+      {/* Foto: altura FIJA en escritorio (no se estira con el texto de la
+          tarjeta), así todas las opciones muestran la foto del mismo tamaño
+          aunque una descripción sea más larga que otra. La descripción larga
+          se recorta con "Ver más" (abajo). */}
+      <div className="relative aspect-[16/10] md:aspect-auto md:h-60 md:self-start lg:h-64" style={{ background: 'var(--navy)' }}>
         {o.imagen ? (
           <Image
             src={o.imagen}
@@ -96,9 +100,12 @@ function TarjetaHospedaje({ opcion: o, destino }: { opcion: OpcionHospedaje; des
             {o.titulo}
           </h3>
           {o.descripcion && (
-            <p className="mt-1.5 font-inter text-sm leading-relaxed" style={{ color: 'var(--text-dim)' }}>
-              {o.descripcion}
-            </p>
+            <TextoColapsable
+              texto={o.descripcion}
+              lineas={3}
+              className="mt-1.5 font-inter text-sm leading-relaxed"
+              style={{ color: 'var(--text-dim)' }}
+            />
           )}
         </div>
 
