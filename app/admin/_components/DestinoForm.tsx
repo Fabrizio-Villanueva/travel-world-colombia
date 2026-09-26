@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { startTransition, useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import { ArrowLeft, HelpCircle, ExternalLink, Loader2, ImagePlus } from 'lucide-react'
-import type { Destino } from '@/types/destino'
+import type { CategoriaArbol, Destino } from '@/types/destino'
 import type { FormState } from '../destinos/actions'
 import { RepetidorObjetos } from './RepetidorObjetos'
 import { HighlightsEditor } from './HighlightsEditor'
@@ -11,6 +11,7 @@ import { ItinerarioEditor } from './ItinerarioEditor'
 import { GaleriaEditor } from './GaleriaEditor'
 import { ArchivosEditor } from './ArchivosEditor'
 import { HospedajeEditor } from './HospedajeEditor'
+import { CategoriasSelector } from './CategoriasSelector'
 import { BUCKET_DESTINOS, subirAStorage, validarImagen, slugDelFormulario } from '@/lib/supabase/upload-cliente'
 import { PAISES, REGIONES } from '@/lib/paises'
 
@@ -187,7 +188,12 @@ function ImagenCampo({ label, name, urlActual, reco }: { label: string; name: st
   )
 }
 
-export function DestinoForm({ action, destino, titulo }: { action: Action; destino?: Destino; titulo: string }) {
+export function DestinoForm({ action, destino, titulo, categorias }: {
+  action: Action
+  destino?: Destino
+  titulo: string
+  categorias: CategoriaArbol[]
+}) {
   const [state, formAction, pending] = useActionState(action, {})
   const d = destino
 
@@ -386,9 +392,13 @@ export function DestinoForm({ action, destino, titulo }: { action: Action; desti
         <label className="flex items-center gap-2 font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
           <input type="checkbox" name="salida_fin_ano" defaultChecked={d?.salida_fin_ano ?? false} /> Salida confirmada fin de año
         </label>
-        <label className="flex items-center gap-2 font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
-          <input type="checkbox" name="es_crucero" defaultChecked={d?.es_crucero ?? false} /> Es crucero (va en /cruceros)
-        </label>
+      </Seccion>
+
+      <Seccion
+        titulo="Categorías"
+        ayuda="Clasifica el viaje: puede tener varias categorías (ej. Cruceros › Sin visa y Todo incluido). Se ven como etiqueta en la tarjeta del viaje y sirven de filtro en /destinos. La categoría Cruceros hace que el viaje salga en la página /cruceros."
+      >
+        <CategoriasSelector arbol={categorias} iniciales={d?.categorias ?? []} />
       </Seccion>
 
       <Seccion

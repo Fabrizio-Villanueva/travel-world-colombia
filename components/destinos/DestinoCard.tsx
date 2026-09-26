@@ -88,6 +88,25 @@ export function DestinoCard({
           <Titulo className="font-plus-jakarta text-base font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
             {d.nombre}
           </Titulo>
+          {/* Categorías del viaje (editables en el panel): máx. 2 + "+N". */}
+          {d.etiquetas && d.etiquetas.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5" aria-label="Categorías">
+              {d.etiquetas.slice(0, 2).map(e => (
+                <li
+                  key={e}
+                  className="rounded-full px-2.5 py-0.5 font-inter text-[11px] font-medium"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)', color: 'var(--text-dim)' }}
+                >
+                  {e}
+                </li>
+              ))}
+              {d.etiquetas.length > 2 && (
+                <li className="px-1 font-inter text-[11px]" style={{ color: 'var(--text-dim)' }}>
+                  +{d.etiquetas.length - 2}
+                </li>
+              )}
+            </ul>
+          )}
           {d.descripcion && (
             <p className="line-clamp-2 font-inter text-base leading-relaxed" style={{ color: 'var(--text-muted)' }}>
               {d.descripcion}

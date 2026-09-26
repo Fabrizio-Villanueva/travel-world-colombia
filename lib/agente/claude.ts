@@ -4,6 +4,7 @@ import { construirConocimiento } from '@/lib/agente/conocimiento'
 import { resolverAudios } from '@/lib/agente/transcribir'
 import { HORARIO } from '@/lib/agente/config'
 import type { MensajeGhl } from '@/lib/agente/ghl'
+import type { AnuncioContexto } from '@/lib/agente/anuncios'
 
 export interface Decision {
   accion: 'responder' | 'callar' | 'escalar'
@@ -104,6 +105,8 @@ export async function decidir(
     primerContacto?: boolean
     /** Presente cuando el turno lo dispara un seguimiento programado, no un mensaje del cliente. */
     seguimiento?: { intento: number; maximo: number; angulo?: string }
+    /** El anuncio de Meta por el que llegó el cliente (si vino de uno), con su vínculo al catálogo. */
+    anuncio?: AnuncioContexto | null
   }
 ): Promise<Decision> {
   // Las notas de voz llegan como audio; Claude no lo lee, así que se transcriben
@@ -120,14 +123,16 @@ export async function decidir(
     }
   }
 
-  const { base, detallesPara } = await construirConocimiento()
+  const { base, detallesPara, nombreDe } = await construirConocimiento()
 
   // Detalle completo SOLO de los destinos que el cliente ya mencionó (el índice
-  // ligero va siempre en el bloque cacheado; esto es la capa "bajo demanda").
+  // ligero va siempre en el bloque cacheado; esto es la capa "bajo demanda"),
+  // más los programas del anuncio por el que llegó, si vino de uno.
   const textoConversacion = historial
     .map(m => (typeof m.content === 'string' ? m.content : ''))
     .join(' ')
-  const detalleDestinos = detallesPara(textoConversacion)
+  const anuncio = contexto.anuncio ?? null
+  const detalleDestinos = detallesPara(textoConversacion, anuncio?.slugs ?? [])
 
   // Fecha con día de la semana: sin ella el modelo no puede programar
   // seguimientos ("en 3 días", "el lunes") ni esquivar los domingos.
@@ -155,6 +160,7 @@ export async function decidir(
     contexto.enHorario
       ? 'Estás dentro del horario de atención: si escalas, una asesora puede responder hoy.'
       : 'Estás FUERA del horario de atención: si escalas, avísale que una asesora le escribe cuando abran, sin prometer una hora exacta.',
+    anuncio ? lineaAnuncio(anuncio, nombreDe) : null,
   ]
     .filter(Boolean)
     .join(' ')

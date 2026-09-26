@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Image from '@/components/ui/Foto'
 import Script from 'next/script'
 import { notFound } from 'next/navigation'
-import { Clock, Users, ArrowRight, Quote, Star, FileText, Download, Eye } from 'lucide-react'
+import { Clock, Users, ArrowRight, Quote, Star, FileText, Download, Eye, Tag } from 'lucide-react'
 import { getDestino, getDestinos, getResenaDestino } from '@/lib/destinos'
 import { InfoClaveCarousel } from '@/components/destinos/InfoClaveCarousel'
 import { ItinerarioTimeline } from '@/components/destinos/ItinerarioTimeline'
@@ -188,6 +188,11 @@ export default async function DestinoPage({ params }: Props) {
             )}
 
             <div className="mt-8 flex flex-wrap gap-4">
+              {d.etiquetas?.map(e => (
+                <span key={e} className="flex items-center gap-2 rounded-full px-4 py-2 font-inter text-sm backdrop-blur-sm" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}>
+                  <Tag size={14} aria-hidden /> {e}
+                </span>
+              ))}
               {d.duracion && (
                 <span className="flex items-center gap-2 rounded-full px-4 py-2 font-inter text-sm backdrop-blur-sm" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}>
                   <Clock size={14} /> {d.duracion}

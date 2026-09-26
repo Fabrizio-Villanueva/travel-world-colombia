@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import type { Destino } from '@/types/destino'
 import { DestinoForm } from '../../_components/DestinoForm'
 import { actualizarDestino } from '../actions'
+import { getArbolCategoriasAdmin } from '@/lib/admin/categorias'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,10 @@ export default async function EditarDestinoPage({ params }: { params: Promise<{ 
 
   const { id } = await params
   const admin = createAdminClient()
-  const { data } = await admin.from('destinos').select('*').eq('id', id).maybeSingle()
+  const [{ data }, categorias] = await Promise.all([
+    admin.from('destinos').select('*').eq('id', id).maybeSingle(),
+    getArbolCategoriasAdmin(),
+  ])
   if (!data) notFound()
 
   const destino = data as Destino
@@ -22,6 +26,7 @@ export default async function EditarDestinoPage({ params }: { params: Promise<{ 
       action={actualizarDestino.bind(null, id)}
       destino={destino}
       titulo={`Editar: ${destino.nombre}`}
+      categorias={categorias}
     />
   )
 }

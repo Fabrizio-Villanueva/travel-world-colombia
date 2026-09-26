@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { registrarActividad } from '@/lib/admin/audit'
 import { destinoSchema } from '@/lib/validations/destino'
 import { precioTextoPlano } from '@/lib/precio'
+import { categoriasValidas } from '@/lib/admin/categorias'
 
 export type FormState = { error?: string }
 
@@ -68,7 +69,6 @@ function construirPayload(formData: FormData) {
     region: texto(formData.get('region')),
     transporte: texto(formData.get('transporte')),
     salida_fin_ano: formData.get('salida_fin_ano') === 'on',
-    es_crucero: formData.get('es_crucero') === 'on',
     activo: formData.get('activo') === 'on',
     destacado: formData.get('destacado') === 'on',
     orden: numEntero(formData.get('orden')) ?? 0,
@@ -146,7 +146,8 @@ export async function crearDestino(_prev: FormState, formData: FormData): Promis
 
   let payload
   try {
-    payload = construirPayload(formData)
+    // es_crucero no se envía: la base lo deriva de las categorías (Cruceros).
+    payload = { ...construirPayload(formData), categorias: await categoriasValidas(formData.getAll('categorias')) }
   } catch (e) {
     return { error: (e as Error).message }
   }
@@ -179,7 +180,8 @@ export async function actualizarDestino(id: string, _prev: FormState, formData: 
 
   let payload
   try {
-    payload = construirPayload(formData)
+    // es_crucero no se envía: la base lo deriva de las categorías (Cruceros).
+    payload = { ...construirPayload(formData), categorias: await categoriasValidas(formData.getAll('categorias')) }
   } catch (e) {
     return { error: (e as Error).message }
   }

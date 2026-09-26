@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Ship } from 'lucide-react'
-import { getDestinos } from '@/lib/destinos'
+import { getCategorias, getDestinos } from '@/lib/destinos'
+import { arbolCategorias } from '@/lib/categorias'
 import { DestinoCard } from '@/components/destinos/DestinoCard'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { Button } from '@/components/ui/Button'
@@ -18,7 +19,17 @@ export const metadata: Metadata = {
 const waCruceros = `https://wa.me/${WHATSAPP.principal}?text=${encodeURIComponent('Hola! Me interesan los cruceros 🚢')}`
 
 export default async function CrucerosPage() {
-  const cruceros = (await getDestinos()).filter(d => d.es_crucero)
+  const [todos, categorias] = await Promise.all([getDestinos(), getCategorias()])
+  const cruceros = todos.filter(d => d.es_crucero)
+
+  // Subgrupos por las subcategorías de la categoría del sistema "Cruceros"
+  // (ej. Con visa / Sin visa). Sin subcategorías asignadas: una sola grilla.
+  const hijas = arbolCategorias(categorias).find(c => c.clave === 'cruceros')?.hijas ?? []
+  const grupos = hijas
+    .map(h => ({ titulo: h.nombre, lista: cruceros.filter(d => d.categorias?.includes(h.id)) }))
+    .filter(g => g.lista.length > 0)
+  const sinSub = cruceros.filter(d => !hijas.some(h => d.categorias?.includes(h.id)))
+  if (grupos.length > 0 && sinSub.length > 0) grupos.push({ titulo: 'Otros cruceros', lista: sinSub })
 
   return (
     <div className="tema-claro">
@@ -49,7 +60,22 @@ export default async function CrucerosPage() {
       {/* Lista */}
       <section className="px-6 py-16">
         <div className="mx-auto max-w-6xl">
-          {cruceros.length > 0 ? (
+          {cruceros.length > 0 && grupos.length > 0 ? (
+            <div className="flex flex-col gap-12">
+              {grupos.map(g => (
+                <section key={g.titulo}>
+                  <h2 className="mb-5 font-plus-jakarta text-2xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                    {g.titulo} <span className="font-inter text-sm font-normal" style={{ color: 'var(--text-dim)' }}>· {g.lista.length}</span>
+                  </h2>
+                  <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {g.lista.map((d, i) => (
+                      <DestinoCard key={d.id} d={d} i={i} />
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          ) : cruceros.length > 0 ? (
             <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {cruceros.map((d, i) => (
                 <DestinoCard key={d.id} d={d} i={i} />

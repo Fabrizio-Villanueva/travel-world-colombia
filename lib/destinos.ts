@@ -1,6 +1,23 @@
 import { cache } from 'react'
 import { createPublicClient } from '@/lib/supabase/publico'
-import type { Destino } from '@/types/destino'
+import type { Categoria, Destino } from '@/types/destino'
+import { conCategorias } from '@/lib/categorias'
+
+/**
+ * Categorías de viajes (editables en el panel). Si la consulta falla se sigue
+ * sin etiquetas: una categoría caída no debe tumbar el catálogo.
+ */
+export const getCategorias = cache(async function getCategorias(): Promise<Categoria[]> {
+  const supabase = createPublicClient()
+  const { data, error } = await supabase
+    .from('categorias')
+    .select('id, nombre, slug, parent_id, clave, orden')
+  if (error) {
+    console.error('getCategorias error:', error.message)
+    return []
+  }
+  return (data ?? []) as Categoria[]
+})
 
 /**
  * Lista de destinos activos, ordenados por `orden` con desempate alfabético.
@@ -9,18 +26,21 @@ import type { Destino } from '@/types/destino'
  */
 export const getDestinos = cache(async function getDestinos(): Promise<Destino[]> {
   const supabase = createPublicClient()
-  const { data, error } = await supabase
-    .from('destinos')
-    .select('*')
-    .eq('activo', true)
-    .order('orden', { ascending: true })
-    .order('nombre', { ascending: true })
+  const [{ data, error }, categorias] = await Promise.all([
+    supabase
+      .from('destinos')
+      .select('*')
+      .eq('activo', true)
+      .order('orden', { ascending: true })
+      .order('nombre', { ascending: true }),
+    getCategorias(),
+  ])
 
   if (error) {
     console.error('getDestinos error:', error.message)
     return []
   }
-  return (data ?? []) as Destino[]
+  return conCategorias((data ?? []) as Destino[], categorias)
 })
 
 export interface ResenaDestino {
@@ -96,5 +116,6 @@ export const getDestino = cache(async function getDestino(slug: string): Promise
     console.error('getDestino error:', error.message)
     throw new Error(`No se pudo cargar el destino "${slug}": ${error.message}`)
   }
-  return (data as Destino) ?? null
+  if (!data) return null
+  return conCategorias([data as Destino], await getCategorias())[0]
 })

@@ -90,8 +90,19 @@ export interface Destino {
   transporte?: 'bus' | 'avion'
   /** Flag de "Salidas confirmadas fin de año" (chip de filtro en /destinos). */
   salida_fin_ano?: boolean
-  /** Es un crucero: se lista en /cruceros y se excluye de /destinos. */
+  /**
+   * Es un crucero: se lista en /cruceros y se excluye de /destinos. Lo deriva
+   * la base de las categorías (categoría del sistema "Cruceros"); no se edita.
+   */
   es_crucero?: boolean
+  /** Ids de las categorías del viaje (tabla `categorias`, editable en el panel). */
+  categorias?: string[]
+  /**
+   * Agregados al leer (lib/destinos.ts), no son columnas: etiquetas visibles
+   * ("Cruceros · Sin visa") y slugs de todas sus categorías (filtro ?f=cat:).
+   */
+  etiquetas?: string[]
+  categoria_slugs?: string[]
   frase_hero?: string
   autor_frase?: string
   cargo_autor?: string
@@ -127,4 +138,19 @@ export interface Destino {
 
   created_at: string
   updated_at: string
+}
+
+/** Categoría de viajes (dos niveles). `clave` no nula = del sistema (no se borra). */
+export interface Categoria {
+  id: string
+  nombre: string
+  slug: string
+  parent_id: string | null
+  clave: string | null
+  orden: number
+}
+
+/** Categoría principal con sus subcategorías. */
+export interface CategoriaArbol extends Categoria {
+  hijas: Categoria[]
 }

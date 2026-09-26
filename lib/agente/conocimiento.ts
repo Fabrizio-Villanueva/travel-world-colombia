@@ -50,8 +50,10 @@ function aliasesDe(d: Destino): string[] {
     .filter(a => a.length >= 4) // evita falsos positivos con palabras cortas
 }
 
-/** Tope de destinos con detalle completo por turno (cada uno pesa ~500 tokens). */
+/** Tope de destinos MENCIONADOS con detalle completo por turno (cada uno pesa ~500 tokens). */
 const MAX_DETALLES = 4
+/** Tope total contando los programas del anuncio por el que llegó el cliente. */
+const MAX_DETALLES_TOTAL = 6
 
 /** El detalle pesado de un destino (lo que NO va en el índice ligero). */
 function bloqueDetalle(d: Destino): string {
@@ -84,8 +86,14 @@ function bloqueDetalle(d: Destino): string {
 export interface Conocimiento {
   /** Índice ligero + FAQ + agencia. Estable y cacheable. */
   base: string
-  /** Detalle completo de los destinos mencionados en `texto` ('' si ninguno). */
-  detallesPara: (texto: string) => string
+  /**
+   * Detalle completo de los destinos mencionados en `texto` ('' si ninguno).
+   * `slugsExtra`: programas que entran aunque nadie los haya nombrado (los del
+   * anuncio por el que llegó el cliente); van después de los mencionados.
+   */
+  detallesPara: (texto: string, slugsExtra?: string[]) => string
+  /** Nombre de un destino del catálogo por su slug. */
+  nombreDe: (slug: string) => string | undefined
 }
 
 export async function construirConocimiento(): Promise<Conocimiento> {
@@ -97,7 +105,10 @@ export async function construirConocimiento(): Promise<Conocimiento> {
       const lugar = [d.pais, d.region].filter(Boolean).join(', ')
       const precio = d.precio_desde ? `desde ${d.precio_desde}` : 'precio a confirmar'
       const foto = d.imagen_hero || d.imagen_thumb || d.galeria?.[0] ? ' · 📷' : ''
-      return `- **${d.nombre}**${local}${lugar ? ` — ${lugar}` : ''} — ${precio}${foto} · ${SITE.url}/destinos/${d.slug}`
+      // Categorías del panel (ej. "Cruceros · Sin visa"): Sol puede responder
+      // "¿qué cruceros sin visa tienen?" o "¿qué planes todo incluido hay?".
+      const cats = d.etiquetas?.length ? ` · [${d.etiquetas.join('; ')}]` : ''
+      return `- **${d.nombre}**${local}${lugar ? ` — ${lugar}` : ''} — ${precio}${cats}${foto} · ${SITE.url}/destinos/${d.slug}`
     })
     .join('\n')
 
@@ -108,9 +119,10 @@ export async function construirConocimiento(): Promise<Conocimiento> {
   const base = `## Catálogo de viajes — índice (${destinos.length} programas activos)
 
 Estos son los ÚNICOS programas ya armados que vende la agencia, con su precio de
-referencia. Si el cliente pregunta por un destino que NO está en esta lista, se
-arma a la medida (lo cotiza una asesora) — enmárcalo en positivo, sin decir que
-no está publicado. Cuando el cliente se interese por uno de esta lista, su
+referencia; entre corchetes van sus categorías (ej. Cruceros · Sin visa, Todo
+incluido), útiles si el cliente busca por tipo de plan. Si el cliente pregunta
+por un destino que NO está en esta lista, se arma a la medida (lo cotiza una
+asesora) — enmárcalo en positivo, sin decir que no está publicado. Cuando el cliente se interese por uno de esta lista, su
 detalle completo (qué incluye, itinerario…) aparecerá más abajo en el contexto.
 
 ${indice}
@@ -127,19 +139,28 @@ ${preguntas}
 - Horario de atención (hora de Colombia): ${SITE.horario}
 `
 
-  const detallesPara = (texto: string): string => {
+  const detallesPara = (texto: string, slugsExtra: string[] = []): string => {
     const t = normalizar(texto)
     // Los mencionados más recientemente van primero: si la conversación pasó
     // por varios destinos, el tope se queda con los que están sobre la mesa.
-    const relevantes = destinos
+    const mencionados = destinos
       .map(d => ({ d, pos: Math.max(...aliasesDe(d).map(a => t.lastIndexOf(a))) }))
       .filter(x => x.pos >= 0)
       .sort((a, b) => b.pos - a.pos)
       .slice(0, MAX_DETALLES)
-    return relevantes.map(x => bloqueDetalle(x.d)).join('\n\n')
+      .map(x => x.d)
+    // Después, los del anuncio que aún no estén (el cliente vino por ellos
+    // aunque no los haya escrito), hasta el tope total.
+    const extra = slugsExtra
+      .map(s => destinos.find(d => d.slug === s))
+      .filter((d): d is Destino => Boolean(d) && !mencionados.includes(d!))
+    const elegidos = [...mencionados, ...extra].slice(0, MAX_DETALLES_TOTAL)
+    return elegidos.map(bloqueDetalle).join('\n\n')
   }
 
-  return { base, detallesPara }
+  const nombreDe = (slug: string) => destinos.find(d => d.slug === slug)?.nombre
+
+  return { base, detallesPara, nombreDe }
 }
 
 const RE_FOTO = /\[foto:\s*([a-z0-9-]+)\s*\]/gi

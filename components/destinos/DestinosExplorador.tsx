@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import dynamic from 'next/dynamic'
-import { MapPin, Globe, Star, CalendarDays, ArrowLeft } from 'lucide-react'
-import type { Destino } from '@/types/destino'
+import { MapPin, Globe, Star, CalendarDays, ArrowLeft, Tag } from 'lucide-react'
+import type { Categoria, CategoriaArbol, Destino } from '@/types/destino'
 import { fbCustomEvent } from '@/lib/analytics/fbpixel'
 import { DestinoCard } from './DestinoCard'
 import type { SeleccionMapa } from './MapaDestinos'
@@ -26,7 +26,8 @@ const MapaDestinos = dynamic(() => import('./MapaDestinos').then(m => m.MapaDest
  * Filtro único del explorador. Vive en la URL (?f=...) para que las tarjetas
  * de categorías, el mapa y los enlaces externos apliquen el mismo estado y la
  * vista filtrada sea compartible. `transporte:` implica nacional (bus/avión/
- * otros); `pais:` y `region:` son internacionales.
+ * otros); `pais:` y `region:` son internacionales; `cat:` es una categoría del
+ * panel (principal o subcategoría) por su slug.
  */
 export type Filtro =
   | 'todos'
@@ -36,6 +37,7 @@ export type Filtro =
   | `region:${string}`
   | `pais:${string}`
   | `transporte:${string}`
+  | `cat:${string}`
 
 const esNacional = (d: Destino) => d.pais === 'Colombia'
 const minOrden = (ds: Destino[]) => Math.min(...ds.map(d => d.orden))
@@ -78,11 +80,12 @@ function suscribirUrl(cb: () => void) {
 }
 
 /** Valida el ?f= de la URL contra los datos reales; lo desconocido cae a 'todos'. */
-function normalizarFiltro(raw: string | null, regiones: Set<string>, paises: Set<string>): Filtro {
+function normalizarFiltro(raw: string | null, regiones: Set<string>, paises: Set<string>, cats: Set<string>): Filtro {
   if (raw === 'nacional' || raw === 'favoritos' || raw === 'fin_ano') return raw
   if (raw?.startsWith('region:') && regiones.has(raw.slice(7))) return raw as Filtro
   if (raw?.startsWith('pais:') && paises.has(raw.slice(5))) return raw as Filtro
   if (raw?.startsWith('transporte:') && ['bus', 'avion', 'otros'].includes(raw.slice(11))) return raw as Filtro
+  if (raw?.startsWith('cat:') && cats.has(raw.slice(4))) return raw as Filtro
   return 'todos'
 }
 
@@ -174,7 +177,34 @@ function SeccionInternacional({ destinos }: { destinos: Destino[] }) {
   )
 }
 
-export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
+/**
+ * Una categoría del panel. Si es principal y sus viajes usan subcategorías, se
+ * subdivide (Cruceros › Con visa / Sin visa / Otros); si es una subcategoría,
+ * una sola grilla.
+ */
+function SeccionCategoria({ cat, madre, hijas, destinos }: { cat: Categoria; madre?: CategoriaArbol; hijas: Categoria[]; destinos: Destino[] }) {
+  const titulo = madre ? `${madre.nombre} › ${cat.nombre}` : cat.nombre
+  const grupos = hijas
+    .map(h => ({ h, lista: destinos.filter(d => d.categoria_slugs?.includes(h.slug)) }))
+    .filter(g => g.lista.length > 0)
+  const sinSub = destinos.filter(d => !hijas.some(h => d.categoria_slugs?.includes(h.slug)))
+  return (
+    <Caja icon={<Tag size={18} />} titulo={titulo} total={destinos.length}>
+      {grupos.length === 0 ? (
+        <Grid destinos={destinos} />
+      ) : (
+        <>
+          {grupos.map(({ h, lista }) => (
+            <SubGrupo key={h.id} titulo={h.nombre} destinos={lista} />
+          ))}
+          {sinSub.length > 0 && <SubGrupo titulo={`Otros · ${cat.nombre}`} destinos={sinSub} />}
+        </>
+      )}
+    </Caja>
+  )
+}
+
+export function DestinosExplorador({ destinos, categorias = [] }: { destinos: Destino[]; categorias?: CategoriaArbol[] }) {
   // SEO: el filtro NO usa useSearchParams — eso forzaba render solo-cliente de
   // todo el explorador y el HTML estático de /destinos perdía las tarjetas y
   // sus links internos. Ver suscribirUrl arriba.
@@ -205,10 +235,15 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
     [internacionales]
   )
 
+  // Categorías del panel con al menos un viaje en esta lista (en /destinos
+  // no hay cruceros, así que "Cruceros" no aparece aquí).
+  const catsConViajes = useMemo(() => new Set(destinos.flatMap(d => d.categoria_slugs ?? [])), [destinos])
+
   const filtro = normalizarFiltro(
     new URLSearchParams(search).get('f'),
     regionesSet,
-    new Set(conteoPaises.keys())
+    new Set(conteoPaises.keys()),
+    catsConViajes
   )
 
   // Al LLEGAR a /destinos con un filtro en la URL (submenú del navbar, enlace
@@ -279,6 +314,12 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
   const regionSel = filtro.startsWith('region:') ? filtro.slice(7) : null
   const paisSel = filtro.startsWith('pais:') ? filtro.slice(5) : null
   const transpSel = filtro.startsWith('transporte:') ? filtro.slice(11) : null
+  const catSlug = filtro.startsWith('cat:') ? filtro.slice(4) : null
+  // La categoría elegida: principal (con sus hijas) o subcategoría (con su madre).
+  const principalSel = categorias.find(c => c.slug === catSlug)
+  const madreSel = principalSel ? undefined : categorias.find(c => c.hijas.some(h => h.slug === catSlug))
+  const catSel: Categoria | undefined = principalSel ?? madreSel?.hijas.find(h => h.slug === catSlug)
+  const destinosDeCat = catSlug ? destinos.filter(d => d.categoria_slugs?.includes(catSlug)) : []
 
   // El mapa entiende 'nacional', pais: y region: (region llega de las tarjetas
   // y solo tiñe los países de esa zona).
@@ -289,10 +330,18 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
 
   // Facetas transversales que ni las tarjetas ni el mapa expresan; solo se
   // muestran en el menú (con filtro activo, el botón de volver las reemplaza).
-  const chips = ([
-    { key: 'favoritos', emoji: '⭐', label: 'Favoritos', n: favoritos.length },
-    { key: 'fin_ano', emoji: '🎄', label: 'Salidas fin de año', n: finAno.length },
-  ] as const).filter(c => c.n > 0)
+  const chips: { key: Filtro; emoji?: string; label: string; n: number }[] = [
+    { key: 'favoritos' as const, emoji: '⭐', label: 'Favoritos', n: favoritos.length },
+    { key: 'fin_ano' as const, emoji: '🎄', label: 'Salidas fin de año', n: finAno.length },
+    // Categorías principales del panel (la subcategoría se ve dentro).
+    ...categorias
+      .filter(c => catsConViajes.has(c.slug))
+      .map(c => ({
+        key: `cat:${c.slug}` as const,
+        label: c.nombre,
+        n: destinos.filter(d => d.categoria_slugs?.includes(c.slug)).length,
+      })),
+  ].filter(c => c.n > 0)
 
   const nacionalesDeTransp = transpSel
     ? nacionales.filter(d => (d.transporte ?? 'otros') === transpSel)
@@ -323,6 +372,7 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
     : paisSel ? destinosDePais.length
     : transpSel ? nacionalesDeTransp.length
     : filtro === 'nacional' ? nacionales.length
+    : catSlug ? destinosDeCat.length
     : 0
 
   const botonVolver = (
@@ -382,7 +432,7 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
                 className="flex items-center gap-1.5 rounded-full px-5 py-2 font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase transition-all duration-200"
                 style={{ background: 'var(--bg-alt)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}
               >
-                <span aria-hidden="true">{c.emoji}</span> {c.label} · {c.n}
+                {c.emoji && <span aria-hidden="true">{c.emoji}</span>} {c.label} · {c.n}
               </button>
             ))}
       </div>
@@ -415,6 +465,9 @@ export function DestinosExplorador({ destinos }: { destinos: Destino[] }) {
         )}
         {transpSel && nacionalesDeTransp.length > 0 && <SeccionNacional destinos={nacionalesDeTransp} />}
         {filtro === 'nacional' && nacionales.length > 0 && <SeccionNacional destinos={nacionales} />}
+        {catSel && destinosDeCat.length > 0 && (
+          <SeccionCategoria cat={catSel} madre={madreSel} hijas={principalSel?.hijas ?? []} destinos={destinosDeCat} />
+        )}
         {/* Repetido al final del listado: tras recorrer muchas tarjetas, el
             camino de vuelta al menú queda a mano sin subir toda la página. */}
         {filtrando && <div className="flex justify-center">{botonVolver}</div>}

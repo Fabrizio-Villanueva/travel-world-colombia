@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
-import { getDestinos } from '@/lib/destinos'
+import { getCategorias, getDestinos } from '@/lib/destinos'
+import { arbolCategorias } from '@/lib/categorias'
 import { DestinosExplorador } from '@/components/destinos/DestinosExplorador'
 import { SectionTag } from '@/components/ui/SectionTag'
 
@@ -15,7 +16,8 @@ export const metadata: Metadata = {
 
 export default async function DestinosPage() {
   // Los cruceros tienen su propia página (/cruceros); aquí solo destinos.
-  const destinos = (await getDestinos()).filter(d => !d.es_crucero)
+  const [todos, categorias] = await Promise.all([getDestinos(), getCategorias()])
+  const destinos = todos.filter(d => !d.es_crucero)
 
   return (
     <div className="tema-claro">
@@ -67,7 +69,7 @@ export default async function DestinosPage() {
         <div className="mx-auto max-w-6xl">
           {/* Sin Suspense/useSearchParams a propósito: así el menú de
               categorías queda en el HTML estático; el ?f= se aplica en cliente. */}
-          <DestinosExplorador destinos={destinos} />
+          <DestinosExplorador destinos={destinos} categorias={arbolCategorias(categorias)} />
         </div>
       </section>
     </div>
