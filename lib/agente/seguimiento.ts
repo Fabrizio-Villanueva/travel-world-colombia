@@ -8,7 +8,8 @@ import {
   rutaDeRespuesta,
   ultimosMensajes,
 } from '@/lib/agente/ghl'
-import { enHorario, humanoTomoElChat, registrarEnvio } from '@/lib/agente/conversacion'
+import { enHorario, humanoTomoElChat, marcarFuenteAnuncio, registrarEnvio } from '@/lib/agente/conversacion'
+import { anuncioParaConversacion } from '@/lib/agente/anuncios'
 import { fechaBogota, sincronizarCrm } from '@/lib/agente/crm'
 import { extraerFotos } from '@/lib/agente/conocimiento'
 import { registrarEvento } from '@/lib/agente/eventos'
@@ -137,13 +138,16 @@ async function atenderSeguimiento(fila: FilaSeguimiento): Promise<string> {
   }
 
   const intento = fila.intentos + 1
+  const anuncio = await anuncioParaConversacion(fila.conversation_id)
   const decision = await decidir(mensajes, {
     nombre: [contacto.firstName, contacto.lastName].filter(Boolean).join(' ') || undefined,
     nombreConfirmado,
     canal: fila.canal ?? undefined,
     enHorario: enHorario(),
     seguimiento: { intento, maximo: MAX_INTENTOS_SEGUIMIENTO, angulo: fila.nota ?? undefined },
+    anuncio,
   })
+  marcarFuenteAnuncio(decision, anuncio)
 
   const habla = decision.accion !== 'callar' && decision.mensaje.trim() !== ''
 

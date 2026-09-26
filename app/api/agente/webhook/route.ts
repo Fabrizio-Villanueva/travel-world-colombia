@@ -7,6 +7,7 @@ import { anotarEvento, registrarEvento } from '@/lib/agente/eventos'
 import { enriquecerDesdeContacto } from '@/lib/agente/enriquecer'
 import { TAGS, ACTIVO_DESDE, TAG_PRUEBAS } from '@/lib/agente/config'
 import { atender, meTocaResponder } from '@/lib/agente/conversacion'
+import { extraerReferral, registrarAnuncio } from '@/lib/agente/anuncios'
 import { secretoRecibido } from '@/lib/agente/secreto'
 
 export const dynamic = 'force-dynamic'
@@ -127,6 +128,12 @@ export async function POST(req: NextRequest) {
 
     // Solo los mensajes del cliente disparan un turno de Sol.
     if (autor !== 'cliente' || !n.contactId || !conversationId) return
+
+    // Si el cliente escribió desde un anuncio de Meta, GHL manda la etiqueta
+    // del anuncio en el payload: queda registrado por cuál llegó esta
+    // conversación para que Sol sepa qué vio (nunca lanza).
+    const referral = extraerReferral(crudo)
+    if (referral) await registrarAnuncio(referral, conversationId, n.contactId)
 
     try {
       if (evento && !(await meTocaResponder(conversationId, evento.recibidoEn))) {

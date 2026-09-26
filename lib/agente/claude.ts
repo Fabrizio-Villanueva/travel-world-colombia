@@ -4,6 +4,7 @@ import { construirConocimiento } from '@/lib/agente/conocimiento'
 import { resolverAudios } from '@/lib/agente/transcribir'
 import { HORARIO } from '@/lib/agente/config'
 import type { MensajeGhl } from '@/lib/agente/ghl'
+import type { AnuncioContexto } from '@/lib/agente/anuncios'
 
 export interface Decision {
   accion: 'responder' | 'callar' | 'escalar'
@@ -104,6 +105,8 @@ export async function decidir(
     primerContacto?: boolean
     /** Presente cuando el turno lo dispara un seguimiento programado, no un mensaje del cliente. */
     seguimiento?: { intento: number; maximo: number; angulo?: string }
+    /** El anuncio de Meta por el que llegó el cliente (si vino de uno), con su vínculo al catálogo. */
+    anuncio?: AnuncioContexto | null
   }
 ): Promise<Decision> {
   // Las notas de voz llegan como audio; Claude no lo lee, así que se transcriben
@@ -120,14 +123,16 @@ export async function decidir(
     }
   }
 
-  const { base, detallesPara } = await construirConocimiento()
+  const { base, detallesPara, nombreDe } = await construirConocimiento()
 
   // Detalle completo SOLO de los destinos que el cliente ya mencionó (el índice
-  // ligero va siempre en el bloque cacheado; esto es la capa "bajo demanda").
+  // ligero va siempre en el bloque cacheado; esto es la capa "bajo demanda"),
+  // más los programas del anuncio por el que llegó, si vino de uno.
   const textoConversacion = historial
     .map(m => (typeof m.content === 'string' ? m.content : ''))
     .join(' ')
-  const detalleDestinos = detallesPara(textoConversacion)
+  const anuncio = contexto.anuncio ?? null
+  const detalleDestinos = detallesPara(textoConversacion, anuncio?.slugs ?? [])
 
   // Fecha con día de la semana: sin ella el modelo no puede programar
   // seguimientos ("en 3 días", "el lunes") ni esquivar los domingos.
@@ -155,6 +160,7 @@ export async function decidir(
     contexto.enHorario
       ? 'Estás dentro del horario de atención: si escalas, una asesora puede responder hoy.'
       : 'Estás FUERA del horario de atención: si escalas, avísale que una asesora le escribe cuando abran, sin prometer una hora exacta.',
+    anuncio ? lineaAnuncio(anuncio, nombreDe) : null,
   ]
     .filter(Boolean)
     .join(' ')
@@ -212,4 +218,33 @@ export async function decidir(
     throw new Error('La respuesta del modelo no trae texto')
   }
   return JSON.parse(texto.text) as Decision
+}
+
+const APP_ANUNCIO: Record<string, string> = {
+  facebook: 'en Facebook',
+  instagram: 'en Instagram',
+  whatsapp: 'en los estados de WhatsApp',
+}
+
+/**
+ * Lo que Sol sabe del anuncio por el que llegó el cliente: qué vio (el texto de
+ * la pieza) y si corresponde a programas del catálogo (cuyo detalle ya va en
+ * el contexto) o a un producto que aún no está publicado.
+ */
+function lineaAnuncio(a: AnuncioContexto, nombreDe: (slug: string) => string | undefined): string {
+  const donde = a.sourceApp ? (APP_ANUNCIO[a.sourceApp.toLowerCase()] ?? '') : ''
+  const textoPieza = (a.texto ?? '').replace(/\s+/g, ' ').trim()
+  const recorte = textoPieza.length > 700 ? `${textoPieza.slice(0, 697).trimEnd()}…` : textoPieza
+  const nombres = a.slugs.map(s => nombreDe(s)).filter((n): n is string => Boolean(n))
+
+  const partes = [
+    `El cliente LLEGÓ DESDE UN ANUNCIO${donde ? ` ${donde}` : ''}: «${a.nombre}». Aunque sea su primer mensaje, SÍ puedes hablar de eso desde el inicio: es lo que vino a preguntar.`,
+    recorte ? `Texto del anuncio que vio: «${recorte}»` : null,
+    nombres.length > 1
+      ? `Ese anuncio corresponde a estos programas del catálogo: ${nombres.join(', ')} (su detalle completo va abajo). Oriéntalo entre ellos con una pregunta que discrimine antes de listar todo.`
+      : nombres.length === 1
+        ? `Ese anuncio corresponde al programa del catálogo «${nombres[0]}» (su detalle completo va abajo): la ficha manda sobre el anuncio si difieren.`
+        : 'Ese producto todavía NO está en el catálogo: lo único confiable es lo que dice el anuncio. Puedes citar eso (precio "desde", fechas, qué incluye) y nada más; lo que no esté ahí lo confirma una asesora. Califica igual y pásalo a cotización.',
+  ]
+  return partes.filter(Boolean).join(' ')
 }

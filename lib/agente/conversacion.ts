@@ -3,6 +3,7 @@ import { decidir, type Decision } from '@/lib/agente/claude'
 import { agregarTags, enviarMensaje, rutaDeRespuesta, ultimosMensajes, type MensajeGhl } from '@/lib/agente/ghl'
 import { sincronizarCrm } from '@/lib/agente/crm'
 import { extraerFotos } from '@/lib/agente/conocimiento'
+import { anuncioParaConversacion, type AnuncioContexto } from '@/lib/agente/anuncios'
 import { ACTIVO_DESDE, AVISO_DATOS, HORARIO, RAFAGA_MS, TAGS, TAG_PRUEBAS } from '@/lib/agente/config'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 
@@ -153,13 +154,18 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   const conversacionYaIniciada = mensajes.some(m => m.direction === 'outbound')
   const primerContacto = !e.tags.includes(TAGS.avisoDatos) && !conversacionYaIniciada
 
+  // ¿Llegó desde un anuncio de Meta? Sol sabe qué vio y qué programa es.
+  const anuncio = await anuncioParaConversacion(e.conversationId)
+
   const decision = await decidir(mensajes, {
     nombre: e.nombre,
     nombreConfirmado: e.nombreConfirmado,
     canal: e.canal,
     enHorario: enHorario(),
     primerContacto,
+    anuncio,
   })
+  marcarFuenteAnuncio(decision, anuncio)
 
   // Primero la voz, después la mano: el mensaje al cliente sale de inmediato y
   // la escritura en el CRM va al final, donde un fallo ya no le quita respuesta
@@ -211,8 +217,23 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   return {
     actuo: habla,
     decision,
-    nota: [`${habla ? decision.accion : 'callar'}: ${decision.motivo}`, ...notasCrm].join(' · '),
+    nota: [
+      `${habla ? decision.accion : 'callar'}: ${decision.motivo}`,
+      anuncio ? `anuncio: ${anuncio.nombre}${anuncio.slugs.length ? ` → ${anuncio.slugs.join(', ')}` : ' (sin producto en el catálogo)'}` : null,
+      ...notasCrm,
+    ]
+      .filter(Boolean)
+      .join(' · '),
   }
+}
+
+/**
+ * La fuente del lead en GHL se marca con el anuncio, de forma determinística
+ * (el modelo no la deduce): sirve para medir qué campaña trae leads calificados.
+ */
+export function marcarFuenteAnuncio(decision: Decision, anuncio: AnuncioContexto | null): void {
+  if (!anuncio) return
+  if (!decision.datos.fuente_lead?.trim()) decision.datos.fuente_lead = `Meta Ads · ${anuncio.nombre}`
 }
 
 /**
