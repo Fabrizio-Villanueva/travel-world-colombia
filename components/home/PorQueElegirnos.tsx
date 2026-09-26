@@ -2,9 +2,11 @@ import Image from 'next/image'
 import type { LucideIcon } from 'lucide-react'
 import { Compass, ShieldCheck, Headset, Star, ArrowRight } from 'lucide-react'
 import { SectionTag } from '@/components/ui/SectionTag'
+import { TextoRico } from '@/components/ui/TextoRico'
 import { Reveal } from '@/components/ui/Reveal'
 import { SITE, SOCIALS } from '@/lib/site'
 import { NuevaPestana } from '@/components/ui/NuevaPestana'
+import { getTextosSitio, textoInicio } from '@/lib/textos'
 
 // Amarillo de marca fijo: dentro de las tarjetas azules --orange puede ser el
 // MISMO azul (tema claro) y quedaba azul sobre azul (1:1). #FFCC29 sobre
@@ -101,7 +103,9 @@ const GRADIENT_DIVIDER =
   'linear-gradient(90deg, transparent, var(--orange), var(--gold), transparent)'
 
 /* ─────────── Componente ─────────── */
-export function PorQueElegirnos() {
+export async function PorQueElegirnos() {
+  const T = await getTextosSitio()
+  const subtitulo = textoInicio(T, 'inicio.porque.subtitulo')
   return (
     <section
       aria-labelledby="porque-title"
@@ -114,21 +118,22 @@ export function PorQueElegirnos() {
       <div className="relative z-10 mx-auto max-w-6xl">
         {/* Header */}
         <div className="mx-auto mb-16 max-w-3xl text-center md:mb-20">
-          <SectionTag className="mb-3">Por qué elegirnos</SectionTag>
+          <SectionTag className="mb-3"><TextoRico texto={textoInicio(T, 'inicio.porque.etiqueta')} /></SectionTag>
           <h2
             id="porque-title"
             className="font-plus-jakarta text-3xl font-extrabold leading-tight sm:text-5xl"
             style={{ color: 'var(--text-primary)' }}
           >
-            Tu viaje soñado, en manos expertas.
+            <TextoRico texto={textoInicio(T, 'inicio.porque.titulo')} />
           </h2>
-          <p
-            className="mx-auto mt-5 max-w-2xl font-inter text-base leading-relaxed sm:text-lg"
-            style={{ color: 'var(--text-dim)' }}
-          >
-            Cada detalle de tu viaje está diseñado por especialistas que conocen cada
-            destino. Desde la primera consulta hasta tu regreso a casa.
-          </p>
+          {subtitulo && (
+            <p
+              className="mx-auto mt-5 max-w-2xl font-inter text-base leading-relaxed sm:text-lg"
+              style={{ color: 'var(--text-dim)' }}
+            >
+              <TextoRico texto={subtitulo} />
+            </p>
+          )}
         </div>
 
         {/* Grid de tarjetas */}

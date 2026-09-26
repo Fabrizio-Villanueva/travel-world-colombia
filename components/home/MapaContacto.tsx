@@ -4,6 +4,8 @@ import { SectionTag } from '@/components/ui/SectionTag'
 import { Button } from '@/components/ui/Button'
 import { whatsappUrl } from '@/lib/site'
 import { NuevaPestana } from '@/components/ui/NuevaPestana'
+import { TextoRico } from '@/components/ui/TextoRico'
+import { getTextosSitio, textoInicio } from '@/lib/textos'
 
 const esExterno = (href: string) => !href.startsWith('mailto:') && !href.startsWith('tel:')
 
@@ -34,7 +36,9 @@ const infoItems = [
   },
 ]
 
-export function MapaContacto() {
+export async function MapaContacto() {
+  const T = await getTextosSitio()
+  const subtitulo = textoInicio(T, 'inicio.contacto.subtitulo')
   return (
     <section
       aria-labelledby="contacto-title"
@@ -43,21 +47,22 @@ export function MapaContacto() {
     >
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 text-center">
-          <SectionTag className="mb-3">Encuéntranos</SectionTag>
+          <SectionTag className="mb-3"><TextoRico texto={textoInicio(T, 'inicio.contacto.etiqueta')} /></SectionTag>
           <h2
             id="contacto-title"
             className="font-plus-jakarta text-3xl font-bold leading-tight sm:text-4xl"
             style={{ color: 'var(--text-primary)' }}
           >
-            Visítanos o contáctanos
+            <TextoRico texto={textoInicio(T, 'inicio.contacto.titulo')} />
           </h2>
-          <p
-            className="mx-auto mt-4 max-w-md font-inter text-sm leading-relaxed"
-            style={{ color: 'var(--text-dim)' }}
-          >
-            Estamos en el corazón de Fusagasugá, listos para planear tu viaje soñado.
-            Puedes hacer tu reserva con nosotros desde cualquier lugar del mundo.
-          </p>
+          {subtitulo && (
+            <p
+              className="mx-auto mt-4 max-w-md font-inter text-sm leading-relaxed"
+              style={{ color: 'var(--text-dim)' }}
+            >
+              <TextoRico texto={subtitulo} />
+            </p>
+          )}
         </div>
 
         <div className="grid gap-8 lg:grid-cols-2">

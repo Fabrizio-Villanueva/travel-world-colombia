@@ -5,6 +5,7 @@ import type { Destino } from '@/types/destino'
 import { DestinoForm } from '../../_components/DestinoForm'
 import { actualizarDestino } from '../actions'
 import { getArbolCategoriasAdmin } from '@/lib/admin/categorias'
+import { getTextosSitio } from '@/lib/textos'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,9 +15,10 @@ export default async function EditarDestinoPage({ params }: { params: Promise<{ 
 
   const { id } = await params
   const admin = createAdminClient()
-  const [{ data }, categorias] = await Promise.all([
+  const [{ data }, categorias, textosGlobales] = await Promise.all([
     admin.from('destinos').select('*').eq('id', id).maybeSingle(),
     getArbolCategoriasAdmin(),
+    getTextosSitio(),
   ])
   if (!data) notFound()
 
@@ -27,6 +29,7 @@ export default async function EditarDestinoPage({ params }: { params: Promise<{ 
       destino={destino}
       titulo={`Editar: ${destino.nombre}`}
       categorias={categorias}
+      textosGlobales={textosGlobales}
     />
   )
 }

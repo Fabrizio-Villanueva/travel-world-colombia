@@ -135,6 +135,11 @@ export interface Destino {
   meta_title?: string
   meta_description?: string
   keywords?: string[]
+  /**
+   * Textos de sección propios de este viaje (clave → valor, mismas claves que
+   * la plantilla global de lib/textos.ts). Lo que falte usa la plantilla.
+   */
+  textos?: Record<string, string>
 
   created_at: string
   updated_at: string

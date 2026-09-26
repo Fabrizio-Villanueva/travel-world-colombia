@@ -1,7 +1,9 @@
 import Image from 'next/image'
 import { SectionTag } from '@/components/ui/SectionTag'
+import { TextoRico } from '@/components/ui/TextoRico'
 import { Pausable } from '@/components/ui/Pausable'
 import { HOTELES_CRUCEROS, AEROLINEAS, type Alianza } from '@/lib/alianzas'
+import { getTextosSitio, textoInicio } from '@/lib/textos'
 
 /** Una marca dentro del carrusel — logo optimizado o wordmark de texto. */
 function LogoItem({ alianza, copia = false }: { alianza: Alianza; copia?: boolean }) {
@@ -54,7 +56,9 @@ function MarqueeRow({
   )
 }
 
-export function AlianzasPremium() {
+export async function AlianzasPremium() {
+  const T = await getTextosSitio()
+  const subtitulo = textoInicio(T, 'inicio.alianzas.subtitulo')
   return (
     <section
       aria-labelledby="alianzas-title"
@@ -63,21 +67,22 @@ export function AlianzasPremium() {
     >
       <div className="mx-auto max-w-6xl">
         <div className="mb-10 text-center">
-          <SectionTag className="mb-3">Respaldo internacional</SectionTag>
+          <SectionTag className="mb-3"><TextoRico texto={textoInicio(T, 'inicio.alianzas.etiqueta')} /></SectionTag>
           <h2
             id="alianzas-title"
             className="font-plus-jakarta text-3xl font-bold leading-tight sm:text-4xl"
             style={{ color: 'var(--text-primary)' }}
           >
-            Nuestras alianzas premium
+            <TextoRico texto={textoInicio(T, 'inicio.alianzas.titulo')} />
           </h2>
-          <p
-            className="mx-auto mt-4 max-w-xl font-inter text-sm leading-relaxed"
-            style={{ color: 'var(--text-dim)' }}
-          >
-            Trabajamos directamente con las mejores cadenas hoteleras, líneas de
-            crucero y aerolíneas del mundo para ofrecerte tarifas exclusivas.
-          </p>
+          {subtitulo && (
+            <p
+              className="mx-auto mt-4 max-w-xl font-inter text-sm leading-relaxed"
+              style={{ color: 'var(--text-dim)' }}
+            >
+              <TextoRico texto={subtitulo} />
+            </p>
+          )}
         </div>
 
         <Pausable clasePausado="marquee-pausado" etiqueta="carrusel de alianzas">

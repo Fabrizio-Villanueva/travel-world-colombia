@@ -8,6 +8,7 @@ import { registrarActividad } from '@/lib/admin/audit'
 import { destinoSchema } from '@/lib/validations/destino'
 import { precioTextoPlano } from '@/lib/precio'
 import { categoriasValidas } from '@/lib/admin/categorias'
+import { CLAVES_PRODUCTO_PERSONALIZABLES } from '@/lib/textos'
 
 export type FormState = { error?: string }
 
@@ -38,6 +39,20 @@ function numDecimal(v: FormDataEntryValue | null): number | undefined {
 function texto(v: FormDataEntryValue | null): string | undefined {
   const s = String(v ?? '').trim()
   return s === '' ? undefined : s
+}
+
+/**
+ * Textos de sección personalizados del viaje: campos `textos.<clave>` del
+ * bloque "Personalizar textos". Solo claves conocidas y solo si traen valor;
+ * lo vacío usa la plantilla global.
+ */
+function textosPersonalizados(formData: FormData): Record<string, string> {
+  const textos: Record<string, string> = {}
+  for (const { clave } of CLAVES_PRODUCTO_PERSONALIZABLES) {
+    const v = texto(formData.get(`textos.${clave}`))
+    if (v) textos[clave] = v
+  }
+  return textos
 }
 
 /** Parsea un array JSON serializado (repetidores del formulario). */
@@ -101,6 +116,7 @@ function construirPayload(formData: FormData) {
     cta_subtitulo: texto(formData.get('cta_subtitulo')),
     meta_title: texto(formData.get('meta_title')),
     meta_description: texto(formData.get('meta_description')),
+    textos: textosPersonalizados(formData),
   }
 
   const parsed = destinoSchema.safeParse(base)

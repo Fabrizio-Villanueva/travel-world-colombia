@@ -15,6 +15,8 @@ import { NuevaPestana } from '@/components/ui/NuevaPestana'
 import { SITE, whatsappUrl, whatsappReservaUrl, whatsappDudasUrl } from '@/lib/site'
 import { jsonLd } from '@/lib/seo/jsonLd'
 import { precioDesde } from '@/lib/precio'
+import { getTextosSitio, textoProducto } from '@/lib/textos'
+import { TextoRico } from '@/components/ui/TextoRico'
 import type { Destino } from '@/types/destino'
 
 export const revalidate = 1800
@@ -86,6 +88,11 @@ export default async function DestinoPage({ params }: Props) {
   const { slug } = await params
   const d = await getDestino(slug)
   if (!d) notFound()
+
+  // Títulos y etiquetas de sección: plantilla global editable en el panel
+  // ("Textos del sitio"), con lo que este viaje haya personalizado encima.
+  const T = await getTextosSitio()
+  const tp = (clave: string) => textoProducto(T, d, clave)
 
   const waUrl = whatsappUrl(d.nombre)
   const waReserva = whatsappReservaUrl(d.nombre)
@@ -240,9 +247,9 @@ export default async function DestinoPage({ params }: Props) {
         <section className="px-6 py-24">
           <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-2">
             <div className="destino-reveal">
-              <SectionTag className="mb-4">Sobre el destino</SectionTag>
+              <SectionTag className="mb-4"><TextoRico texto={tp('producto.sobre.etiqueta')} /></SectionTag>
               <h2 className="font-plus-jakarta text-3xl font-bold leading-[1.1] sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-                {d.subtitulo ?? `Por qué elegir ${d.nombre}`}
+                <TextoRico texto={d.subtitulo ?? tp('producto.sobre.titulo')} />
               </h2>
               {d.descripcion && (
                 <p className="mt-6 font-inter text-base" style={{ color: 'var(--text-dim)', lineHeight: '1.8' }}>
@@ -297,9 +304,9 @@ export default async function DestinoPage({ params }: Props) {
           <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse at top right, color-mix(in srgb, var(--orange) 12%, transparent), transparent 55%)' }} />
           <div className="relative mx-auto max-w-5xl">
             <div className="destino-reveal mb-10 text-center">
-              <SectionTag className="mb-4">El paquete</SectionTag>
+              <SectionTag className="mb-4"><TextoRico texto={tp('producto.incluye.etiqueta')} /></SectionTag>
               <h2 className="font-plus-jakarta text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl" style={{ color: '#fff' }}>
-                ¿Qué incluye tu viaje?
+                <TextoRico texto={tp('producto.incluye.titulo')} />
               </h2>
               <div aria-hidden className="mx-auto mt-5 h-1 w-12 rounded" style={{ background: 'var(--orange)' }} />
             </div>
@@ -315,9 +322,9 @@ export default async function DestinoPage({ params }: Props) {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <div className="destino-reveal mb-10 text-center">
-              <SectionTag className="mb-4">Dónde te alojarás</SectionTag>
+              <SectionTag className="mb-4"><TextoRico texto={tp('producto.hospedaje.etiqueta')} /></SectionTag>
               <h2 className="font-plus-jakarta text-3xl font-bold sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-                Hospedaje
+                <TextoRico texto={tp('producto.hospedaje.titulo')} />
               </h2>
             </div>
             <HospedajeShowcase opciones={d.hospedaje} destino={d.nombre} />
@@ -330,9 +337,9 @@ export default async function DestinoPage({ params }: Props) {
         <section className="px-6 py-24" style={{ background: 'var(--bg-alt)' }}>
           <div className="mx-auto max-w-6xl">
             <div className="destino-reveal mb-12 max-w-2xl">
-              <SectionTag className="mb-4">Lo que te espera</SectionTag>
+              <SectionTag className="mb-4"><TextoRico texto={tp('producto.experiencias.etiqueta')} /></SectionTag>
               <h2 className="font-plus-jakarta text-3xl font-bold sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-                Experiencias únicas
+                <TextoRico texto={tp('producto.experiencias.titulo')} />
               </h2>
             </div>
             <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -383,9 +390,9 @@ export default async function DestinoPage({ params }: Props) {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <div className="destino-reveal mb-12 text-center">
-              <SectionTag className="mb-4">Información clave</SectionTag>
+              <SectionTag className="mb-4"><TextoRico texto={tp('producto.info.etiqueta')} /></SectionTag>
               <h2 className="font-plus-jakarta text-3xl font-bold sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-                Lo que necesitas saber
+                <TextoRico texto={tp('producto.info.titulo')} />
               </h2>
             </div>
             <InfoClaveCarousel items={infoClave} />
@@ -398,9 +405,9 @@ export default async function DestinoPage({ params }: Props) {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-4xl">
             <div className="destino-reveal mb-16 text-center">
-              <SectionTag className="mb-4">El plan</SectionTag>
+              <SectionTag className="mb-4"><TextoRico texto={tp('producto.itinerario.etiqueta')} /></SectionTag>
               <h2 className="font-plus-jakarta text-3xl font-bold sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-                Itinerario día a día
+                <TextoRico texto={tp('producto.itinerario.titulo')} />
               </h2>
             </div>
             <ItinerarioTimeline dias={d.itinerario} />
@@ -413,9 +420,9 @@ export default async function DestinoPage({ params }: Props) {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <div className="destino-reveal mb-10">
-              <SectionTag className="mb-4">Galería</SectionTag>
+              <SectionTag className="mb-4"><TextoRico texto={tp('producto.galeria.etiqueta')} /></SectionTag>
               <h2 className="font-plus-jakarta text-3xl font-bold sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-                Imágenes del destino
+                <TextoRico texto={tp('producto.galeria.titulo')} />
               </h2>
             </div>
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -434,9 +441,9 @@ export default async function DestinoPage({ params }: Props) {
         <section className="px-6 py-24" style={{ background: 'var(--bg-alt)' }}>
           <div className="mx-auto max-w-4xl">
             <div className="destino-reveal mb-10 text-center">
-              <SectionTag className="mb-4">Para descargar</SectionTag>
+              <SectionTag className="mb-4"><TextoRico texto={tp('producto.documentos.etiqueta')} /></SectionTag>
               <h2 className="font-plus-jakarta text-3xl font-bold sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-                Documentos del viaje
+                <TextoRico texto={tp('producto.documentos.titulo')} />
               </h2>
             </div>
             <ul className="grid gap-4 sm:grid-cols-2">
@@ -495,13 +502,13 @@ export default async function DestinoPage({ params }: Props) {
       <section className="tema-oscuro relative overflow-hidden px-6 py-24" style={{ background: 'linear-gradient(135deg, #16315f 0%, var(--navy) 100%)' }}>
         <div aria-hidden className="pointer-events-none absolute inset-0" style={{ borderTop: '1px solid var(--border-orange)', borderBottom: '1px solid var(--border-orange)' }} />
         <div className="destino-reveal relative mx-auto max-w-3xl text-center">
-          <SectionTag className="mb-4">¿Listo para viajar?</SectionTag>
+          <SectionTag className="mb-4"><TextoRico texto={tp('producto.cta.etiqueta')} /></SectionTag>
           <h2 className="font-plus-jakarta text-3xl font-extrabold leading-tight sm:text-5xl" style={{ color: 'var(--text-primary)' }}>
-            {d.cta_titulo ?? `Viaja a ${d.nombre}`}
+            <TextoRico texto={d.cta_titulo ?? tp('producto.cta.titulo')} />
           </h2>
-          {d.cta_subtitulo && (
+          {(d.cta_subtitulo || tp('producto.cta.subtitulo')) && (
             <p className="mx-auto mt-4 max-w-lg font-inter text-sm leading-relaxed sm:text-base" style={{ color: 'var(--text-dim)' }}>
-              {d.cta_subtitulo}
+              <TextoRico texto={d.cta_subtitulo ?? tp('producto.cta.subtitulo')} />
             </p>
           )}
           {precioMostrar && (
@@ -518,9 +525,9 @@ export default async function DestinoPage({ params }: Props) {
       <section className="px-6 py-24" style={{ background: 'var(--bg-alt)' }}>
         <div className="mx-auto max-w-6xl">
           <div className="destino-reveal mb-10 text-center">
-            <SectionTag className="mb-4">Reseñas de Google ⭐</SectionTag>
+            <SectionTag className="mb-4"><TextoRico texto={tp('producto.resenas.etiqueta')} /></SectionTag>
             <h2 className="font-plus-jakarta text-3xl font-bold sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-              ¿Por qué nos prefieren nuestros clientes?
+              <TextoRico texto={tp('producto.resenas.titulo')} />
             </h2>
           </div>
           <iframe
@@ -546,14 +553,16 @@ export default async function DestinoPage({ params }: Props) {
             height={104}
             className="h-auto w-52 sm:w-64"
           />
-          <SectionTag className="mb-4 mt-10">Agencia de viajes</SectionTag>
+          <SectionTag className="mb-4 mt-10"><TextoRico texto={tp('producto.nosotros.etiqueta')} /></SectionTag>
           <h2 className="font-plus-jakarta text-3xl font-extrabold tracking-tight sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-            Travel World Colombia
+            <TextoRico texto={tp('producto.nosotros.titulo')} />
           </h2>
           <div aria-hidden className="mt-5 h-1 w-16 rounded" style={{ background: 'var(--orange)' }} />
-          <p className="mt-5 font-inter text-base italic" style={{ color: 'var(--orange)' }}>
-            Más de 14 años cumpliendo sueños
-          </p>
+          {tp('producto.nosotros.subtitulo') && (
+            <p className="mt-5 font-inter text-base italic" style={{ color: 'var(--orange)' }}>
+              <TextoRico texto={tp('producto.nosotros.subtitulo')} />
+            </p>
+          )}
           <p className="mt-6 font-inter text-base leading-relaxed" style={{ color: 'var(--text-dim)' }}>
             Somos una agencia con más de 14 años de experiencia en el mercado, cumpliendo los
             sueños de nuestros pasajeros con viajes a nivel nacional e internacional. Hacemos

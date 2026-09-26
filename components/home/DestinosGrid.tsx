@@ -4,16 +4,19 @@ import { useState } from 'react'
 import Link from 'next/link'
 import type { Destino } from '@/types/destino'
 import { SectionTag } from '@/components/ui/SectionTag'
+import { TextoRico } from '@/components/ui/TextoRico'
 import { DestinoCard } from '@/components/destinos/DestinoCard'
 
 interface DestinosGridProps {
   destinos: Destino[]
+  /** Textos de la sección (editables en el panel; los resuelve la página). */
+  textos: { etiqueta: string; titulo: string; subtitulo: string }
 }
 
 const INICIAL = 3
 const PASO = 3
 
-export function DestinosGrid({ destinos }: DestinosGridProps) {
+export function DestinosGrid({ destinos, textos }: DestinosGridProps) {
   // Destacados primero, luego el resto.
   const ordenados = [...destinos].sort((a, b) => Number(b.destacado) - Number(a.destacado))
   const [visibles, setVisibles] = useState(INICIAL)
@@ -25,20 +28,22 @@ export function DestinosGrid({ destinos }: DestinosGridProps) {
     <section aria-labelledby="destinos-title" className="py-20 px-6">
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 text-center">
-          <SectionTag className="mb-3">Nuestros destinos</SectionTag>
+          <SectionTag className="mb-3"><TextoRico texto={textos.etiqueta} /></SectionTag>
           <h2
             id="destinos-title"
             className="font-plus-jakarta text-3xl font-bold leading-tight sm:text-4xl"
             style={{ color: 'var(--text-primary)' }}
           >
-            Explora el mundo con nosotros
+            <TextoRico texto={textos.titulo} />
           </h2>
-          <p
-            className="mx-auto mt-4 max-w-xl font-inter text-sm leading-relaxed"
-            style={{ color: 'var(--text-dim)' }}
-          >
-            Paquetes diseñados para cada tipo de viajero, con atención personalizada de nuestro equipo de expertos.
-          </p>
+          {textos.subtitulo && (
+            <p
+              className="mx-auto mt-4 max-w-xl font-inter text-sm leading-relaxed"
+              style={{ color: 'var(--text-dim)' }}
+            >
+              <TextoRico texto={textos.subtitulo} />
+            </p>
+          )}
         </div>
 
         <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

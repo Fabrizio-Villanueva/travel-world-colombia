@@ -2,8 +2,10 @@ import Link from 'next/link'
 import type { LucideIcon } from 'lucide-react'
 import { MessageCircle, Headset, Map, PlayCircle, ArrowRight } from 'lucide-react'
 import { SectionTag } from '@/components/ui/SectionTag'
+import { TextoRico } from '@/components/ui/TextoRico'
 import { SOCIALS } from '@/lib/site'
 import { NuevaPestana } from '@/components/ui/NuevaPestana'
+import { getTextosSitio, textoInicio } from '@/lib/textos'
 
 interface Paso {
   icon: LucideIcon
@@ -36,7 +38,8 @@ const PASOS: Paso[] = [
   },
 ]
 
-export function ComoFunciona() {
+export async function ComoFunciona() {
+  const T = await getTextosSitio()
   return (
     <section
       aria-labelledby="como-funciona-title"
@@ -57,13 +60,13 @@ export function ComoFunciona() {
       <div className="relative z-10 mx-auto max-w-6xl">
         {/* Header */}
         <div className="mb-16 text-center md:mb-24">
-          <SectionTag className="mb-4">El proceso</SectionTag>
+          <SectionTag className="mb-4"><TextoRico texto={textoInicio(T, 'inicio.como.etiqueta')} /></SectionTag>
           <h2
             id="como-funciona-title"
             className="font-plus-jakarta text-4xl font-extrabold leading-tight sm:text-6xl"
             style={{ color: 'var(--text-primary)' }}
           >
-            ¿Cómo <span style={{ color: 'var(--orange)' }}>funciona?</span>
+            <TextoRico texto={textoInicio(T, 'inicio.como.titulo')} />
           </h2>
 
           <a

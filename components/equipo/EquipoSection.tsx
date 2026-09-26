@@ -4,9 +4,15 @@ import Image from 'next/image'
 import { useState } from 'react'
 import { EQUIPO, inicialesDe } from '@/lib/equipo'
 import { SectionTag } from '@/components/ui/SectionTag'
+import { TextoRico } from '@/components/ui/TextoRico'
 import { Pausable } from '@/components/ui/Pausable'
 
-export function EquipoSection() {
+interface EquipoSectionProps {
+  /** Textos de la sección (editables en el panel; los resuelve la página). */
+  textos: { etiqueta: string; titulo: string; subtitulo: string }
+}
+
+export function EquipoSection({ textos }: EquipoSectionProps) {
   // Lista duplicada para un loop continuo y sin saltos (marquee).
   const loop = [...EQUIPO, ...EQUIPO]
 
@@ -30,21 +36,22 @@ export function EquipoSection() {
       <div className="relative z-10 mx-auto max-w-6xl">
         {/* Header */}
         <div className="mx-auto mb-14 max-w-3xl text-center md:mb-20">
-          <SectionTag className="mb-4">Las personas detrás de tus viajes</SectionTag>
+          <SectionTag className="mb-4"><TextoRico texto={textos.etiqueta} /></SectionTag>
           <h2
             id="equipo-title"
             className="font-plus-jakarta text-4xl font-extrabold leading-tight sm:text-5xl"
             style={{ color: 'var(--text-primary)' }}
           >
-            El Equipo <span style={{ color: 'var(--orange)' }}>Travel World</span>
+            <TextoRico texto={textos.titulo} />
           </h2>
-          <p
-            className="mx-auto mt-5 max-w-2xl font-inter text-base leading-relaxed sm:text-lg"
-            style={{ color: 'var(--text-dim)' }}
-          >
-            Cada miembro de nuestro equipo es un apasionado de los viajes.
-            Conocemos los destinos porque los hemos vivido.
-          </p>
+          {textos.subtitulo && (
+            <p
+              className="mx-auto mt-5 max-w-2xl font-inter text-base leading-relaxed sm:text-lg"
+              style={{ color: 'var(--text-dim)' }}
+            >
+              <TextoRico texto={textos.subtitulo} />
+            </p>
+          )}
           <div
             className="mx-auto mt-8 h-px w-48"
             style={{ background: 'linear-gradient(to right, transparent, var(--orange), var(--gold), transparent)' }}

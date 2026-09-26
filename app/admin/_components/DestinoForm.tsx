@@ -14,6 +14,7 @@ import { HospedajeEditor } from './HospedajeEditor'
 import { CategoriasSelector } from './CategoriasSelector'
 import { BUCKET_DESTINOS, subirAStorage, validarImagen, slugDelFormulario } from '@/lib/supabase/upload-cliente'
 import { PAISES, REGIONES } from '@/lib/paises'
+import { CLAVES_PRODUCTO_PERSONALIZABLES, MAX_TEXTO, type Textos } from '@/lib/textos'
 
 type Action = (prev: FormState, fd: FormData) => Promise<FormState>
 
@@ -188,11 +189,62 @@ function ImagenCampo({ label, name, urlActual, reco }: { label: string; name: st
   )
 }
 
-export function DestinoForm({ action, destino, titulo, categorias }: {
+/**
+ * Bloque plegado "Personalizar textos": los títulos y etiquetas de sección de
+ * ESTE viaje. Vacío = usa la plantilla global (lo que se ve como placeholder).
+ */
+function TextosPropios({ inicial, globales }: { inicial?: Record<string, string>; globales?: Textos }) {
+  const secciones = new Map<string, typeof CLAVES_PRODUCTO_PERSONALIZABLES>()
+  for (const t of CLAVES_PRODUCTO_PERSONALIZABLES) {
+    secciones.set(t.seccion, [...(secciones.get(t.seccion) ?? []), t])
+  }
+  const cuantos = Object.values(inicial ?? {}).filter(v => v?.trim()).length
+
+  return (
+    <details className="sm:col-span-2">
+      <summary className="cursor-pointer font-inter text-sm" style={{ color: 'var(--orange)' }}>
+        Personalizar títulos de sección de este viaje{cuantos > 0 ? ` (${cuantos} personalizado${cuantos !== 1 ? 's' : ''})` : ''}
+      </summary>
+      <p className="mt-2 font-inter text-xs" style={{ color: 'var(--text-muted)' }}>
+        Solo si este viaje necesita un título distinto al del resto. Lo que dejes vacío usa la plantilla
+        de <strong>Textos del sitio</strong> (se muestra como ejemplo). El subtítulo y el CTA final se editan
+        en sus propios campos más abajo.
+      </p>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        {[...secciones.entries()].map(([seccion, campos]) => (
+          <div key={seccion} className="rounded-md p-3" style={{ border: '1px solid var(--border)' }}>
+            <p className="mb-2 font-inter text-xs font-semibold" style={{ color: 'var(--text-dim)' }}>{seccion}</p>
+            <div className="grid gap-3">
+              {campos.map(t => (
+                <div key={t.clave}>
+                  <label className={labelCls} style={labelStyle}>
+                    {t.tipo === 'etiqueta' ? 'Etiqueta' : t.tipo === 'titulo' ? 'Título' : 'Subtítulo'}
+                  </label>
+                  <input
+                    name={`textos.${t.clave}`}
+                    defaultValue={inicial?.[t.clave] ?? ''}
+                    placeholder={globales?.[t.clave] ?? t.original}
+                    maxLength={MAX_TEXTO[t.tipo]}
+                    className={inputCls}
+                    style={inputStyle}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </details>
+  )
+}
+
+export function DestinoForm({ action, destino, titulo, categorias, textosGlobales }: {
   action: Action
   destino?: Destino
   titulo: string
   categorias: CategoriaArbol[]
+  /** Plantilla global de textos (para mostrar como ejemplo en "Personalizar textos"). */
+  textosGlobales?: Textos
 }) {
   const [state, formAction, pending] = useActionState(action, {})
   const d = destino
@@ -461,6 +513,13 @@ export function DestinoForm({ action, destino, titulo, categorias }: {
             { key: 'sub', label: 'Sub (opcional)' },
           ]}
         />
+      </Seccion>
+
+      <Seccion
+        titulo="Textos de la página (avanzado)"
+        ayuda="Los títulos y etiquetas de cada sección (Qué incluye, Hospedaje, Itinerario…) vienen de la plantilla global en 'Textos del sitio' y son iguales para todos los viajes. Aquí puedes cambiar alguno SOLO para este viaje. Normalmente no hace falta."
+      >
+        <TextosPropios inicial={d?.textos} globales={textosGlobales} />
       </Seccion>
 
       <Seccion

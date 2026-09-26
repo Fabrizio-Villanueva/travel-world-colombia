@@ -13,6 +13,7 @@ import { ResenasSection } from '@/components/home/ResenasSection'
 import { CTABanner } from '@/components/home/CTABanner'
 import { MapaContacto } from '@/components/home/MapaContacto'
 import { OrganizationReviews } from '@/components/seo/OrganizationReviews'
+import { getTextosSitio, textoInicio } from '@/lib/textos'
 
 export const revalidate = 1800 // home: revalidar cada 30 min
 
@@ -32,13 +33,23 @@ export default async function Home() {
     preload(heroBg(heroPrincipal), { as: 'image', fetchPriority: 'high' })
   }
 
+  // Títulos de sección editables en el panel. Las secciones de servidor los
+  // leen solas; a los componentes de cliente se les pasan como props.
+  const T = await getTextosSitio()
+  const t = (clave: string) => textoInicio(T, clave)
+
   return (
     <div className="tema-claro">
       <HeroSection destinos={destinos} />
       <TrustBar />
-      <DestinosGrid destinos={destinos} />
+      <DestinosGrid
+        destinos={destinos}
+        textos={{ etiqueta: t('inicio.destinos.etiqueta'), titulo: t('inicio.destinos.titulo'), subtitulo: t('inicio.destinos.subtitulo') }}
+      />
       <ComoFunciona />
-      <EquipoSection />
+      <EquipoSection
+        textos={{ etiqueta: t('inicio.equipo.etiqueta'), titulo: t('inicio.equipo.titulo'), subtitulo: t('inicio.equipo.subtitulo') }}
+      />
       <PorQueElegirnos />
       <AlianzasPremium />
       <ResenasSection />

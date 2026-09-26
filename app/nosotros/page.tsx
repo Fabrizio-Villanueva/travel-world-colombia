@@ -10,6 +10,7 @@ import { CountUp } from '@/components/ui/CountUp'
 import { NuevaPestana } from '@/components/ui/NuevaPestana'
 import { SITE, whatsappUrl } from '@/lib/site'
 import { HOTELES_CRUCEROS, AEROLINEAS, type Alianza } from '@/lib/alianzas'
+import { getTextosSitio, textoInicio } from '@/lib/textos'
 
 export const revalidate = 86400
 
@@ -63,7 +64,14 @@ function LogoCard({ alianza }: { alianza: Alianza }) {
 
 /* ─────────── PAGE ─────────── */
 
-export default function NosotrosPage() {
+export default async function NosotrosPage() {
+  // La sección del equipo comparte sus títulos con la home (editables en el panel).
+  const T = await getTextosSitio()
+  const textosEquipo = {
+    etiqueta: textoInicio(T, 'inicio.equipo.etiqueta'),
+    titulo: textoInicio(T, 'inicio.equipo.titulo'),
+    subtitulo: textoInicio(T, 'inicio.equipo.subtitulo'),
+  }
   return (
     <div className="tema-claro">
       {/* ── HERO ── */}
@@ -246,7 +254,7 @@ export default function NosotrosPage() {
       </section>
 
       {/* ── EQUIPO ── */}
-      <EquipoSection />
+      <EquipoSection textos={textosEquipo} />
 
       {/* ── ALIADOS HOTELEROS ── */}
       <section className="px-6 py-16">

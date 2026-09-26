@@ -1,7 +1,10 @@
 import Script from 'next/script'
 import { SectionTag } from '@/components/ui/SectionTag'
+import { TextoRico } from '@/components/ui/TextoRico'
+import { getTextosSitio, textoInicio } from '@/lib/textos'
 
-export function ResenasSection() {
+export async function ResenasSection() {
+  const T = await getTextosSitio()
   return (
     <section
       aria-labelledby="resenas-title"
@@ -10,13 +13,13 @@ export function ResenasSection() {
     >
       <div className="mx-auto max-w-6xl">
         <div className="mb-10 text-center">
-          <SectionTag className="mb-3">Testimonios</SectionTag>
+          <SectionTag className="mb-3"><TextoRico texto={textoInicio(T, 'inicio.resenas.etiqueta')} /></SectionTag>
           <h2
             id="resenas-title"
             className="font-plus-jakarta text-3xl font-bold leading-tight sm:text-4xl"
             style={{ color: 'var(--text-primary)' }}
           >
-            Lo que dicen nuestros viajeros
+            <TextoRico texto={textoInicio(T, 'inicio.resenas.titulo')} />
           </h2>
         </div>
 

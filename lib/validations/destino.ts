@@ -52,6 +52,8 @@ export const destinoSchema = z.object({
   cta_subtitulo: z.string().optional(),
   meta_title: z.string().optional(),
   meta_description: z.string().optional(),
+  /** Textos de sección personalizados (clave de lib/textos.ts → valor). */
+  textos: z.record(z.string(), z.string().max(320)).optional(),
 }).superRefine((d, ctx) => {
   // Ambos opcionales (9 destinos no publican precio), pero en pareja: un valor
   // sin moneda no se puede formatear ni publicar en Schema.org, y viceversa.

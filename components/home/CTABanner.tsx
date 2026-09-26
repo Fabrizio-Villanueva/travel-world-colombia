@@ -1,8 +1,12 @@
 import { Button } from '@/components/ui/Button'
-import { SITE, whatsappUrl } from '@/lib/site'
+import { whatsappUrl } from '@/lib/site'
 import { Plane } from 'lucide-react'
+import { TextoRico } from '@/components/ui/TextoRico'
+import { getTextosSitio, textoInicio } from '@/lib/textos'
 
-export function CTABanner() {
+export async function CTABanner() {
+  const T = await getTextosSitio()
+  const subtitulo = textoInicio(T, 'inicio.cta.subtitulo')
   return (
     <section
       aria-label="Llamado a la acción"
@@ -49,16 +53,17 @@ export function CTABanner() {
           className="font-plus-jakarta text-3xl font-bold leading-tight sm:text-5xl"
           style={{ color: 'var(--text-primary)' }}
         >
-          Tu próxima aventura <br />
-          <span style={{ color: 'var(--orange)' }}>empieza aquí</span>
+          <TextoRico texto={textoInicio(T, 'inicio.cta.titulo')} />
         </h2>
 
-        <p
-          className="mx-auto mt-5 max-w-lg font-inter text-sm leading-relaxed sm:text-base"
-          style={{ color: 'var(--text-dim)' }}
-        >
-          Cotiza gratis en menos de 24 horas. Sin compromisos. Más de {SITE.familias} familias ya confían en nosotros.
-        </p>
+        {subtitulo && (
+          <p
+            className="mx-auto mt-5 max-w-lg font-inter text-sm leading-relaxed sm:text-base"
+            style={{ color: 'var(--text-dim)' }}
+          >
+            <TextoRico texto={subtitulo} />
+          </p>
+        )}
 
         <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           <Button variant="whatsapp" size="md" href={whatsappUrl()}>
