@@ -40,7 +40,55 @@ export interface ResumenVigilancia {
   errores: number
 }
 
-/** ¿Hay un saliente REAL (no actividad del sistema) más nuevo que el último entrante? */
+/**
+ * ¿El mensaje es una despedida de cortesía ("gracias", "ok", "vale listo")?
+ *
+ * Marca por dirección y tiempo alertaba también cuando el cliente cerraba con
+ * un "gracias" tras la respuesta del asesor (ruido real: 6 de los 13 marcados
+ * el 2026-09-28 eran de este tipo). Reglas, deliberadamente conservadoras —
+ * ante la duda, se marca y que el equipo decida:
+ *  - Debe contener un ANCLA de cortesía (gracias, ok, vale, listo…).
+ *  - Corto: máximo 5 palabras ya normalizado.
+ *  - Sin señales de pregunta o petición (¿?, precio, cotizar, cuándo…).
+ *  - Un adjunto (audio/foto/video) NUNCA es cortesía: siempre se atiende.
+ *  - Solo emojis (🙏, 👍) también cuenta como cortesía.
+ */
+function esCortesiaDeCierre(m: MensajeGhl): boolean {
+  const crudo = (m.body ?? '').trim()
+  if (!crudo) return false
+  if (/^>\s*(AUDIO|IMAGE|VIDEO|DOCUMENT|FILE)\s*</i.test(crudo)) return false
+
+  // Sin tildes, sin emojis ni signos: solo letras/números y espacios.
+  const plano = crudo
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-z0-9ñ\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  // El texto era puro emoji/símbolo (p. ej. "🙏🏻" o "👍"): cierre de cortesía.
+  if (!plano) return true
+
+  const palabras = plano.split(' ')
+  if (palabras.length > 5) return false
+
+  const ancla =
+    /\b(gracias|grasias|ok|okay|okey|vale|listo|dale|perfecto|entendido|recibido|de acuerdo|esta bien|buen dia|buenas tardes|buenas noches|feliz (dia|tarde|noche)|bendiciones|amen|igualmente|a la orden|con gusto|muy amable)\b/
+  if (!ancla.test(plano)) return false
+
+  const peticion =
+    /\b(cuando|como|donde|cuanto|precio|tarifa|costo|cotiza\w*|informacion|info|quiero|necesito|ayuda|puede[ns]?|podria[ns]?|dime|cuentame|envia\w*|manda\w*|espero|esperamos|quedo|quedamos|atent[oa]s?|pendiente[s]?|pregunta|duda|reserva\w*|pago|numero|telefono)\b/
+  if (peticion.test(plano)) return false
+
+  return true
+}
+
+/**
+ * ¿Hay un saliente REAL (no actividad del sistema) más nuevo que el último
+ * entrante? También cuenta como "respondido" el cierre por cortesía: alguien
+ * respondió y TODO lo que el cliente mandó después son despedidas de cortesía.
+ */
 function yaRespondieron(mensajes: MensajeGhl[]): { respondido: boolean; edadEntranteMin: number | null } {
   // `ultimosMensajes` llega del más reciente al más antiguo.
   const esReal = (m: MensajeGhl) =>
@@ -58,6 +106,21 @@ function yaRespondieron(mensajes: MensajeGhl[]): { respondido: boolean; edadEntr
   const respondido = mensajes
     .slice(0, idxEntrante)
     .some(m => m.direction === 'outbound' && esReal(m))
+
+  if (!respondido) {
+    // Cierre por cortesía: hubo respuesta antes (hay un saliente real en la
+    // ventana) y TODOS los entrantes posteriores a ese saliente son despedidas
+    // de cortesía. Si nunca nadie respondió, la regla no aplica: se marca.
+    const idxSaliente = mensajes.findIndex(m => m.direction === 'outbound' && esReal(m))
+    if (idxSaliente !== -1) {
+      const entrantesTrasRespuesta = mensajes
+        .slice(0, idxSaliente)
+        .filter(m => m.direction === 'inbound' && esReal(m))
+      if (entrantesTrasRespuesta.length > 0 && entrantesTrasRespuesta.every(esCortesiaDeCierre)) {
+        return { respondido: true, edadEntranteMin }
+      }
+    }
+  }
 
   return { respondido, edadEntranteMin }
 }
