@@ -13,6 +13,7 @@ export const destinoSchema = z.object({
   salida_fin_ano: z.boolean(),
   activo: z.boolean(),
   destacado: z.boolean(),
+  en_hero: z.boolean(),
   orden: z.number().int().min(0),
   precio_desde: z.string().optional(),
   precio_valor: z.number().positive('El precio debe ser mayor a 0.').optional(),

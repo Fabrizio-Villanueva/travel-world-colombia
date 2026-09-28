@@ -80,6 +80,8 @@ export interface Destino {
   slug: string
   activo: boolean
   destacado: boolean
+  /** Aparece en el carrusel del hero del home (si ningún viaje lo marca, salen todos). */
+  en_hero?: boolean
   orden: number
 
   nombre: string

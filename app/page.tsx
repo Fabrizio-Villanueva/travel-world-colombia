@@ -25,10 +25,16 @@ export default async function Home() {
   // Sin cruceros, igual que /destinos: los cruceros tienen su propia página.
   const destinos = (await getDestinos()).filter(d => !d.es_crucero)
 
+  // El carrusel del hero rota solo los viajes con el check "Mostrar en el
+  // banner del inicio" (en_hero); si ninguno está marcado, caen todos para que
+  // el banner nunca quede vacío (comportamiento anterior).
+  const marcados = destinos.filter(d => d.en_hero)
+  const heroDestinos = marcados.length > 0 ? marcados : destinos
+
   // Precarga la imagen LCP del hero (mismo destino que elige HeroSection por
   // defecto: primer destacado, o el primero). El hero es un background-image de
   // CSS, que el navegador descubre tarde; el preload adelanta su descarga.
-  const heroPrincipal = destinos.find(d => d.destacado) ?? destinos[0]
+  const heroPrincipal = heroDestinos.find(d => d.destacado) ?? heroDestinos[0]
   if (heroPrincipal) {
     preload(heroBg(heroPrincipal), { as: 'image', fetchPriority: 'high' })
   }
@@ -40,7 +46,7 @@ export default async function Home() {
 
   return (
     <div className="tema-claro">
-      <HeroSection destinos={destinos} />
+      <HeroSection destinos={heroDestinos} />
       <TrustBar />
       <DestinosGrid
         destinos={destinos}

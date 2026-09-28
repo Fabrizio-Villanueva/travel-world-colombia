@@ -86,6 +86,7 @@ function construirPayload(formData: FormData) {
     salida_fin_ano: formData.get('salida_fin_ano') === 'on',
     activo: formData.get('activo') === 'on',
     destacado: formData.get('destacado') === 'on',
+    en_hero: formData.get('en_hero') === 'on',
     orden: numEntero(formData.get('orden')) ?? 0,
     precio_valor,
     precio_moneda,

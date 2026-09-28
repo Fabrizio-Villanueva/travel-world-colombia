@@ -442,6 +442,9 @@ export function DestinoForm({ action, destino, titulo, categorias, textosGlobale
           <input type="checkbox" name="destacado" defaultChecked={d?.destacado ?? false} /> Destacado / Favorito
         </label>
         <label className="flex items-center gap-2 font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
+          <input type="checkbox" name="en_hero" defaultChecked={d?.en_hero ?? false} /> Mostrar en el banner del inicio
+        </label>
+        <label className="flex items-center gap-2 font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
           <input type="checkbox" name="salida_fin_ano" defaultChecked={d?.salida_fin_ano ?? false} /> Salida confirmada fin de año
         </label>
       </Seccion>
