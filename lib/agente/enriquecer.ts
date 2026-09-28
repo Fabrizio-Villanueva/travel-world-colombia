@@ -52,11 +52,15 @@ export async function enriquecerDesdeContacto(contactId: string): Promise<Evento
     // en que se crea el contacto, ANTES de que GHL indexe la conversación nueva:
     // la búsqueda devuelve vacío por una condición de carrera. Sin conversación,
     // Sol no puede identificar al autor ni responder, y el lead se pierde en
-    // silencio (era una fuga real de leads nuevos). Reintentamos unas pocas veces
-    // con espera corta para darle tiempo a GHL a indexar.
+    // silencio (era una fuga real de leads nuevos). Reintentamos con espera
+    // creciente: el 2026-09-28 un lead de anuncio (Enrique) tardó MÁS de los
+    // ~6 s que daban los 3 reintentos de 2 s en aparecer en la búsqueda, y se
+    // perdió. Total ~30 s de margen; cabe en el maxDuration de 90 s del webhook.
+    const esperas = [2000, 3000, 5000, 8000, 12000]
     let conv = await conversacionDe(contactId)
-    for (let intento = 0; !conv && intento < 3; intento++) {
-      await new Promise(r => setTimeout(r, 2000))
+    for (const espera of esperas) {
+      if (conv) break
+      await new Promise(r => setTimeout(r, espera))
       conv = await conversacionDe(contactId)
     }
     if (!conv) {
