@@ -19,7 +19,6 @@ import {
   HORARIO,
   MAX_INTENTOS_SEGUIMIENTO,
   PIPELINE,
-  PIPELINE_LEGACY,
   PIPELINES_POSTVENTA,
   TAGS,
   TAG_PRUEBAS,
@@ -123,9 +122,7 @@ async function atenderSeguimiento(fila: FilaSeguimiento): Promise<string> {
       o.status === 'open' &&
       ((PIPELINES_POSTVENTA as readonly string[]).includes(o.pipelineId ?? '') ||
         (o.pipelineId === PIPELINE.id &&
-          (PIPELINE.etapasVedadas as readonly string[]).includes(o.pipelineStageId ?? '')) ||
-        (o.pipelineId === PIPELINE_LEGACY.id &&
-          (PIPELINE_LEGACY.etapasVedadas as readonly string[]).includes(o.pipelineStageId ?? '')))
+          (PIPELINE.etapasVedadas as readonly string[]).includes(o.pipelineStageId ?? '')))
   )
   if (enManosHumanas) return cerrar(fila, 'la oportunidad está en territorio humano')
 

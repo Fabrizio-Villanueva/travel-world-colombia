@@ -12,8 +12,8 @@ export const GHL = {
 /**
  * Pipeline comercial "🎯 Leads (venta)" y las etapas que Sol puede tocar.
  * Migración 2026-08-25 (ver `docs/migracion-campos-oportunidad.md`): los leads
- * nuevos nacen aquí; el "✅ PIPELINE PRINCIPAL" viejo queda en solo-lectura
- * hasta agotar sus reservas (ver PIPELINE_LEGACY).
+ * nuevos nacen aquí. El "✅ PIPELINE PRINCIPAL" viejo se vació y eliminó el
+ * 2026-09-29 (su historial cerrado se mudó a este pipeline).
  */
 export const PIPELINE = {
   id: 'MLoZOGIYvCBRUgQdYRA8',
@@ -36,25 +36,6 @@ export const PIPELINE = {
 } as const
 
 /**
- * Pipeline viejo "✅ PIPELINE PRINCIPAL", vivo durante la transición: sus leads
- * en etapas humanas siguen siendo territorio humano para el seguimiento.
- * Retirar cuando el pipeline se vacíe.
- */
-export const PIPELINE_LEGACY = {
-  id: 'G9XH0U9dIBl7Jvd7hyvE',
-  etapasVedadas: [
-    '581e66d0-f2e2-407a-b2ec-04d1ba644b59', // Contactado
-    '17fc06db-e871-465d-bd13-beddf574f967', // Cotización en proceso
-    'd351d803-3e7c-4ade-a689-d17722f1d046', // Cotización Enviada
-    'c94ca94e-3768-4624-bfdd-e147350933ce', // En Seguimiento
-    'fef0ff3d-cafc-40a3-8996-09ba897b2b51', // Negociación
-    '4cbf272e-674a-4c0c-aebc-9f14fa2efbc4', // Documentacion
-    'be026e44-bd85-40d9-99ec-db7b4f03e44b', // Cerrado Ganado
-    '6f0678b9-4f06-43ee-9e45-e4f40699fe6d', // Ganado / Abonado
-  ],
-} as const
-
-/**
  * Pipeline post-venta "🗂️ Reservaciones (operación)": la oportunidad ganada se
  * MUDA aquí (misma tarjeta, nunca una nueva — duplicaría reservas en el TMS).
  * La mudanza la hace /api/agente/reservacion porque la acción nativa de GHL
@@ -70,16 +51,6 @@ export const PIPELINE_RESERVACIONES = {
 
 /** Etapa "✅ Ganada" del pipeline de Leads: desde aquí se muda a Reservaciones. */
 export const ETAPA_GANADA = '2ff59f80-0b8a-4dde-9419-0f4b97b701f0'
-
-/**
- * Etapas de cierre ganado del pipeline VIEJO. Durante la transición, los leads
- * en vuelo que se ganen ahí también se mudan a Reservaciones (misma tarjeta):
- * "🛫 Clientes Viajando" queda congelado — nada nuevo entra.
- */
-export const ETAPAS_GANADA_LEGACY = [
-  'be026e44-bd85-40d9-99ec-db7b4f03e44b', // Cerrado Ganado
-  '6f0678b9-4f06-43ee-9e45-e4f40699fe6d', // Ganado / Abonado
-] as const
 
 /**
  * Campos de la migración a oportunidad que el código toca directamente
