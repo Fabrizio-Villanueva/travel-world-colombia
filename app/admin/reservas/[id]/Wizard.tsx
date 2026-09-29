@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Loader2, Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Loader2, Check, ChevronLeft, ChevronRight, CreditCard, FileText, Eye } from 'lucide-react'
 import type { CampoReserva, ValorCampo } from '@/lib/admin/reservas'
 import { guardarReserva } from '../actions'
 
@@ -218,6 +218,15 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
 
   const carpetaActual = pasos[paso]
   const camposDelPaso = campos.filter(c => c.folder === carpetaActual)
+
+  // ¿Está marcada la opción "Preview Documento" en este paso? Se busca por la
+  // opción (no por el id del campo) para no depender del catálogo de GHL: si
+  // el campo "¿Enviar contrato?" cambia de id o de carpeta, la guía lo sigue.
+  const previewMarcado = camposDelPaso.some(c => {
+    if (c.dataType !== 'MULTIPLE_OPTIONS' || !(c.options ?? []).some(o => /preview/i.test(o))) return false
+    const v = valores[c.ghlId]
+    return Array.isArray(v) && v.some(x => /preview/i.test(x))
+  })
 
   // Grupos del paso: los repetibles visibles según el contador + los sueltos.
   const { grupos, sueltos, series } = useMemo(() => {
@@ -482,6 +491,109 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
             </span>
           )}
         </div>
+      </div>
+
+      {/* Guía de 3 pasos al marcar "Preview Documento": dónde ver el borrador en GHL. */}
+      {previewMarcado && <GuiaPreviewContrato />}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Guía "Preview Documento": el borrador NO se abre aquí — queda en    */
+/* GHL, y estas tarjetas muestran el camino para encontrarlo.          */
+/* ------------------------------------------------------------------ */
+
+function GuiaPreviewContrato() {
+  const pasos = [
+    {
+      titulo: 'Abre la sección Pagos',
+      texto: 'En el menú izquierdo de la plataforma, entra a la sección Pagos.',
+      mock: (
+        // Mini menú lateral con "Pagos" resaltado.
+        <div className="flex w-32 flex-col gap-1.5 rounded-lg bg-white p-2" style={{ border: '1px solid var(--border)' }}>
+          {['a', 'b'].map(k => (
+            <div key={k} className="h-2 w-4/5 rounded-full" style={{ background: 'var(--border)' }} />
+          ))}
+          <div className="flex items-center gap-1.5 rounded-md px-2 py-1.5" style={{ background: 'var(--navy, #0d1e3c)' }}>
+            <CreditCard size={11} style={{ color: '#fff' }} />
+            <span className="font-inter text-[10px] font-bold text-white">Pagos</span>
+          </div>
+          {['c', 'd'].map(k => (
+            <div key={k} className="h-2 w-4/5 rounded-full" style={{ background: 'var(--border)' }} />
+          ))}
+        </div>
+      ),
+    },
+    {
+      titulo: 'Documentos y contratos',
+      texto: 'Dentro de Pagos, abre "Documentos y contratos" y luego "Todos los archivos y contratos".',
+      mock: (
+        // Mini lista con la opción resaltada.
+        <div className="flex w-44 flex-col gap-1.5 rounded-lg bg-white p-2" style={{ border: '1px solid var(--border)' }}>
+          <div className="h-2 w-2/3 rounded-full" style={{ background: 'var(--border)' }} />
+          <div className="flex items-center gap-1.5 rounded-md px-2 py-1.5" style={{ background: 'color-mix(in srgb, var(--orange) 14%, transparent)', border: '1px solid var(--border-orange)' }}>
+            <FileText size={11} style={{ color: 'var(--orange)' }} />
+            <span className="font-inter text-[10px] font-bold" style={{ color: 'var(--text-primary)' }}>Documentos y contratos</span>
+          </div>
+          <div className="rounded-md px-2 py-1 font-inter text-[10px]" style={{ color: 'var(--text-dim)' }}>
+            → Todos los archivos y contratos
+          </div>
+        </div>
+      ),
+    },
+    {
+      titulo: 'Previsualiza el borrador',
+      texto: 'Abre el contrato que aparece como Borrador y haz clic en "Previsualizar".',
+      mock: (
+        // Mini fila de documento con chip Borrador + botón Previsualizar.
+        <div className="flex w-48 flex-col gap-2 rounded-lg bg-white p-2.5" style={{ border: '1px solid var(--border)' }}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <FileText size={12} style={{ color: 'var(--text-dim)' }} />
+              <div className="h-2 w-14 rounded-full" style={{ background: 'var(--border)' }} />
+            </div>
+            <span className="rounded-full px-1.5 py-0.5 font-inter text-[9px] font-bold" style={{ background: '#fffbeb', color: '#92400e', border: '1px solid #fcd34d' }}>
+              Borrador
+            </span>
+          </div>
+          <div className="flex items-center justify-center gap-1 rounded-md py-1.5" style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}>
+            <Eye size={11} />
+            <span className="font-inter text-[10px] font-bold">Previsualizar</span>
+          </div>
+        </div>
+      ),
+    },
+  ]
+
+  return (
+    <div className="p-5" style={card}>
+      <h3 className="font-inter text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+        ¿Dónde veo el documento? — 3 pasos
+      </h3>
+      <p className="mt-1 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
+        Al marcar &quot;Preview Documento&quot; el contrato queda como borrador dentro de la
+        plataforma. Así lo encuentras:
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {pasos.map((p, i) => (
+          <div key={p.titulo} className="flex flex-col overflow-hidden rounded-xl" style={{ border: '1px solid var(--border)' }}>
+            <div aria-hidden className="flex h-36 items-center justify-center p-4" style={{ background: 'var(--bg-alt)', borderBottom: '1px solid var(--border)' }}>
+              {p.mock}
+            </div>
+            <div className="flex flex-1 flex-col gap-1 p-4">
+              <span className="font-inter text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--orange)' }}>
+                Paso {i + 1}
+              </span>
+              <span className="font-inter text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {p.titulo}
+              </span>
+              <span className="font-inter text-xs leading-relaxed" style={{ color: 'var(--text-dim)' }}>
+                {p.texto}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
