@@ -67,13 +67,11 @@ export const CAMPOS_RESERVA = {
 } as const
 
 /**
- * Pipelines 100% humanos: "🗂️ Reservaciones (operación)" (nuevo, post-venta) y
- * "🛫 Clientes Viajando" (viejo, en retiro).
+ * Pipelines 100% humanos: "🗂️ Reservaciones (operación)", que cubre toda la
+ * post-venta hasta el regreso del viaje ("🛫 Clientes Viajando" se migró aquí y
+ * se eliminó el 2026-09-30).
  */
-export const PIPELINES_POSTVENTA = [
-  PIPELINE_RESERVACIONES.id,
-  'X2FPIf6vQa6E5VSNE922', // 🛫 Clientes Viajando (legacy)
-] as const
+export const PIPELINES_POSTVENTA = [PIPELINE_RESERVACIONES.id] as const
 
 /**
  * Campos de calificación que YA existen en la subcuenta (folder ⭐
