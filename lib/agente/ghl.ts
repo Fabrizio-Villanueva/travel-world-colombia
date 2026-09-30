@@ -258,6 +258,7 @@ export interface OportunidadGhl {
   pipelineId?: string
   pipelineStageId?: string
   status?: string
+  lastStatusChangeAt?: string
 }
 
 /** Oportunidades de un contacto (para saber en qué etapa del pipeline va). */

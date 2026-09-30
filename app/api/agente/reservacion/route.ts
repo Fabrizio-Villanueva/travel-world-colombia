@@ -17,6 +17,9 @@ import {
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
+/** Cuánto tiempo después del botón "Ganado" se acepta mudar la tarjeta. */
+const VENTANA_GANADA_MS = 30 * 60 * 1000
+
 /**
  * Mudanza de venta ganada → 🗂️ Reservaciones (misma oportunidad, nunca una
  * nueva). Lo llama el workflow "3.- Venta Ganada to Reservación" de GHL vía
@@ -73,11 +76,24 @@ export async function POST(req: NextRequest) {
   try {
     const oportunidades = await oportunidadesDe(contactId)
     const enLeads = oportunidades.filter(o => o.pipelineId === PIPELINE.id && o.status === 'open')
-    // Prioridad: la Ganada abierta del pipeline de Leads → si no, la única
-    // abierta (reintento tras un fallo a medias). Las ganadas del historial
-    // (status won, mudadas del pipeline viejo) nunca se tocan.
+    // Marcada con el botón "Ganado" (status won sin pasar por la etapa): solo
+    // cuenta si el cambio de estado es reciente, para no mudar nunca las
+    // ganadas del historial que viven en Leads.
+    const ganadaReciente = oportunidades
+      .filter(
+        o =>
+          o.pipelineId === PIPELINE.id &&
+          o.status === 'won' &&
+          o.lastStatusChangeAt &&
+          Date.now() - Date.parse(o.lastStatusChangeAt) < VENTANA_GANADA_MS
+      )
+      .sort((a, b) => Date.parse(b.lastStatusChangeAt!) - Date.parse(a.lastStatusChangeAt!))[0]
+    // Prioridad: la Ganada abierta del pipeline de Leads → la recién marcada
+    // con el botón "Ganado" → si no, la única abierta (reintento tras un fallo
+    // a medias).
     const objetivo =
       enLeads.find(o => o.pipelineStageId === ETAPA_GANADA) ??
+      ganadaReciente ??
       (enLeads.length === 1 ? enLeads[0] : undefined)
 
     if (!objetivo) {

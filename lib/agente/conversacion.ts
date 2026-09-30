@@ -150,8 +150,12 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   // Y NADIE ha respondido antes (ni Sol, ni el bot viejo, ni un humano). Si la
   // conversación ya venía en curso, Sol la continúa sin re-enviar el aviso ni
   // re-saludar — clave para no interrumpir chats ya iniciados con contactos
-  // antiguos que no traen el tag.
-  const conversacionYaIniciada = mensajes.some(m => m.direction === 'outbound')
+  // antiguos que no traen el tag. Los registros de actividad (TYPE_ACTIVITY_*,
+  // p. ej. el "Opportunity created" que mete el workflow 1 al segundo de llegar
+  // el lead) salen como outbound pero no son una respuesta: no cuentan.
+  const conversacionYaIniciada = mensajes.some(
+    m => m.direction === 'outbound' && !m.messageType?.startsWith('TYPE_ACTIVITY')
+  )
   const primerContacto = !e.tags.includes(TAGS.avisoDatos) && !conversacionYaIniciada
 
   // ¿Llegó desde un anuncio de Meta? Sol sabe qué vio y qué programa es.
