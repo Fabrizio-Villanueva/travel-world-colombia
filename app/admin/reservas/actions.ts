@@ -19,6 +19,7 @@ import {
   type CampoReserva,
   type ValorCampo,
 } from '@/lib/admin/reservas'
+import { automatizarReserva } from '@/lib/admin/reservas-automatizacion'
 
 export interface ClienteEncontrado {
   id: string
@@ -235,6 +236,8 @@ async function guardar(
 
   if (loteOportunidad.length > 0) {
     await actualizarCamposOportunidad(opportunityId, loteOportunidad)
+    // Valor de la venta y etapa según los abonos (Fase 4): nunca lanza.
+    await automatizarReserva(opportunityId)
   }
   if ((loteContacto.size > 0 || nEstandar > 0) && contactId) {
     await actualizarContacto(contactId, {

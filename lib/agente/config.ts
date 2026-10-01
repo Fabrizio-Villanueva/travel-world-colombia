@@ -46,7 +46,22 @@ export const PIPELINE_RESERVACIONES = {
   id: 'Jq7CxjuirY9Gu44el0bs',
   etapas: {
     reservaCreada: 'b2b106ba-7431-4c10-bc4b-ad91365f28fd', // 📋 Reserva Creada
+    enPagos: '0583b4e0-d88f-43f4-bf30-f8e311d60cd3', // 💳 En Pagos
+    pagadaDocumentada: 'ffc56431-3638-487b-9401-063f2d6b9cd2', // 📁 Pagada y Documentada
   },
+  /** Todas las etapas en el orden del tablero: la automatización solo avanza. */
+  orden: [
+    'b2b106ba-7431-4c10-bc4b-ad91365f28fd', // 📋 Reserva Creada
+    '9c94de93-0e54-4925-9901-f6bf8c6f57b6', // 📤 Contrato Enviado
+    'ecdf4a60-5ef6-4b21-b61c-0103fec0e146', // ✍️ Contrato Firmado
+    '0583b4e0-d88f-43f4-bf30-f8e311d60cd3', // 💳 En Pagos
+    'ffc56431-3638-487b-9401-063f2d6b9cd2', // 📁 Pagada y Documentada
+    'cdd8d29b-db59-4da2-8e57-6d6f0f0ed7de', // 🧳 Por Viajar
+    'd670196a-d1f3-4dd9-89d7-3710aa3a91cf', // 🛫 En Viaje
+    'b84cd8aa-975b-4f49-970d-cdcb5907cfab', // ✈️ Completada
+    'bce3ac20-4888-475f-96ef-4e5323d7d4d2', // 🌟 Solicitar Review
+    '76d49ba3-c574-478c-8b02-21bab764b557', // ⛔ Cancelada
+  ],
 } as const
 
 /** Etapa "✅ Ganada" del pipeline de Leads: desde aquí se muda a Reservaciones. */

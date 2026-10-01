@@ -259,6 +259,7 @@ export interface OportunidadGhl {
   pipelineStageId?: string
   status?: string
   lastStatusChangeAt?: string
+  monetaryValue?: number
 }
 
 /** Oportunidades de un contacto (para saber en qué etapa del pipeline va). */
@@ -287,6 +288,11 @@ export async function moverOportunidad(
   })
 }
 
+/** Fija el valor (monetaryValue) de una oportunidad: es lo que suma el tablero. */
+export async function fijarValorOportunidad(opportunityId: string, valor: number): Promise<void> {
+  await mandar('PUT', `/opportunities/${id(opportunityId)}`, { monetaryValue: valor })
+}
+
 export interface OportunidadDetalleGhl extends OportunidadGhl {
   /**
    * OJO: el GET por id devuelve los custom fields en un formato distinto al
@@ -298,6 +304,7 @@ export interface OportunidadDetalleGhl extends OportunidadGhl {
     fieldValue?: unknown
     field_value?: unknown
     fieldValueString?: string
+    fieldValueNumber?: number
     fieldValueDate?: string | number
   }[]
 }
