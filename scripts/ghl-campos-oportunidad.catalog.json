@@ -146,7 +146,11 @@
   "folder": "Contrato",
   "name": "Acomodacion",
   "dataType": "SINGLE_OPTIONS",
-  "options": ["Sencilla", "Doble", "Multiple"],
+  "options": [
+   "Sencilla",
+   "Doble",
+   "Multiple"
+  ],
   "sourceContactKey": "contact.cpa__acomodacion"
  },
  {
@@ -1015,5 +1019,14 @@
   "name": "Telefono del Titular",
   "dataType": "TEXT",
   "sourceContactKey": "contact.datos_de_facturacion__telefono_del_titular"
+ },
+ {
+  "folder": "Operaciones",
+  "name": "Envío de documentos",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "Pendiente",
+   "Completado"
+  ]
  }
 ]

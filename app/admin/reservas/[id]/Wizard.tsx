@@ -48,6 +48,13 @@ const ETIQUETA_PASO: Record<string, string> = {
 }
 const etiquetaPaso = (p: string) => ETIQUETA_PASO[p] ?? p
 
+/**
+ * Pasos que solo se abren con clic en su pestaña: "Guardar y seguir" nunca
+ * salta a ellos. Operaciones (envío de documentos) es de quien opera la
+ * reserva, no parte del flujo de la asesora, que termina en Enviar Contrato.
+ */
+const PASOS_APARTE = new Set(['Operaciones'])
+
 /* ------------------------------------------------------------------ */
 /* Autosumas: la aritmética del contrato se calcula sola.              */
 /* Regla de convivencia: un valor calculado (auto) se recalcula cuando */
@@ -296,7 +303,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
         return s
       })
       setAviso({ ok: true, texto: r.guardados ? `${r.guardados} campos guardados en GHL.` : 'Nada nuevo que guardar.' })
-      if (avanzar && paso < pasos.length - 1) setPaso(paso + 1)
+      if (avanzar && paso < pasos.length - 1 && !PASOS_APARTE.has(pasos[paso + 1])) setPaso(paso + 1)
     } catch (e) {
       // Un throw aquí ya no viene de la lógica de guardado (eso vuelve como
       // dato): casi siempre es que el navegador tiene una versión vieja del
@@ -339,11 +346,12 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
               key={p}
               type="button"
               onClick={() => setPaso(i)}
-              className="rounded-full px-3 py-1.5 font-inter text-xs transition-colors"
+              className={`rounded-full px-3 py-1.5 font-inter text-xs transition-colors${PASOS_APARTE.has(p) ? ' ml-3' : ''}`}
               style={{
                 background: activo ? 'var(--orange)' : 'white',
                 color: activo ? 'var(--orange-contrast)' : 'var(--text-dim)',
                 border: '1px solid ' + (activo ? 'var(--orange)' : 'var(--border)'),
+                borderStyle: PASOS_APARTE.has(p) ? 'dashed' : 'solid',
                 fontWeight: activo ? 600 : 400,
               }}
             >

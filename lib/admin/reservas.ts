@@ -98,6 +98,9 @@ const ORDEN_PASOS = [
   'Plan de Pagos',
   'Inclusiones',
   'Enviar Contrato',
+  // Pestaña aparte para operaciones (Luisa): va al final y "Guardar y seguir"
+  // nunca salta a ella — el flujo de la asesora termina en Enviar Contrato.
+  'Operaciones',
 ]
 
 /** Reubica un campo del catálogo en su paso del wizard. */
