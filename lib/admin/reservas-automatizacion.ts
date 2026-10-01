@@ -1,8 +1,10 @@
 import { PIPELINE_RESERVACIONES } from '@/lib/agente/config'
+import { catalogoResuelto, normalizarValor, valorParaGhl } from '@/lib/admin/reservas'
 import {
   actualizarCamposOportunidad,
   fijarValorOportunidad,
   moverOportunidad,
+  obtenerContacto,
   obtenerOportunidad,
   type OportunidadDetalleGhl,
 } from '@/lib/agente/ghl'
@@ -114,4 +116,52 @@ export async function prepararEnvioContrato(
 
   await actualizarCamposOportunidad(opportunityId, [{ id: CAMPO_ENVIAR_CONTRATO, field_value: [] }])
   lote[i] = { id: CAMPO_ENVIAR_CONTRATO, field_value: [accion] }
+}
+
+/**
+ * El Generador muestra en amarillo valores SUGERIDOS desde el contacto (campos
+ * viejos / calificación de Sol), pero solo quedan en la oportunidad si la
+ * asesora guarda ese paso. Las plantillas v2 leen de la oportunidad, así que un
+ * contrato pedido con sugerencias sin guardar salía vacío. Al pedir
+ * Enviar / Reenviar / Preview, se agregan al lote todas las sugerencias de
+ * campos aún vacíos en la oportunidad. Las de lista que no calzan con sus
+ * opciones (p. ej. Acomodación en texto libre) se omiten: un valor inválido
+ * haría que GHL rechazara el guardado completo. Devuelve cuántas agregó.
+ */
+export async function completarConSugerencias(
+  opportunityId: string,
+  lote: CampoLote[]
+): Promise<number> {
+  if (!lote.some(c => c.id === CAMPO_ENVIAR_CONTRATO)) return 0
+  const o = await obtenerOportunidad(opportunityId)
+  if (!o) return 0
+  const contactId = (o as { contactId?: string }).contactId
+  const [{ campos }, contacto] = await Promise.all([
+    catalogoResuelto(),
+    contactId ? obtenerContacto(contactId) : Promise.resolve(null),
+  ])
+
+  const enOportunidad = new Set<string>()
+  for (const cf of o.customFields ?? []) {
+    const crudo = cf.fieldValue ?? cf.field_value ?? cf.fieldValueString ?? cf.fieldValueDate
+    if (normalizarValor(crudo, 'TEXT') !== null) enOportunidad.add(cf.id)
+  }
+  const enLote = new Set(lote.map(c => c.id))
+  const delContacto = new Map((contacto?.customFields ?? []).map(f => [f.id, f.value]))
+
+  let agregadas = 0
+  for (const campo of campos) {
+    if (campo.model !== 'opportunity' || !campo.prefillContactId) continue
+    if (campo.ghlId === CAMPO_ENVIAR_CONTRATO) continue
+    if (enOportunidad.has(campo.ghlId) || enLote.has(campo.ghlId)) continue
+    const v = normalizarValor(delContacto.get(campo.prefillContactId), campo.dataType)
+    if (v === null) continue
+    if (campo.options?.length) {
+      const elegidos = Array.isArray(v) ? v : [v]
+      if (!elegidos.every(x => campo.options!.includes(x))) continue
+    }
+    lote.push({ id: campo.ghlId, field_value: valorParaGhl(v, campo.dataType) })
+    agregadas++
+  }
+  return agregadas
 }
