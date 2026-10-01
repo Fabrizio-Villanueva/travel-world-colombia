@@ -288,6 +288,11 @@ export async function moverOportunidad(
   })
 }
 
+/** Cambia el nombre visible de una oportunidad (la tarjeta del tablero). */
+export async function renombrarOportunidad(opportunityId: string, nombre: string): Promise<void> {
+  await mandar('PUT', `/opportunities/${id(opportunityId)}`, { name: nombre })
+}
+
 /** Fija el valor (monetaryValue) de una oportunidad: es lo que suma el tablero. */
 export async function fijarValorOportunidad(opportunityId: string, valor: number): Promise<void> {
   await mandar('PUT', `/opportunities/${id(opportunityId)}`, { monetaryValue: valor })

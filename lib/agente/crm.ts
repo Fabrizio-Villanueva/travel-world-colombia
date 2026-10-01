@@ -6,6 +6,7 @@ import {
   listarCamposPersonalizados,
   moverOportunidad,
   oportunidadesDe,
+  renombrarOportunidad,
 } from '@/lib/agente/ghl'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -166,7 +167,13 @@ async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
   // IA - NOMBRE es de la persona: solo contacto.
   if (campos.length === 0) return null
   await actualizarCampos(contactId, campos)
-  const enOpp = camposOpp.length > 0 ? await calificarOportunidad(contactId, camposOpp) : null
+  // La tarjeta nace con el nombre del perfil de WhatsApp ("User", apodos,
+  // emojis): con el nombre real confirmado, también se renombra.
+  const nombreNuevo = escritos.includes('nombre') ? nombre : undefined
+  const enOpp =
+    camposOpp.length > 0 || nombreNuevo
+      ? await calificarOportunidad(contactId, camposOpp, nombreNuevo)
+      : null
   return `calificación guardada (${escritos.join(', ')})${enOpp ? `; ${enOpp}` : ''}`
 }
 
@@ -177,7 +184,8 @@ async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
  */
 async function calificarOportunidad(
   contactId: string,
-  campos: { id: string; field_value: string | number }[]
+  campos: { id: string; field_value: string | number }[],
+  nombre?: string
 ): Promise<string> {
   const oportunidades = await oportunidadesDe(contactId)
   const abierta = oportunidades.find(o => o.pipelineId === PIPELINE.id && o.status === 'open')
@@ -185,8 +193,9 @@ async function calificarOportunidad(
   if ((PIPELINE.etapasVedadas as readonly string[]).includes(abierta.pipelineStageId ?? '')) {
     return 'oportunidad en territorio humano (calificación solo en el contacto)'
   }
-  await actualizarCamposOportunidad(abierta.id, campos)
-  return 'también en la oportunidad'
+  if (campos.length > 0) await actualizarCamposOportunidad(abierta.id, campos)
+  if (nombre) await renombrarOportunidad(abierta.id, nombre)
+  return nombre ? 'también en la oportunidad (y renombrada)' : 'también en la oportunidad'
 }
 
 /**
