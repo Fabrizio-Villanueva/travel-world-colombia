@@ -1,5 +1,6 @@
 import { PIPELINE_RESERVACIONES } from '@/lib/agente/config'
 import {
+  actualizarCamposOportunidad,
   fijarValorOportunidad,
   moverOportunidad,
   obtenerOportunidad,
@@ -79,4 +80,38 @@ export async function automatizarReserva(opportunityId: string): Promise<string[
     hecho.push(`error: ${(e as Error).message}`)
   }
   return hecho
+}
+
+/** opportunity.enviar_contrato ("ENVIAR CONTRATO?", MULTIPLE_OPTIONS): dispara el workflow "Envio de Contrato". */
+const CAMPO_ENVIAR_CONTRATO = 't8kedGFJLDUnXZXcvhrZ'
+
+type CampoLote = { id: string; field_value: string | number | string[] }
+
+/**
+ * El workflow de envío se dispara cuando "ENVIAR CONTRATO?" CAMBIA A una
+ * opción. Como el campo es de selección múltiple, las opciones se acumulaban
+ * ("Preview" + "Enviar" + "Reenviar") y volver a pedir la misma acción no
+ * cambiaba nada → no salía el contrato. Aquí se deja solo la acción recién
+ * pedida y se vacía el campo antes de escribirla, para que GHL siempre vea un
+ * cambio. Modifica el lote en su lugar; llamar ANTES de guardar la oportunidad.
+ */
+export async function prepararEnvioContrato(
+  opportunityId: string,
+  lote: CampoLote[]
+): Promise<void> {
+  const i = lote.findIndex(c => c.id === CAMPO_ENVIAR_CONTRATO)
+  if (i < 0) return
+  const valor = lote[i].field_value
+  const pedido = (Array.isArray(valor) ? valor : [String(valor)]).filter(Boolean)
+  if (pedido.length === 0) return
+
+  const o = await obtenerOportunidad(opportunityId)
+  const cf = o?.customFields?.find(f => f.id === CAMPO_ENVIAR_CONTRATO)
+  const crudo = cf?.fieldValue ?? cf?.field_value
+  const actual = Array.isArray(crudo) ? crudo.map(String) : []
+  // La acción nueva es la que no estaba marcada; si repite, la última pedida.
+  const accion = pedido.filter(x => !actual.includes(x)).at(-1) ?? pedido.at(-1)!
+
+  await actualizarCamposOportunidad(opportunityId, [{ id: CAMPO_ENVIAR_CONTRATO, field_value: [] }])
+  lote[i] = { id: CAMPO_ENVIAR_CONTRATO, field_value: [accion] }
 }

@@ -19,7 +19,7 @@ import {
   type CampoReserva,
   type ValorCampo,
 } from '@/lib/admin/reservas'
-import { automatizarReserva } from '@/lib/admin/reservas-automatizacion'
+import { automatizarReserva, prepararEnvioContrato } from '@/lib/admin/reservas-automatizacion'
 
 export interface ClienteEncontrado {
   id: string
@@ -235,6 +235,8 @@ async function guardar(
   if (total === 0) return 0
 
   if (loteOportunidad.length > 0) {
+    // "ENVIAR CONTRATO?": deja solo la acción pedida para que el workflow dispare.
+    await prepararEnvioContrato(opportunityId, loteOportunidad)
     await actualizarCamposOportunidad(opportunityId, loteOportunidad)
     // Valor de la venta y etapa según los abonos (Fase 4): nunca lanza.
     await automatizarReserva(opportunityId)
