@@ -6,6 +6,7 @@ import {
   moverOportunidad,
   obtenerContacto,
   obtenerOportunidad,
+  oportunidadesDe,
   type OportunidadDetalleGhl,
 } from '@/lib/agente/ghl'
 
@@ -136,6 +137,7 @@ export async function completarConSugerencias(
   const o = await obtenerOportunidad(opportunityId)
   if (!o) return 0
   const contactId = (o as { contactId?: string }).contactId
+  if (contactId && (await esClienteRepetido(contactId, opportunityId))) return 0
   const [{ campos }, contacto] = await Promise.all([
     catalogoResuelto(),
     contactId ? obtenerContacto(contactId) : Promise.resolve(null),
@@ -164,4 +166,19 @@ export async function completarConSugerencias(
     agregadas++
   }
   return agregadas
+}
+
+/**
+ * ¿El contacto ya tiene OTRA reserva ganada (Reservaciones o historial de
+ * Leads)? Las sugerencias vienen del contacto, que solo guarda el último viaje:
+ * a un cliente que repite le mostrarían —y guardarían— los pasajeros, vuelos y
+ * pagos del viaje anterior. En ese caso la reserva nueva arranca en blanco.
+ */
+export async function esClienteRepetido(contactId: string, opportunityId: string): Promise<boolean> {
+  const oportunidades = await oportunidadesDe(contactId)
+  return oportunidades.some(
+    o =>
+      o.id !== opportunityId &&
+      (o.status === 'won' || o.pipelineId === PIPELINE_RESERVACIONES.id)
+  )
 }

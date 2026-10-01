@@ -22,6 +22,7 @@ import {
 import {
   automatizarReserva,
   completarConSugerencias,
+  esClienteRepetido,
   prepararEnvioContrato,
 } from '@/lib/admin/reservas-automatizacion'
 
@@ -131,9 +132,11 @@ export async function cargarReserva(opportunityId: string): Promise<ReservaCarga
   }
 
   // Prefill: el valor que ya vive en el CONTACTO (campos viejos / calificación
-  // de Sol), solo para campos aún vacíos en la oportunidad.
+  // de Sol), solo para campos aún vacíos en la oportunidad. No a clientes que
+  // repiten: el contacto guarda el ÚLTIMO viaje y se colarían sus datos.
   const prefill: Record<string, ValorCampo> = {}
-  for (const campo of campos) {
+  const repetido = contactId ? await esClienteRepetido(contactId, opportunityId) : false
+  for (const campo of repetido ? [] : campos) {
     if (!campo.prefillContactId || valores[campo.ghlId] !== undefined) continue
     const v = normalizarValor(contactoPorId.get(campo.prefillContactId), campo.dataType)
     if (v !== null) prefill[campo.ghlId] = v
