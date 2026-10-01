@@ -1,5 +1,6 @@
 import {
   actualizarCampos,
+  actualizarCamposOportunidad,
   agregarTags,
   crearNota,
   listarCamposPersonalizados,
@@ -10,6 +11,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import {
   CAMPO_IA_NOMBRE,
   CAMPOS_CALIFICACION,
+  CAMPOS_CALIFICACION_OPP,
   HORARIO,
   MAX_INTENTOS_SEGUIMIENTO,
   PIPELINE,
@@ -85,11 +87,18 @@ async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
   const { contactId, decision } = e
   const d = decision.datos
   const campos: { id: string; field_value: string | number }[] = []
+  // Lo mismo, para la oportunidad de Leads (Fase 6). Algunos cambian de forma:
+  // el presupuesto es texto en la oportunidad y "personalizado" es Sí/No.
+  const camposOpp: { id: string; field_value: string | number }[] = []
   const escritos: string[] = []
 
-  const texto = (id: string, nombre: string, valor?: string) => {
+  const calif = (clave: keyof typeof CAMPOS_CALIFICACION, valor: string | number, valorOpp = valor) => {
+    campos.push({ id: CAMPOS_CALIFICACION[clave], field_value: valor })
+    camposOpp.push({ id: CAMPOS_CALIFICACION_OPP[clave], field_value: valorOpp })
+  }
+  const texto = (clave: keyof typeof CAMPOS_CALIFICACION, nombre: string, valor?: string) => {
     if (valor?.trim()) {
-      campos.push({ id, field_value: valor.trim() })
+      calif(clave, valor.trim())
       escritos.push(nombre)
     }
   }
@@ -102,30 +111,31 @@ async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
     escritos.push('nombre')
   }
 
-  texto(CAMPOS_CALIFICACION.destino, 'destino', d.destino)
-  texto(CAMPOS_CALIFICACION.fechas, 'fechas', d.fechas)
-  texto(CAMPOS_CALIFICACION.ciudadSalida, 'ciudad de salida', d.ciudad_salida)
-  texto(CAMPOS_CALIFICACION.edadesNinos, 'edades niños', d.edades_ninos)
-  texto(CAMPOS_CALIFICACION.duracion, 'duración', d.duracion)
-  texto(CAMPOS_CALIFICACION.habitaciones, 'habitaciones', d.habitaciones)
-  texto(CAMPOS_CALIFICACION.fuenteLead, 'fuente', d.fuente_lead)
+  texto('destino', 'destino', d.destino)
+  texto('fechas', 'fechas', d.fechas)
+  texto('ciudadSalida', 'ciudad de salida', d.ciudad_salida)
+  texto('edadesNinos', 'edades niños', d.edades_ninos)
+  texto('duracion', 'duración', d.duracion)
+  texto('habitaciones', 'habitaciones', d.habitaciones)
+  texto('fuenteLead', 'fuente', d.fuente_lead)
 
   if (typeof d.adultos === 'number' && d.adultos > 0) {
-    campos.push({ id: CAMPOS_CALIFICACION.adultos, field_value: d.adultos })
+    calif('adultos', d.adultos)
     escritos.push('adultos')
   }
   // 0 niños es un dato real ("viajamos solos"), no una ausencia.
   if (typeof d.ninos === 'number' && d.ninos >= 0) {
-    campos.push({ id: CAMPOS_CALIFICACION.ninos, field_value: d.ninos })
+    calif('ninos', d.ninos)
     escritos.push('niños')
   }
 
   if (d.presupuesto?.trim()) {
     const monto = presupuestoANumero(d.presupuesto)
-    // El campo es MONETORY: si la cifra no es clara ("algo económico"), mejor
-    // no escribir que escribir basura. El texto igual queda en el resumen.
+    // El campo de contacto es MONETORY: si la cifra no es clara ("algo
+    // económico"), mejor no escribir que escribir basura. El de oportunidad es
+    // texto y guarda lo que dijo el cliente, tal cual.
     if (monto !== null) {
-      campos.push({ id: CAMPOS_CALIFICACION.presupuesto, field_value: monto })
+      calif('presupuesto', monto, d.presupuesto.trim())
       escritos.push('presupuesto')
     }
   }
@@ -134,14 +144,14 @@ async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
   // pregunta al cliente; se deriva de lo que Sol ya razonó.
   const urgencia = nivelDeUrgencia(decision.temperatura, decision.proximidad_viaje)
   if (urgencia) {
-    campos.push({ id: CAMPOS_CALIFICACION.nivelUrgencia, field_value: urgencia })
+    calif('nivelUrgencia', urgencia)
     escritos.push('urgencia')
   }
 
-  // Viaje a la medida: solo se marca "yes" cuando el modelo lo detecta; un plan
+  // Viaje a la medida: solo se marca cuando el modelo lo detecta; un plan
   // estándar del catálogo no toca el campo (para no pisar lo que ponga una asesora).
   if (decision.viaje_personalizado === true) {
-    campos.push({ id: CAMPOS_CALIFICACION.viajePersonalizado, field_value: 'yes' })
+    calif('viajePersonalizado', 'yes', 'Sí')
     escritos.push('personalizado')
   }
 
@@ -149,13 +159,34 @@ async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
   // escalado), reusando el resumen que redacta Sol para la asesora.
   const brief = componerBrief(decision)
   if (brief) {
-    campos.push({ id: CAMPOS_CALIFICACION.mensajeCotizacion, field_value: brief })
+    calif('mensajeCotizacion', brief)
     escritos.push('brief cotización')
   }
 
+  // IA - NOMBRE es de la persona: solo contacto.
   if (campos.length === 0) return null
   await actualizarCampos(contactId, campos)
-  return `calificación guardada (${escritos.join(', ')})`
+  const enOpp = camposOpp.length > 0 ? await calificarOportunidad(contactId, camposOpp) : null
+  return `calificación guardada (${escritos.join(', ')})${enOpp ? `; ${enOpp}` : ''}`
+}
+
+/**
+ * Escribe la calificación en la oportunidad abierta de Leads, solo mientras
+ * siga en territorio de Sol (Lead Nuevo / Calificado / Asignado): si una
+ * asesora ya la movió a Contactado o más allá, sus datos mandan.
+ */
+async function calificarOportunidad(
+  contactId: string,
+  campos: { id: string; field_value: string | number }[]
+): Promise<string> {
+  const oportunidades = await oportunidadesDe(contactId)
+  const abierta = oportunidades.find(o => o.pipelineId === PIPELINE.id && o.status === 'open')
+  if (!abierta) return 'sin oportunidad abierta en Leads (calificación solo en el contacto)'
+  if ((PIPELINE.etapasVedadas as readonly string[]).includes(abierta.pipelineStageId ?? '')) {
+    return 'oportunidad en territorio humano (calificación solo en el contacto)'
+  }
+  await actualizarCamposOportunidad(abierta.id, campos)
+  return 'también en la oportunidad'
 }
 
 /**

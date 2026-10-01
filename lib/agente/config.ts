@@ -111,6 +111,30 @@ export const CAMPOS_CALIFICACION = {
 } as const
 
 /**
+ * Los mismos datos de calificación, en la OPORTUNIDAD de Leads (Fase 6 de la
+ * migración, 2026-10-01): regla "contacto = la persona, oportunidad = el
+ * viaje" — un cliente que vuelve a cotizar no pisa la calificación del viaje
+ * anterior. Carpeta de oportunidad "⭐ Calificación (Sol)"; destino, presupuesto
+ * y habitaciones reusan campos que ya existían (los imprime el contrato).
+ * Mientras los workflows viejos lean el contacto, Sol escribe en los dos.
+ */
+export const CAMPOS_CALIFICACION_OPP: Record<keyof typeof CAMPOS_CALIFICACION, string> = {
+  destino: '9x1Ui70nMDNBivYkPn8A', // opportunity.destino_de_inters (TEXT)
+  fechas: 'bIWAbcbJpqlwI25CuR14', // opportunity.fechas_tentativas_de_viaje (TEXT)
+  ciudadSalida: '4ms8gl4tchRFinJfyHb2', // opportunity.ciudad_de_salida (TEXT)
+  adultos: 'ywJznpjVhUUHuSOoOTdv', // opportunity.cantidad_de_adultos (NUMERICAL)
+  ninos: 'oGeYbm0vGHlrgTSdcetU', // opportunity.cantidad_de_ninos (NUMERICAL)
+  edadesNinos: 'Q3DkI8jEAjmrWcc6qnlE', // opportunity.edades_de_los_ninos (TEXT)
+  presupuesto: 'i4k1Y68Ta6BXlmnalXwG', // opportunity.presupuesto_estimado (TEXT)
+  duracion: 'qK7CxgOeehU1DrcY6P2D', // opportunity.duracion_del_viaje (TEXT)
+  habitaciones: 'VVO9E00TX4QbWj4oB43e', // opportunity.cantidad_de_habitaciones (TEXT)
+  nivelUrgencia: 'wcg7cuuyjYkGsCKgjjFs', // opportunity.nivel_de_urgencia (TEXT)
+  viajePersonalizado: 'LX3zNlP7xnkDderdvK4U', // opportunity.viaje_personalizado (Sí/No)
+  fuenteLead: 'YYZ5nzaNLlceZJnkV8Ar', // opportunity.fuente_del_lead (TEXT)
+  mensajeCotizacion: 'ZShI58MDGvpT3bh1mLLv', // opportunity.mensaje_de_cotizacion (LARGE_TEXT)
+}
+
+/**
  * "IA - NOMBRE" (folder IA `a3uTifBfuZDOYpqDRYzj`): el nombre REAL que el cliente
  * dice ser (el de WhatsApp no siempre lo es). Sol lo pregunta una vez y lo
  * escribe aquí; un workflow de la cuenta copia este campo al "Nombre" principal.
