@@ -62,18 +62,19 @@ el interior de un workflow: el usuario manda capturas.
 | 6 | S-02 · IA-NOMBRE → nombre | ✅ |
 | 7 | Stop/Active Bot (wait 2 h → quita stop_bot) | 🔁 Reemplazado por **Sol de respaldo** (código, 02-oct): vigilante cada 10 min cubre chats con stop_bot sin respuesta (15 min fuera de horario / 2 h en horario), tag `sol_respaldo`, se retira cuando la asesora escribe; `AGENTE_RESPALDO=off` lo apaga. Usuario: apagar este wf → ZZ y quitar línea `stop_bot` de S-01 |
 | 8 | L-01 · Sol califica → Calificado + asignar + tarea | ✅ |
-| 9 | L-04 (hoy "Internal SMS Alert and Task") | Renombrar |
+| 9 | L-04 · Sol escala → aviso + tarea a la asesora | ✅ (02-oct): tag `transferencia a humano` → Assign to user (5 asesoras, equitativo, solo no asignados) → SMS interno + tarea. Antes 11/59 escalados sin asesora = nadie avisado. 🟡 Pendiente: el tag nunca se quita → 2ª escalada del mismo cliente no avisa |
 | 10 | L-02 · Lead sin respuesta 60 min | ✅ |
 | — | 148 leads en Lead Nuevo sin asesora | Falta automatizar (24 h sin calificar → asignar) |
 | 11 | C-01 · Venta ganada → Reservaciones | ✅ (2 disparadores) |
 | 12 | C-03 · Preview → borrador | ✅ |
-| 13 | C-02 · Enviar contrato | ✅; pendiente: mover a 📤 Contrato Enviado (lo haría el Generador) |
-| 14 | C-04 (hoy "Notificación Contrato Firmado") | Renombrar; tras el bloqueo: Find + Update → ✍️ Contrato Firmado; ¿2 notificaciones iguales? |
-| 15-19 | V-01..V-05 · 45/30/15/7/2 días | 🔁 Rehacer (viejos publicados como respaldo) |
-| 20 | V-06 · Salida → En Viaje | 🔁 Rehacer |
-| 21 | V-07 · Regreso → Completada | 🔁 Rehacer |
-| 22 | P-01 · Regreso + 5 → pedir reseña | 🔁 Rehacer |
-| 23 | P-02 · Reseña Google/Facebook | Rama 1-3: reemplazar "Add to Workflow" por notificación propia (tag `cliente_con_mala_experiencia`) |
+| 13 | C-02 · Enviar contrato | ✅ (02-oct): ramas Enviar/Reenviar → If etapa = 📋 Reserva Creada → Update opp → 📤 Contrato Enviado ("mover a etapa anterior" apagado). Probado con opp de prueba MjJyGQv4hzJnmdcu4wJM (PRUEBA – Fabrizio): avanza, y no retrocede si el Generador ya la llevó a En Pagos |
+| 14 | C-04 (hoy "Notificación Contrato Firmado") | Renombrar; tras el bloqueo: Find + Update → ✍️ Contrato Firmado; ¿2 notificaciones iguales? · ⏸️ EN PAUSA por decisión del usuario (02-oct) |
+| 15 | V-01 · Salida −45 días → recordatorio + Por Viajar si pagó | ✅ (02-oct) modificado en el mismo wf. "Antes de X días" dispara EXACTO (verificado: 8/8 inscritos a 45 d) |
+| 16-19 | V-02..V-05 · 30/15/7/2 días | ✅ (02-oct) duplicados de V-01, textos nuevos con {{opportunity.fecha_confirmada_de_salida}}; V-04 crea tarea "Entregar vouchers" / "Cobrar saldo"; V-05 tarea cobro hoy; viejos apagados → ZZ |
+| 20 | V-06 · Día de salida → En Viaje | ✅ (02-oct) "Antes de 0 días" (GHL no tiene "después de"); pagados y con saldo → 🛫 En Viaje; None solo aviso. ⚠️ Confirmar en historial que 0 días dispara |
+| 21 | V-07 · Día de regreso → Completada | ✅ (02-oct) Fecha confirmada de REGRESO, 0 días → ✈️ Completada |
+| 22 | P-01 · Regreso +5 → pedir reseña | ✅ (02-oct) disparador = cambio de fase a ✈️ Completada (Reservaciones) → wait 5 d → ¿sigue en Completada? → SMS + correo → 🌟 Solicitar Review |
+| 23 | P-02 · Reseña Google/Facebook | ✅ (02-oct) rama 1-3: tag `cliente_con_mala_experiencia` + notificación interna (asignada + 3 personas fijas) + tarea "Llamar por reseña negativa"; ya no usa Add to Workflow → P-03 |
 | 24 | P-03 · Formulario reseña negativa | ✅ |
 | — | R-01 · Cumpleaños | ✅ |
 | ZZ | 1.-Nuevo Lead, Compro, compradores, Picture Review (borradores) | Borrar |
