@@ -1,10 +1,20 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decidir, type Decision } from '@/lib/agente/claude'
-import { agregarTags, enviarMensaje, rutaDeRespuesta, ultimosMensajes, type MensajeGhl } from '@/lib/agente/ghl'
+import {
+  agregarTags,
+  crearNota,
+  enviarMensaje,
+  nombreUsuario,
+  obtenerContacto,
+  quitarTags,
+  rutaDeRespuesta,
+  ultimosMensajes,
+  type MensajeGhl,
+} from '@/lib/agente/ghl'
 import { sincronizarCrm } from '@/lib/agente/crm'
 import { extraerFotos } from '@/lib/agente/conocimiento'
 import { anuncioParaConversacion, type AnuncioContexto } from '@/lib/agente/anuncios'
-import { ACTIVO_DESDE, AVISO_DATOS, HORARIO, RAFAGA_MS, TAGS, TAG_PRUEBAS } from '@/lib/agente/config'
+import { ACTIVO_DESDE, AVISO_DATOS, CAMPO_IA_NOMBRE, HORARIO, RAFAGA_MS, RESPALDO, TAGS, TAG_PRUEBAS } from '@/lib/agente/config'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 
 /**
@@ -110,11 +120,15 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   }
 
   // 3. Un humano tomó la conversación, o el contacto no es un cliente.
-  if (e.tags.includes(TAGS.stopBot)) {
-    return { actuo: false, nota: 'el contacto tiene stop_bot' }
-  }
+  //    Proveedores primero: un mayorista con stop_bot nunca entra en respaldo.
   if (e.tags.some(t => (TAGS.noCliente as readonly string[]).includes(t))) {
     return { actuo: false, nota: 'proveedor/mayorista' }
+  }
+  // Con stop_bot solo se sigue si Sol ya está cubriendo a la asesora (ver
+  // RESPALDO): contesta al instante hasta que ella vuelva a escribir.
+  const enRespaldo = e.tags.includes(TAGS.stopBot) && RESPALDO.activo && e.tags.includes(TAGS.respaldo)
+  if (e.tags.includes(TAGS.stopBot) && !enRespaldo) {
+    return { actuo: false, nota: 'el contacto tiene stop_bot' }
   }
 
   // 3b. Freno de abuso: nadie legítimo sostiene más de RL_TURNOS turnos de Sol
@@ -134,6 +148,8 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   } catch (err) {
     console.error('rate limit de Sol falló:', (err as Error).message)
   }
+
+  if (enRespaldo) return atenderRespaldo(e)
 
   // 4. Historial y re-verificación anti-choque: si el último mensaje es
   //    saliente y NO es nuestro, una persona del equipo tomó el chat (desde el
@@ -251,26 +267,137 @@ export function marcarFuenteAnuncio(decision: Decision, anuncio: AnuncioContexto
  * Una sola consulta en lote a `agente_mensajes_enviados` (los envíos de Sol).
  */
 export async function humanoTomoElChat(mensajes: MensajeGhl[]): Promise<boolean> {
-  const salientes = mensajes.filter(
+  const salientes = salientesReales(mensajes)
+  if (salientes.length === 0) return false
+  const nuestros = await idsDeSol(salientes)
+  if (nuestros === null) return false // ante un fallo de lectura, no apagar a Sol por error
+  return salientes.some(m => !nuestros.has(m.id))
+}
+
+/** Salientes escritos por alguien (excluye los registros de actividad del sistema). */
+function salientesReales(mensajes: MensajeGhl[]): (MensajeGhl & { id: string })[] {
+  return mensajes.filter(
     (m): m is MensajeGhl & { id: string } =>
       m.direction === 'outbound' &&
       Boolean(m.id) &&
       Boolean(m.messageType) &&
       !m.messageType!.startsWith('TYPE_ACTIVITY')
   )
-  if (salientes.length === 0) return false
+}
 
+/**
+ * Cuáles de estos mensajes los envió Sol (una sola consulta en lote a
+ * `agente_mensajes_enviados`). `null` si la lectura falla.
+ */
+async function idsDeSol(mensajes: { id: string }[]): Promise<Set<string> | null> {
+  if (mensajes.length === 0) return new Set()
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('agente_mensajes_enviados')
     .select('message_id')
-    .in('message_id', salientes.map(m => m.id))
+    .in('message_id', mensajes.map(m => m.id))
   if (error) {
-    console.error('humanoTomoElChat error:', error.message)
-    return false // ante un fallo de lectura, no apagar a Sol por error
+    console.error('idsDeSol error:', error.message)
+    return null
   }
-  const nuestros = new Set((data ?? []).map(r => r.message_id))
-  return salientes.some(m => !nuestros.has(m.id))
+  return new Set((data ?? []).map(r => r.message_id as string))
+}
+
+/**
+ * Turno de Sol en MODO RESPALDO: el chat lo lleva una asesora (stop_bot) y el
+ * cliente lleva rato sin respuesta. Sol lo atiende sin pisarle el trabajo:
+ * no mueve la tarjeta, no cambia la asesora, no califica, no programa
+ * seguimientos ni manda el aviso de datos. Solo responde y, si el tema es de
+ * la asesora (pagos, contrato, reclamos…), escala.
+ *
+ * - Desde el webhook (el contacto ya tiene `sol_respaldo`): si la asesora
+ *   volvió a escribir —su mensaje es el saliente más reciente—, Sol se retira
+ *   y quita la marca.
+ * - Desde el vigilante (`inicio`): el vigilante ya confirmó que nadie contestó
+ *   el último mensaje del cliente. Si Sol habla, pone `sol_respaldo` y deja una
+ *   nota para la asesora. Si decide callar, no se marca nada (re-evalúa luego).
+ */
+export async function atenderRespaldo(
+  e: Pick<Entrada, 'contactId' | 'conversationId' | 'nombre' | 'nombreConfirmado' | 'canal' | 'tags'>,
+  opciones: { inicio?: boolean } = {}
+): Promise<ResultadoTurno> {
+  const mensajes = await ultimosMensajes(e.conversationId, 20)
+  const salientes = salientesReales(mensajes)
+  const idsSol = await idsDeSol(salientes)
+  // Sin saber qué escribió Sol no se distingue a la asesora: mejor no actuar.
+  if (idsSol === null) return { actuo: false, nota: 'respaldo: no se pudo leer el registro de envíos' }
+
+  if (!opciones.inicio) {
+    const ultimoSaliente = salientes[0] // la API los da del más reciente al más antiguo
+    if (ultimoSaliente && !idsSol.has(ultimoSaliente.id)) {
+      await quitarTags(e.contactId, [TAGS.respaldo])
+      return { actuo: false, nota: `respaldo: la asesora volvió a escribir; Sol se retira (quita ${TAGS.respaldo})` }
+    }
+  }
+
+  const contacto = await obtenerContacto(e.contactId)
+  const asesora = contacto?.assignedTo
+    ? ((await nombreUsuario(contacto.assignedTo).catch(() => null)) ?? undefined)
+    : undefined
+
+  // Un cliente que ya atiende una asesora no debe ser re-preguntado por su
+  // nombre: se usa ia__nombre o, si no hay, el nombre del contacto en el CRM.
+  const iaNombre = contacto?.customFields?.find(c => c.id === CAMPO_IA_NOMBRE)?.value
+  const nombreCrm = [contacto?.firstName, contacto?.lastName].filter(Boolean).join(' ').trim()
+  const nombreConfirmado =
+    e.nombreConfirmado || (typeof iaNombre === 'string' && iaNombre.trim()) || nombreCrm || undefined
+
+  const ahora = enHorario()
+  const decision = await decidir(mensajes, {
+    nombre: e.nombre,
+    nombreConfirmado,
+    canal: e.canal,
+    enHorario: ahora,
+    respaldo: { asesora, idsSol },
+  })
+
+  const habla = decision.accion !== 'callar' && decision.mensaje.trim() !== ''
+  const notas: string[] = [`respaldo${asesora ? ` de ${asesora}` : ''} · ${habla ? decision.accion : 'callar'}: ${decision.motivo}`]
+
+  if (habla) {
+    const ruta = rutaDeRespuesta(mensajes)
+    const { texto, imagenes } = await extraerFotos(decision.mensaje.trim())
+    const envio = await enviarMensaje(e.contactId, texto, ruta, imagenes)
+    await registrarEnvio(envio, e.conversationId, e.contactId, texto, (imagenes?.length ?? 0) > 0)
+
+    if (opciones.inicio) {
+      try {
+        await agregarTags(e.contactId, [TAGS.respaldo])
+        await crearNota(
+          e.contactId,
+          [
+            `🤖 Sol está cubriendo esta conversación: el cliente escribió y llevaba rato sin respuesta${ahora ? '' : ' (fuera de horario)'}.`,
+            'Sol responde dudas, pero no mueve la tarjeta, no cambia la asesora ni promete nada fuera del catálogo; pagos, contrato y reclamos te los deja a ti.',
+            `En cuanto escribas en el chat, Sol se retira sola (quita la etiqueta "${TAGS.respaldo}").`,
+          ].join('\n\n')
+        )
+        notas.push(`marca ${TAGS.respaldo} + nota para la asesora`)
+      } catch (err) {
+        notas.push(`no se pudo marcar el respaldo: ${(err as Error).message}`)
+      }
+    }
+  }
+
+  // Escalar en respaldo: avisa al equipo (dispara la notificación) con nota, una sola vez.
+  if (decision.accion === 'escalar' && !e.tags.includes(TAGS.transferenciaHumano)) {
+    try {
+      await agregarTags(e.contactId, [TAGS.transferenciaHumano])
+      await crearNota(
+        e.contactId,
+        `🤖 Sol (cubriendo a la asesora) necesita que la asesora retome: ${decision.resumen?.trim() || decision.motivo}`
+      )
+      notas.push('escalado a la asesora (tag + nota)')
+    } catch (err) {
+      notas.push(`escalada en respaldo falló: ${(err as Error).message}`)
+    }
+  }
+
+  return { actuo: habla, decision, nota: notas.join(' · ') }
 }
 
 export async function esNuestro(messageId?: string): Promise<boolean> {

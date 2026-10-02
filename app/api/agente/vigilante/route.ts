@@ -8,14 +8,16 @@ export const runtime = 'nodejs'
 
 /**
  * Cada candidata implica 2 llamadas a GHL (contacto + mensajes). Con el tope por
- * corrida (80) el peor caso ronda el par de minutos. 120 s de margen.
+ * corrida (80) el peor caso ronda el par de minutos, más hasta 8 turnos de Sol
+ * de respaldo (5-20 s cada uno). 300 s de margen.
  */
-export const maxDuration = 120
+export const maxDuration = 300
 
 /**
  * Runner del VIGILANTE de Sol: marca los leads que llevan más del SLA sin que
  * nadie responda (dentro del horario de atención) para que un workflow de GHL
- * avise al usuario asignado.
+ * avise al usuario asignado, y a toda hora activa a Sol de respaldo en los
+ * chats de asesora que se quedaron sin respuesta.
  *
  * Lo dispara el cron de Vercel (ver `vercel.json`) o una llamada manual con el
  * secreto. GET a propósito: es lo que envía el cron. Idempotente: una segunda
@@ -42,7 +44,10 @@ export async function GET(req: NextRequest) {
   try {
     // `?dry=1` calcula y reporta qué haría, SIN escribir tags. Para probar seguro.
     const dry = req.nextUrl.searchParams.get('dry') === '1'
-    const resumen = await correrVigilancia({ dry })
+    // `?solo=<contactId>` (pruebas): solo ese contacto y sin esperar los
+    // minutos del respaldo — Sol lo cubre en el acto si toca.
+    const soloContacto = req.nextUrl.searchParams.get('solo') || undefined
+    const resumen = await correrVigilancia({ dry, soloContacto })
     return Response.json({ ok: true, ...resumen })
   } catch (err) {
     console.error('correrVigilancia error:', err)

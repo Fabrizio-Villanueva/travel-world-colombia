@@ -44,7 +44,7 @@ function anthropic(): Anthropic {
 }
 
 /** El historial de GHL viene del más reciente al más antiguo. */
-function aHistorial(mensajes: MensajeGhl[]): Anthropic.MessageParam[] {
+function aHistorial(mensajes: MensajeGhl[], idsSol?: Set<string>): Anthropic.MessageParam[] {
   const historial = [...mensajes]
     .reverse()
     // Los registros de actividad (TYPE_ACTIVITY_*: "Opportunity created",
@@ -57,7 +57,12 @@ function aHistorial(mensajes: MensajeGhl[]): Anthropic.MessageParam[] {
     .filter(m => (m.body ?? '').trim() !== '')
     .map(m => ({
       role: m.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
-      content: m.body!.slice(0, 4000),
+      // En modo respaldo Sol tiene que distinguir lo que escribió la asesora
+      // (compromisos, precios ofrecidos) de lo que escribió ella misma.
+      content:
+        idsSol && m.direction !== 'inbound' && !idsSol.has(m.id)
+          ? `[Escrito por la asesora] ${m.body!.slice(0, 4000)}`
+          : m.body!.slice(0, 4000),
     }))
     // La API exige que el primer turno sea del usuario.
     .reduce<Anthropic.MessageParam[]>((acc, msg) => {
@@ -107,12 +112,18 @@ export async function decidir(
     seguimiento?: { intento: number; maximo: number; angulo?: string }
     /** El anuncio de Meta por el que llegó el cliente (si vino de uno), con su vínculo al catálogo. */
     anuncio?: AnuncioContexto | null
+    /**
+     * Modo respaldo: el chat lo lleva una asesora (stop_bot) y Sol la cubre
+     * porque el cliente lleva rato sin respuesta. `idsSol` son los mensajes que
+     * envió Sol; los demás salientes se marcan como de la asesora.
+     */
+    respaldo?: { asesora?: string; idsSol: Set<string> }
   }
 ): Promise<Decision> {
   // Las notas de voz llegan como audio; Claude no lo lee, así que se transcriben
   // (con caché) y quedan como texto antes de armar el historial.
   const conTexto = await resolverAudios(mensajes)
-  const historial = aHistorial(conTexto)
+  const historial = aHistorial(conTexto, contexto.respaldo?.idsSol)
   if (historial.length === 0) {
     return {
       accion: 'callar',
@@ -161,6 +172,7 @@ export async function decidir(
       ? 'Estás dentro del horario de atención: si escalas, una asesora puede responder hoy.'
       : 'Estás FUERA del horario de atención: si escalas, avísale que una asesora le escribe cuando abran, sin prometer una hora exacta.',
     anuncio ? lineaAnuncio(anuncio, nombreDe) : null,
+    contexto.respaldo ? lineaRespaldo(contexto.respaldo.asesora, contexto.enHorario) : null,
   ]
     .filter(Boolean)
     .join(' ')
@@ -218,6 +230,23 @@ export async function decidir(
     throw new Error('La respuesta del modelo no trae texto')
   }
   return JSON.parse(texto.text) as Decision
+}
+
+/**
+ * Instrucciones del modo respaldo. Van en la situación (no en INSTRUCCIONES)
+ * para no tocar el bloque cacheado que comparten todas las conversaciones.
+ */
+function lineaRespaldo(asesora: string | undefined, enHorario: boolean): string {
+  const ella = asesora ? `la asesora ${asesora}` : 'su asesora'
+  const nombreCorto = asesora?.split(' ')[0] ?? 'su asesora'
+  return [
+    `MODO RESPALDO: esta conversación ya la lleva ${ella}; los mensajes marcados "[Escrito por la asesora]" son suyos.`,
+    `El cliente escribió y lleva rato sin respuesta porque ${enHorario ? 'ella está ocupada' : 'estamos fuera del horario de atención'}: tú la cubres para que no se quede esperando. Que el chat lo lleve una asesora NO es motivo para callar: precisamente por eso te activaron.`,
+    `Si en el historial todavía no lo has hecho, preséntate UNA vez y en corto: eres Sol, la asistente virtual del equipo, y lo acompañas mientras ${nombreCorto} vuelve. No saludes como si fuera un cliente nuevo ni repreguntes lo que ya respondió.`,
+    'Resuelve sus dudas con el catálogo y lo que ya se habló. NO contradigas ni cambies lo que la asesora ofreció, y NO prometas precios, descuentos, cupos, fechas ni condiciones que no estén en el catálogo o que ella no haya dicho.',
+    `Pagos, abonos, contrato, cambios o cancelación de la reserva, documentos y cualquier reclamo: dile con calidez que ${nombreCorto} se lo confirma ${enHorario ? 'en cuanto se desocupe' : 'cuando abramos'} y usa "escalar". Nunca le digas que lo vas a pasar con una asesora: ya tiene una.`,
+    'Calla SOLO si su último mensaje no espera respuesta de nadie (cortesía, "te confirmo el sábado", "quedo atenta"). Si pregunta, pide algo, manda información para avanzar o le habla a la asesora esperando que le conteste, responde: al menos acusa recibo con lo que entendiste y dile que la asesora lo retoma.',
+  ].join(' ')
 }
 
 const APP_ANUNCIO: Record<string, string> = {

@@ -48,6 +48,8 @@ export interface ContactoGhl {
   phone?: string
   email?: string
   tags?: string[]
+  /** Usuario (asesora) dueño del contacto. */
+  assignedTo?: string
   customFields?: { id: string; value?: unknown }[]
 }
 
@@ -327,6 +329,12 @@ export async function obtenerOportunidad(
 export async function obtenerContacto(contactId: string): Promise<ContactoGhl | null> {
   const r = await pedir<{ contact?: ContactoGhl }>(`/contacts/${id(contactId)}`)
   return r.contact ?? null
+}
+
+/** Nombre de un usuario de la cuenta (p. ej. la asesora asignada). */
+export async function nombreUsuario(userId: string): Promise<string | null> {
+  const r = await pedir<{ name?: string; firstName?: string; lastName?: string }>(`/users/${id(userId)}`)
+  return r.name?.trim() || [r.firstName, r.lastName].filter(Boolean).join(' ').trim() || null
 }
 
 /** Conversación más reciente de un contacto. */

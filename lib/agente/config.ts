@@ -167,6 +167,32 @@ export const TAGS = {
    * El propio vigilante lo quita cuando detecta que ya respondieron (re-arma).
    */
   sinRespuesta: 'lead_sin_respuesta',
+  /**
+   * NUEVO (creado por Sol): Sol está CUBRIENDO a la asesora en un chat con
+   * `stop_bot` porque el cliente escribió y nadie le contestó a tiempo (ver
+   * `RESPALDO`). Lo pone Sol al enviar su primera respuesta de respaldo y lo
+   * quita en cuanto la asesora vuelve a escribir. Las asesoras lo ven en GHL.
+   */
+  respaldo: 'sol_respaldo',
+} as const
+
+/**
+ * "Sol de respaldo": ningún cliente se queda sin respuesta aunque su asesora
+ * esté ocupada o fuera de horario. En un chat con `stop_bot` (lo lleva una
+ * asesora), si el último mensaje del cliente lleva más de estos minutos sin
+ * respuesta, el vigilante hace que Sol lo cubra; desde ahí Sol contesta al
+ * instante hasta que la asesora vuelva a escribir.
+ *
+ *  - `minEnHorario`: el mensaje llegó en horario y seguimos en horario
+ *    (antes de esto, a los 60 min, el vigilante ya le avisó a la asesora).
+ *  - `minFueraHorario`: cualquier otro caso (noche, domingo, festivo…).
+ *
+ * `AGENTE_RESPALDO=off` en Vercel lo apaga sin tocar el resto de Sol.
+ */
+export const RESPALDO = {
+  activo: process.env.AGENTE_RESPALDO !== 'off',
+  minEnHorario: 120,
+  minFueraHorario: 15,
 } as const
 
 /**

@@ -2,6 +2,6 @@
   "crons": [
     { "path": "/api/agente/seguimiento", "schedule": "0 15 * * *" },
     { "path": "/api/agente/seguimiento", "schedule": "0 20 * * *" },
-    { "path": "/api/agente/vigilante", "schedule": "*/30 * * * *" }
+    { "path": "/api/agente/vigilante", "schedule": "*/10 * * * *" }
   ]
 }

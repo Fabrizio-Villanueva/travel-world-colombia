@@ -55,12 +55,12 @@ el interior de un workflow: el usuario manda capturas.
 | # | Workflow | Estado |
 |---|---|---|
 | 1 | E-01 · Contacto nuevo → tarjeta en Leads | ✅ Cerrado |
-| 2 | E-02 · Formulario web → contacto + tarjeta | 🆕 **SIGUIENTE**: el webhook de la web (`GHL_WEBHOOK_URL`, lib/ghl/webhook.ts) responde "test request received" = sin workflow; nunca hubo contactos `web-form`. Usuario crea wf con Inbound Webhook y pasa la URL; se actualiza en Vercel; prueba; mapear Create/Update Contact |
-| 3 | L-03 (hoy "Asignar Lead a Usuario Creador") | Renombrar; faltan ramas Lynda (tag lynda_quintero) y Adriana (sin tag) |
-| 4 | X-01 · Tag mayorista → B2B + quitar tarjeta | Hecho; confirmar Find opp = Leads + Open |
-| 5 | S-01 · Mensaje entrante → Sol | Quitar línea tag `proveedor` |
+| 2 | E-02 · Formulario web → contacto + tarjeta | ❌ Descartado (los leads entran por WhatsApp → E-01) |
+| 3 | ~~L-03~~ "Asignar Lead a Usuario Creador" | 🗄️ Archivado (01-oct): solo miraba tags de la importación de feb; al crear a mano GHL ya deja la asesora (y Luisa crea para otras asesoras) |
+| 4 | X-01 · Tag mayorista → B2B + quitar tarjeta | ✅ Cerrado (01-oct): Find opp = Leads + Open confirmado; borra la tarjeta (decisión del usuario); 0 mayoristas con tarjeta abierta salvo la de prueba de Fabrizio |
+| 5 | S-01 · Mensaje entrante → Sol | ✅ Cerrado (01-oct): sin línea `proveedor`; "No contestar" = zolutium-ai / [device] mayorista b2b / mayorista / operadores / stop_bot (espejo de la compuerta 3 de lib/agente/conversacion.ts, se deja como prefiltro barato) |
 | 6 | S-02 · IA-NOMBRE → nombre | ✅ |
-| 7 | Stop/Active Bot (wait 2 h → quita stop_bot) | Decidir; recomendación: borrar |
+| 7 | Stop/Active Bot (wait 2 h → quita stop_bot) | 🔁 Reemplazado por **Sol de respaldo** (código, 02-oct): vigilante cada 10 min cubre chats con stop_bot sin respuesta (15 min fuera de horario / 2 h en horario), tag `sol_respaldo`, se retira cuando la asesora escribe; `AGENTE_RESPALDO=off` lo apaga. Usuario: apagar este wf → ZZ y quitar línea `stop_bot` de S-01 |
 | 8 | L-01 · Sol califica → Calificado + asignar + tarea | ✅ |
 | 9 | L-04 (hoy "Internal SMS Alert and Task") | Renombrar |
 | 10 | L-02 · Lead sin respuesta 60 min | ✅ |
