@@ -45,14 +45,15 @@ export interface CampoReserva extends CampoCatalogo {
 }
 
 /**
- * ESPEJO TRANSICIONAL: mientras la plantilla del contrato siga imprimiendo
- * merge tags `{{contact.*}}` (la v2 con `{{opportunity.*}}` está EN PAUSA),
- * cada guardado escribe el valor TAMBIÉN en el campo viejo del contacto
- * (vía `sourceContactKey`). Así el contrato de hoy sale completo sin
- * re-digitar nada. Apagar (false) cuando la plantilla v2 entre en uso —
- * es la única excepción viva a la regla "no escribir campos viejos".
+ * ESPEJO TRANSICIONAL (APAGADO desde 2026-10-02): mientras la plantilla del
+ * contrato imprimía merge tags `{{contact.*}}`, cada guardado escribía el
+ * valor TAMBIÉN en el campo viejo del contacto (vía `sourceContactKey`). Las
+ * plantillas v2 (`{{opportunity.*}}`) ya están en uso y los workflows también
+ * leen la oportunidad, así que el Generador escribe solo en la oportunidad.
+ * Los campos viejos del contacto quedan para borrarse (respaldo en
+ * .respaldos-ghl/respaldo_campos_contacto_migrados.json.gz).
  */
-export const ESPEJO_CONTACTO_TRANSICION = true
+export const ESPEJO_CONTACTO_TRANSICION = false
 
 /**
  * Duplicados viejos que la plantilla imprime ADEMÁS del sourceContactKey del

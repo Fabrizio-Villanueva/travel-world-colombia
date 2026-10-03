@@ -74,11 +74,6 @@ export const ETAPA_GANADA = '2ff59f80-0b8a-4dde-9419-0f4b97b701f0'
 export const CAMPOS_RESERVA = {
   /** opportunity.fecha_confirmada_de_salida (DATE) */
   oppFechaSalida: 'jo2GTriNmRltzHrzaAW9',
-  /**
-   * contact.fecha_de_ida ("CPA-Fecha de Ida", DATE): copia transicional para
-   * que los workflows viejos "X días antes de viaje" sigan disparando.
-   */
-  contactoCpaFechaIda: '4xDv78whz7Rcd9LNKkDF',
 } as const
 
 /**
