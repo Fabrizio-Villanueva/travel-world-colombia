@@ -2,19 +2,23 @@
 
 import { useMemo, useRef, useState } from 'react'
 import {
-  AlertTriangle,
+  BookOpenText,
   Camera,
   Check,
-  CheckCircle2,
+  CircleCheck,
+  FileBadge,
+  IdCard,
   Loader2,
-  Lock,
+  PencilLine,
   RefreshCw,
   ScanLine,
+  ShieldCheck,
+  TriangleAlert,
+  type LucideIcon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
   BUCKET_DOCUMENTOS_VIAJEROS,
-  TIPO_EMOJI,
   TIPO_LABEL,
   tiposRequeridos,
   type TipoDocumento,
@@ -29,20 +33,38 @@ import {
   type PortalDatos,
 } from '@/lib/documentos/tipos'
 import { aceptarConsentimiento, confirmar, prepararSubida, procesar, repetir } from './actions'
+import { Garantias } from './Verificacion'
 
 /**
  * El portal: una tarjeta por viajero y, dentro, una casilla por documento que
  * el viaje pide. Flujo por casilla: foto → sube directo al bucket privado →
  * lectura automática → el cliente confirma o corrige → queda escrito en la
  * tarjeta del viaje. Puede volver con el mismo enlace: todo se recuerda.
+ *
+ * Diseño: móvil primero, lenguaje sobrio (tarjetas blancas de radio 24,
+ * bordes finos, estado con punto de color, campos tipo iOS).
  */
 
-const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 16 }
+const NAVY = '#0D1E3C'
+const MUTED = '#6B7A90'
+const BORDER = 'rgba(13, 30, 60, 0.08)'
+const PAGE = '#F4F7FB'
+const ACCENT = '#2957A4'
+const VERDE = '#047857'
+const tarjeta: React.CSSProperties = { background: 'white', border: `1px solid ${BORDER}`, borderRadius: 24, boxShadow: '0 2px 12px rgba(13,30,60,0.04)' }
+
+const ICONO: Record<TipoDocumento, LucideIcon> = { pasaporte: BookOpenText, cedula: IdCard, visa: FileBadge }
 
 function fmtFecha(iso: string | null | undefined): string {
   if (!iso) return ''
   const [y, m, d] = iso.split('-')
   return `${d}/${m}/${y}`
+}
+
+function iniciales(nombre: string | null | undefined, n: number): string {
+  const partes = (nombre ?? '').trim().split(/\s+/).filter(Boolean)
+  if (partes.length === 0) return `${n}`
+  return partes.slice(0, 2).map(p => p[0]!.toUpperCase()).join('')
 }
 
 /** Re-encode a JPEG (lado máx. 2000 px): pesa menos y el lector lo prefiere. PDFs pasan tal cual. */
@@ -72,10 +94,9 @@ export function Portal({ token, inicial }: { token: string; inicial: PortalDatos
   const tipos = useMemo(() => tiposRequeridos(datos.requisitos), [datos.requisitos])
 
   const requeridos = datos.viajeros * tipos.length
-  const confirmados = datos.archivos.filter(
-    a => a.confirmado_en && a.viajero <= datos.viajeros && tipos.includes(a.tipo)
-  ).length
+  const confirmados = datos.archivos.filter(a => a.confirmado_en && a.viajero <= datos.viajeros && tipos.includes(a.tipo)).length
   const completo = requeridos > 0 && confirmados >= requeridos
+  const pct = requeridos ? Math.round((confirmados / requeridos) * 100) : 0
 
   function ponerArchivo(a: ArchivoPublico | null, viajero: number, tipo: TipoDocumento) {
     setDatos(d => ({
@@ -86,82 +107,107 @@ export function Portal({ token, inicial }: { token: string; inicial: PortalDatos
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Portada */}
-      <section className="p-5" style={card}>
-        <p className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.3em]" style={{ color: 'var(--orange)' }}>
+      {/* ── Portada ── */}
+      <section className="p-6" style={tarjeta}>
+        <p className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.32em]" style={{ color: ACCENT }}>
           Documentos de tu viaje
         </p>
-        <h1 className="mt-1 font-plus-jakarta text-xl font-extrabold leading-tight" style={{ color: 'var(--text-primary)' }}>
+        <h1 className="mt-1.5 font-plus-jakarta text-2xl font-extrabold leading-tight tracking-tight" style={{ color: NAVY }}>
           {datos.destino || datos.nombre_viaje || 'Tu viaje'}
         </h1>
-        {(datos.fecha_salida || datos.nombre_viaje) && (
-          <p className="mt-1 font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
-            {datos.fecha_salida ? `Salida ${fmtFecha(datos.fecha_salida)}` : ''}
-            {datos.fecha_salida && datos.fecha_regreso ? ` · regreso ${fmtFecha(datos.fecha_regreso)}` : ''}
+        {datos.fecha_salida && (
+          <p className="mt-1 font-inter text-[13px]" style={{ color: MUTED }}>
+            Salida {fmtFecha(datos.fecha_salida)}
+            {datos.fecha_regreso ? ` · regreso ${fmtFecha(datos.fecha_regreso)}` : ''}
           </p>
         )}
-        <p className="mt-3 flex items-start gap-2 font-inter text-xs leading-relaxed" style={{ color: 'var(--text-dim)' }}>
-          <Lock size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--orange)' }} />
-          Tus documentos viajan cifrados, solo los ve tu asesora y se borran 30 días después del regreso.
-        </p>
 
-        {/* Progreso */}
-        <div className="mt-4">
-          <div className="flex items-center justify-between font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
-            <span>
-              {confirmados} de {requeridos} documento{requeridos === 1 ? '' : 's'} listo{confirmados === 1 ? '' : 's'}
+        <div className="mt-5 flex items-center gap-4">
+          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+            <svg className="h-14 w-14 -rotate-90" viewBox="0 0 36 36" aria-hidden>
+              <path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="#E2E8F0" strokeWidth="3" />
+              <path
+                d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
+                fill="none"
+                stroke={completo ? '#10B981' : ACCENT}
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={`${pct}, 100`}
+                style={{ transition: 'stroke-dasharray .6s ease' }}
+              />
+            </svg>
+            <span className="absolute font-plus-jakarta text-[12px] font-bold tabular-nums" style={{ color: NAVY }}>
+              {confirmados}/{requeridos}
             </span>
-            {completo && (
-              <span className="flex items-center gap-1 font-semibold" style={{ color: '#15803d' }}>
-                <CheckCircle2 size={14} /> ¡Todo listo!
-              </span>
-            )}
           </div>
-          <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full" style={{ background: 'var(--bg-alt)' }}>
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${requeridos ? Math.round((confirmados / requeridos) * 100) : 0}%`, background: completo ? '#16a34a' : 'var(--orange)' }}
-            />
+          <div>
+            <p className="font-inter text-[15px] font-semibold" style={{ color: NAVY }}>
+              {confirmados} de {requeridos} documento{requeridos === 1 ? '' : 's'} listo{confirmados === 1 ? '' : 's'}
+            </p>
+            <p className="mt-0.5 flex items-center gap-1.5 font-inter text-[12px]" style={{ color: completo ? VERDE : MUTED }}>
+              {completo ? (
+                <>
+                  <CircleCheck size={14} /> ¡Todo listo!
+                </>
+              ) : (
+                'Puedes subirlos en varios momentos: todo se guarda.'
+              )}
+            </p>
           </div>
         </div>
       </section>
 
+      <Garantias />
+
       {!datos.consentimiento ? (
         <Consentimiento token={token} onAceptado={() => setDatos(d => ({ ...d, consentimiento: true }))} />
       ) : (
-        Array.from({ length: datos.viajeros }, (_, i) => i + 1).map(n => (
-          <section key={n} className="p-5" style={card}>
-            <h2 className="font-plus-jakarta text-base font-bold" style={{ color: 'var(--text-primary)' }}>
-              Viajero {n}
-              {datos.nombres[n - 1] ? (
-                <span className="ml-2 font-inter text-sm font-normal" style={{ color: 'var(--text-dim)' }}>
-                  {datos.nombres[n - 1]}
+        Array.from({ length: datos.viajeros }, (_, i) => i + 1).map(n => {
+          const nombre = datos.nombres[n - 1]
+          return (
+            <section key={n} className="p-5" style={tarjeta}>
+              <div className="flex items-center gap-3">
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-plus-jakarta text-xs font-bold tracking-wider text-white"
+                  style={{ background: NAVY }}
+                >
+                  {iniciales(nombre, n)}
                 </span>
-              ) : null}
-            </h2>
-            <div className="mt-3 flex flex-col gap-3">
-              {tipos.map(tipo => (
-                <Casilla
-                  key={tipo}
-                  token={token}
-                  viajero={n}
-                  tipo={tipo}
-                  archivo={datos.archivos.find(a => a.viajero === n && a.tipo === tipo) ?? null}
-                  onCambio={a => ponerArchivo(a, n, tipo)}
-                />
-              ))}
-            </div>
-          </section>
-        ))
+                <div className="min-w-0">
+                  <h2 className="font-plus-jakarta text-[17px] font-bold leading-tight" style={{ color: NAVY }}>
+                    Viajero {n}
+                  </h2>
+                  <p className="truncate font-inter text-[13px]" style={{ color: MUTED }}>
+                    {nombre ?? (n === 1 ? 'Titular de la reserva' : 'Acompañante')}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-col gap-3">
+                {tipos.map(tipo => (
+                  <Casilla
+                    key={tipo}
+                    token={token}
+                    viajero={n}
+                    tipo={tipo}
+                    archivo={datos.archivos.find(a => a.viajero === n && a.tipo === tipo) ?? null}
+                    onCambio={a => ponerArchivo(a, n, tipo)}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+        })
       )}
 
       {datos.consentimiento && completo && (
-        <section className="p-5 text-center" style={{ ...card, background: '#f0fdf4', borderColor: '#bbf7d0' }}>
-          <CheckCircle2 size={28} className="mx-auto" style={{ color: '#16a34a' }} />
-          <p className="mt-2 font-plus-jakarta text-base font-bold" style={{ color: '#166534' }}>
+        <section className="p-6 text-center" style={{ ...tarjeta, background: '#ECFDF5', borderColor: '#A7F3D0' }}>
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full" style={{ background: '#D1FAE5', color: VERDE }}>
+            <CircleCheck size={26} />
+          </span>
+          <p className="mt-3 font-plus-jakarta text-[17px] font-bold" style={{ color: '#065F46' }}>
             Recibimos todos los documentos
           </p>
-          <p className="mt-1 font-inter text-sm" style={{ color: '#166534' }}>
+          <p className="mt-1 font-inter text-[14px] leading-relaxed" style={{ color: '#047857' }}>
             Tu asesora los revisa y te confirma por WhatsApp. Si necesitas cambiar alguno, puedes volver con este mismo enlace.
           </p>
         </section>
@@ -189,28 +235,33 @@ function Consentimiento({ token, onAceptado }: { token: string; onAceptado: () =
   }
 
   return (
-    <section className="p-5" style={card}>
-      <h2 className="font-plus-jakarta text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+    <section className="p-6" style={tarjeta}>
+      <span className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: '#EDF3FC', color: ACCENT }}>
+        <ShieldCheck size={24} strokeWidth={1.8} />
+      </span>
+      <h2 className="mt-4 font-plus-jakarta text-[19px] font-bold" style={{ color: NAVY }}>
         Antes de empezar
       </h2>
-      <p className="mt-2 font-inter text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
-        Vas a compartir documentos de identidad, que la ley colombiana considera{' '}
-        <strong>datos sensibles</strong>. Travel World Colombia (RNT 27287) los usa únicamente para gestionar
-        tu reserva ante aerolíneas, hoteles y operadores, los guarda cifrados con acceso restringido a tu
-        asesora y los elimina 30 días después de tu regreso.
+      <p className="mt-2 font-inter text-[14px] leading-relaxed" style={{ color: NAVY }}>
+        Vas a compartir documentos de identidad, que la ley colombiana considera <strong>datos sensibles</strong>. Travel
+        World Colombia (RNT 27287) los usa únicamente para gestionar tu reserva ante aerolíneas, hoteles y operadores,
+        los guarda cifrados con acceso restringido a tu asesora y los elimina 30 días después de tu regreso.
       </p>
-      <label className="mt-4 flex items-start gap-3 font-inter text-sm" style={{ color: 'var(--text-primary)' }}>
-        <input type="checkbox" checked={marcado} onChange={e => setMarcado(e.target.checked)} className="mt-1 h-4 w-4" />
+      <label
+        className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl p-4 font-inter text-[13px] leading-relaxed transition-colors"
+        style={{ background: PAGE, border: `1px solid ${marcado ? ACCENT : BORDER}`, color: NAVY }}
+      >
+        <input type="checkbox" checked={marcado} onChange={e => setMarcado(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#2957A4]" />
         <span>
           Autorizo el tratamiento de mis datos personales y los de los viajeros que registro, según la{' '}
-          <a href="/privacidad" target="_blank" rel="noopener" className="underline" style={{ color: 'var(--orange)' }}>
+          <a href="/privacidad" target="_blank" rel="noopener" className="underline" style={{ color: ACCENT }}>
             política de privacidad
           </a>{' '}
           (Ley 1581 de 2012). Declaro que tengo autorización de los demás viajeros para compartir sus documentos.
         </span>
       </label>
       {error && (
-        <p className="mt-3 rounded-md px-3 py-2 font-inter text-xs" style={{ background: '#fef2f2', color: '#b91c1c' }}>
+        <p className="mt-3 rounded-xl px-4 py-3 font-inter text-[13px]" style={{ background: '#FFF1F2', color: '#BE123C', border: '1px solid #FECDD3' }}>
           {error}
         </p>
       )}
@@ -218,10 +269,10 @@ function Consentimiento({ token, onAceptado }: { token: string; onAceptado: () =
         type="button"
         disabled={!marcado || enviando}
         onClick={aceptar}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 font-inter text-sm font-semibold disabled:opacity-50"
-        style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}
+        className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl font-inter text-[15px] font-semibold text-white transition-all active:scale-[0.99] disabled:opacity-40"
+        style={{ background: ACCENT }}
       >
-        {enviando && <Loader2 size={16} className="animate-spin" />}
+        {enviando && <Loader2 size={18} className="animate-spin" />}
         Continuar
       </button>
     </section>
@@ -254,6 +305,7 @@ function Casilla({
   const [guardando, setGuardando] = useState(false)
   const [progreso, setProgreso] = useState(0)
 
+  const Icono = ICONO[tipo]
   const campos = CAMPOS_POR_TIPO[tipo]
 
   async function elegir(e: React.ChangeEvent<HTMLInputElement>) {
@@ -319,64 +371,82 @@ function Casilla({
 
   const avisos = archivo?.avisos ?? []
   const confianzaBaja = archivo?.confianza === 'baja' || archivo?.metodo === 'manual'
+  const listo = fase === 'listo'
 
   return (
-    <div className="rounded-xl p-4" style={{ border: '1px solid var(--border)', background: fase === 'listo' ? '#f0fdf4' : 'var(--bg-alt)' }}>
+    <div
+      className="rounded-2xl p-4 transition-colors"
+      style={{
+        border: fase === 'vacio' ? `2px dashed ${BORDER}` : `1px solid ${listo ? '#A7F3D0' : BORDER}`,
+        background: listo ? '#F0FDF4' : fase === 'vacio' ? 'white' : PAGE,
+      }}
+    >
+      {/* Encabezado */}
       <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-2 font-inter text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          <span aria-hidden>{TIPO_EMOJI[tipo]}</span> {TIPO_LABEL[tipo]}
-        </span>
-        {fase === 'listo' && (
-          <span className="flex items-center gap-1 font-inter text-xs font-semibold" style={{ color: '#15803d' }}>
-            <Check size={14} /> Listo
+        <span className="flex items-center gap-2.5">
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+            style={{ background: listo ? '#D1FAE5' : PAGE, border: `1px solid ${listo ? '#A7F3D0' : BORDER}`, color: listo ? VERDE : NAVY }}
+          >
+            <Icono size={18} strokeWidth={1.8} />
           </span>
-        )}
+          <span className="font-plus-jakarta text-[15px] font-bold" style={{ color: NAVY }}>
+            {TIPO_LABEL[tipo]}
+          </span>
+        </span>
+        {listo ? (
+          <span className="inline-flex items-center gap-1.5 font-inter text-[12px] font-semibold" style={{ color: VERDE }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#10B981' }} /> Listo
+          </span>
+        ) : fase === 'confirmar' ? (
+          <span className="inline-flex items-center gap-1.5 font-inter text-[12px] font-semibold" style={{ color: '#B45309' }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#F59E0B' }} /> Por confirmar
+          </span>
+        ) : null}
       </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*,application/pdf"
-        capture="environment"
-        className="hidden"
-        onChange={elegir}
-      />
+      <input ref={inputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={elegir} />
 
       {fase === 'vacio' && (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 font-inter text-sm font-semibold"
-          style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}
-        >
-          <Camera size={16} /> Tomar foto o subir archivo
-        </button>
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl font-inter text-[15px] font-semibold text-white transition-all active:scale-[0.99]"
+            style={{ background: ACCENT }}
+          >
+            <Camera size={18} /> Tomar foto o subir archivo
+          </button>
+          <p className="mt-2 text-center font-inter text-[11px]" style={{ color: MUTED }}>
+            Con buena luz, sin brillo y el documento completo.
+          </p>
+        </div>
       )}
 
       {fase === 'subiendo' && (
-        <div className="mt-3">
-          <p className="flex items-center gap-2 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
-            <Loader2 size={14} className="animate-spin" /> Subiendo de forma segura…
+        <div className="mt-4">
+          <p className="flex items-center gap-2 font-inter text-[13px]" style={{ color: NAVY }}>
+            <Loader2 size={15} className="animate-spin" style={{ color: ACCENT }} /> Subiendo de forma segura…
           </p>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white">
-            <div className="h-full rounded-full transition-all" style={{ width: `${progreso}%`, background: 'var(--orange)' }} />
+            <div className="h-full rounded-full transition-all" style={{ width: `${progreso}%`, background: ACCENT }} />
           </div>
         </div>
       )}
 
       {fase === 'leyendo' && (
-        <p className="mt-3 flex items-center gap-2 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
-          <ScanLine size={14} className="animate-pulse" /> Leyendo los datos del documento (unos segundos)…
+        <p className="mt-4 flex items-center gap-2 font-inter text-[13px]" style={{ color: NAVY }}>
+          <ScanLine size={16} className="animate-pulse" style={{ color: ACCENT }} /> Leyendo los datos del documento (unos segundos)…
         </p>
       )}
 
-      {(fase === 'confirmar' || fase === 'listo') && (
+      {(fase === 'confirmar' || listo) && (
         <>
           {avisos.length > 0 && (
             <ul className="mt-3 flex flex-col gap-1.5">
               {avisos.map((a, i) => (
-                <li key={i} className="flex items-start gap-2 rounded-md px-3 py-2 font-inter text-xs" style={{ background: '#fffbeb', color: '#92400e' }}>
-                  <AlertTriangle size={14} className="mt-0.5 shrink-0" /> {a}
+                <li key={i} className="flex items-start gap-2 rounded-xl px-3 py-2.5 font-inter text-[12px] leading-snug" style={{ background: 'rgba(255,251,235,0.9)', border: '1px solid rgba(253,230,138,0.8)', color: '#78350F' }}>
+                  <TriangleAlert size={15} className="mt-0.5 shrink-0" style={{ color: '#D97706' }} /> {a}
                 </li>
               ))}
             </ul>
@@ -384,50 +454,53 @@ function Casilla({
 
           {fase === 'confirmar' ? (
             <form onSubmit={guardar} className="mt-3">
-              <p className="font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
+              <p className="font-inter text-[13px] leading-relaxed" style={{ color: MUTED }}>
                 {confianzaBaja
                   ? 'No pudimos leer todo con claridad: revisa y completa los datos.'
                   : 'Esto fue lo que leímos. Revisa que coincida con el documento y confirma.'}
               </p>
-              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 {campos.map(c => (
                   <CampoForm key={c} campo={c} tipo={tipo} valor={form[c] ?? ''} onChange={v => setForm(f => ({ ...f, [c]: v }))} />
                 ))}
               </div>
               {error && (
-                <p className="mt-2 rounded-md px-3 py-2 font-inter text-xs" style={{ background: '#fef2f2', color: '#b91c1c' }}>
+                <p className="mt-3 rounded-xl px-4 py-3 font-inter text-[13px]" style={{ background: '#FFF1F2', color: '#BE123C', border: '1px solid #FECDD3' }}>
                   {error}
                 </p>
               )}
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                 <button
                   type="submit"
                   disabled={guardando}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-inter text-sm font-semibold disabled:opacity-60"
-                  style={{ background: 'var(--orange)', color: 'var(--orange-contrast)' }}
+                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl font-inter text-[15px] font-semibold text-white transition-all active:scale-[0.99] disabled:opacity-60"
+                  style={{ background: ACCENT }}
                 >
-                  {guardando ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+                  {guardando ? <Loader2 size={17} className="animate-spin" /> : <Check size={17} />}
                   Confirmar datos
                 </button>
                 <button
                   type="button"
                   onClick={cambiarFoto}
-                  className="flex items-center gap-1.5 rounded-lg px-3 py-2.5 font-inter text-xs"
-                  style={{ border: '1px solid var(--border)', color: 'var(--text-dim)', background: 'white' }}
+                  className="flex h-12 items-center justify-center gap-1.5 rounded-2xl bg-white px-4 font-inter text-[13px] font-medium"
+                  style={{ border: `1px solid ${BORDER}`, color: NAVY }}
                 >
-                  <RefreshCw size={13} /> Otra foto
+                  <RefreshCw size={14} /> Otra foto
                 </button>
               </div>
             </form>
           ) : (
             <div className="mt-3">
-              <dl className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {campos
                   .filter(c => archivo?.datos_confirmados?.[c])
                   .map(c => (
-                    <div key={c} className="flex justify-between gap-3 font-inter text-xs">
-                      <dt style={{ color: 'var(--text-dim)' }}>{CAMPO_LABEL[c]}</dt>
-                      <dd className="text-right font-medium" style={{ color: 'var(--text-primary)' }}>
+                    <div key={c} className="min-w-0">
+                      <dt className="font-inter text-[10px] uppercase tracking-wide" style={{ color: MUTED }}>{CAMPO_LABEL[c]}</dt>
+                      <dd
+                        className={`truncate font-inter text-[13px] font-semibold tabular-nums ${c === 'numero' || c === 'documento_identidad' ? 'font-mono font-medium' : ''}`}
+                        style={{ color: NAVY }}
+                      >
                         {CAMPOS_FECHA.includes(c) ? fmtFecha(archivo?.datos_confirmados?.[c]) : archivo?.datos_confirmados?.[c]}
                       </dd>
                     </div>
@@ -436,10 +509,10 @@ function Casilla({
               <button
                 type="button"
                 onClick={cambiarFoto}
-                className="mt-3 flex items-center gap-1.5 font-inter text-xs underline"
-                style={{ color: 'var(--text-dim)' }}
+                className="mt-3 inline-flex items-center gap-1.5 font-inter text-[12px] font-medium"
+                style={{ color: ACCENT }}
               >
-                <RefreshCw size={12} /> Cambiar foto o corregir
+                <PencilLine size={13} /> Cambiar foto o corregir
               </button>
             </div>
           )}
@@ -447,7 +520,7 @@ function Casilla({
       )}
 
       {error && fase === 'vacio' && (
-        <p className="mt-2 rounded-md px-3 py-2 font-inter text-xs" style={{ background: '#fef2f2', color: '#b91c1c' }}>
+        <p className="mt-3 rounded-xl px-4 py-3 font-inter text-[13px]" style={{ background: '#FFF1F2', color: '#BE123C', border: '1px solid #FECDD3' }}>
           {error}
         </p>
       )}
@@ -466,22 +539,22 @@ function CampoForm({
   valor: string
   onChange: (v: string) => void
 }) {
-  const base: React.CSSProperties = { border: '1px solid var(--border)', color: 'var(--text-primary)', background: 'white' }
-  const clase = 'w-full rounded-md px-3 py-2 font-inter text-sm outline-none'
+  const estilo: React.CSSProperties = { border: `1px solid ${BORDER}`, color: NAVY, background: 'white' }
+  const clase = 'h-11 w-full rounded-xl px-3 font-inter text-[15px] outline-none focus:ring-4 focus:ring-[rgba(41,87,164,0.12)]'
   const etiqueta = campo === 'numero' ? `Número de ${tipo === 'cedula' ? 'documento' : tipo}` : CAMPO_LABEL[campo]
   return (
     <label className="block">
-      <span className="mb-1 block font-inter text-[11px]" style={{ color: 'var(--text-dim)' }}>
+      <span className="mb-1 block font-inter text-[11px] font-medium" style={{ color: MUTED }}>
         {etiqueta}
       </span>
       {campo === 'sexo' ? (
-        <select value={valor} onChange={e => onChange(e.target.value)} className={clase} style={base}>
+        <select value={valor} onChange={e => onChange(e.target.value)} className={clase} style={estilo}>
           <option value="">—</option>
           <option value="F">F</option>
           <option value="M">M</option>
         </select>
       ) : campo === 'tipo_documento' && tipo === 'cedula' ? (
-        <select value={valor} onChange={e => onChange(e.target.value)} className={clase} style={base}>
+        <select value={valor} onChange={e => onChange(e.target.value)} className={clase} style={estilo}>
           <option value="">—</option>
           <option value="CC">Cédula de ciudadanía (CC)</option>
           <option value="TI">Tarjeta de identidad (TI)</option>
@@ -495,7 +568,7 @@ function CampoForm({
           value={valor}
           onChange={e => onChange(e.target.value)}
           className={clase}
-          style={base}
+          style={estilo}
           autoCapitalize="characters"
         />
       )}

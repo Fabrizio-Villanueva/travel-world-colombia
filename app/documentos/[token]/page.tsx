@@ -4,6 +4,7 @@ import { accesoFirmadoValido, nombreCookieAcceso, tokenValido } from '@/lib/docu
 import { estadoEnlace, minutosBloqueo, portalDatos, solicitudPorToken } from '@/lib/documentos/solicitudes'
 import { Verificacion } from './Verificacion'
 import { Portal } from './Portal'
+import { IntroSeguro } from './IntroSeguro'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,12 +24,22 @@ export default async function DocumentosPage({ params }: { params: Promise<{ tok
   if (estado === 'vencido') return <Aviso texto="Este enlace venció. Pídele a tu asesora uno nuevo." />
   if (estado === 'revocado') return <Aviso texto="Este enlace fue desactivado. Pídele a tu asesora uno nuevo." />
 
+  // Splash + candado (una vez por dispositivo), con la página ya debajo.
   const cookie = (await cookies()).get(nombreCookieAcceso(s.token_hash))?.value
+  const clave = s.token_hash.slice(0, 12)
   if (accesoFirmadoValido(cookie, s.id)) {
-    return <Portal token={token} inicial={await portalDatos(s)} />
+    return (
+      <IntroSeguro clave={clave}>
+        <Portal token={token} inicial={await portalDatos(s)} />
+      </IntroSeguro>
+    )
   }
 
-  return <Verificacion token={token} nombreViaje={s.nombre_viaje} bloqueadoMinutos={minutosBloqueo(s)} />
+  return (
+    <IntroSeguro clave={clave}>
+      <Verificacion token={token} nombreViaje={s.nombre_viaje} bloqueadoMinutos={minutosBloqueo(s)} />
+    </IntroSeguro>
+  )
 }
 
 function Aviso({ texto }: { texto: string }) {
