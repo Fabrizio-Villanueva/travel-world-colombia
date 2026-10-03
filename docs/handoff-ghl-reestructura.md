@@ -110,7 +110,11 @@ el interior de un workflow: el usuario manda capturas.
   (`8QoctQg2QrsSGx5vVNwv`); datos intactos (verificado). Carpetas originales en
   `.respaldos-ghl/carpetas_originales_campos.json`. 7 carpetas que quedaron vacías se borraron (Liquidación Vuelos,
   Registro de Pagos, Información de Pasajeros, Enviar Contratos., Inclusiones y Exclusiones, Paquetes - Generales
-  del Viaje, Informacion de Vuelos): para devolver un campo habría que recrear su carpeta. ~16-oct: si nada falló, el usuario los borra en GHL.
+  del Viaje, Informacion de Vuelos): para devolver un campo habría que recrear su carpeta.
+- (02-oct) También a cuarentena los 7 de "Acciones del Representante" (Etapa del Lead, Cliente en Viaje, Contrato y
+  Facturación, Fecha del Viaje, Fecha de Regreso, Cotización Enviada, Tipo de Compra; respaldo
+  `respaldo_acciones_representante.json.gz`) y carpeta borrada → 161 en cuarentena. ⚠️ "Etapa del Lead" la sigue
+  llenando algún workflow (¿E-01/L-01?): quitar esa acción antes del borrado. ~16-oct: si nada falló, el usuario los borra en GHL.
 - 2ª ronda: campos de calificación que Sol escribe en contacto Y opp (mensaje de cotización ya pasado a opp en L-01).
 
 ## Datos pendientes que solo puede corregir el equipo
