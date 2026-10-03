@@ -52,6 +52,7 @@ export interface SolicitudRow {
   telefono_ultimos4: string
   intentos_fallidos: number
   bloqueada_hasta: string | null
+  lecturas_ia: number
   otp_hash: string | null
   otp_vence: string | null
   otp_intentos: number
@@ -532,7 +533,31 @@ export async function eliminarArchivo(s: SolicitudRow, archivoId: string): Promi
 export async function procesarArchivo(s: SolicitudRow, archivoId: string): Promise<ArchivoPublico> {
   const a = await archivoDe(s, archivoId)
   if (!a) throw new Error('El archivo no existe.')
+  // Un archivo se lee UNA vez (auditoría #3): repetir la llamada devuelve lo ya leído.
+  if (a.metodo) return aPublico(a)
   const db = admin()
+
+  // Cupo de lecturas con IA por enlace: 3 por documento requerido (fotos
+  // repetidas) + 3 de margen, mínimo 6. Atómico en SQL. Sin cupo, el cliente
+  // escribe los datos a mano (no se bloquea el flujo).
+  const cupo = Math.max(6, s.viajeros * tiposRequeridos(s.requisitos).length * 3 + 3)
+  const { data: hayCupo } = await db.rpc('doc_sumar_lectura_ia', { p_id: s.id, p_max: cupo })
+  if (hayCupo !== true) {
+    const { data } = await db
+      .from('doc_archivos')
+      .update({
+        metodo: 'manual',
+        confianza: 'baja',
+        datos_extraidos: {},
+        revision_requerida: true,
+        avisos: ['Ya se usaron todas las lecturas automáticas de este enlace. Escribe los datos a mano, por favor.'],
+      })
+      .eq('id', a.id)
+      .select('*')
+      .single()
+    return aPublico(data as ArchivoRow)
+  }
+
   const descarga = await db.storage.from(BUCKET_DOCUMENTOS_VIAJEROS).download(a.ruta)
   if (descarga.error || !descarga.data) {
     throw new Error('La foto no terminó de subir. Intenta de nuevo.')

@@ -154,6 +154,8 @@ export async function prepararSubida(
 export async function procesar(token: string, archivoId: string): Promise<Resultado<ArchivoPublico>> {
   const r = await conAcceso(token)
   if ('error' in r) return { ok: false, error: r.error }
+  const rl = await checkRateLimit(`doc-lectura:${await ipCliente()}`, { limit: 30, windowMs: 60 * 60_000 })
+  if (!rl.success) return { ok: false, error: 'Demasiadas lecturas seguidas. Espera unos minutos.' }
   try {
     return { ok: true, datos: await procesarArchivo(r.s, String(archivoId)) }
   } catch (e) {

@@ -34,6 +34,7 @@ import {
 } from '@/lib/documentos/tipos'
 import { aceptarConsentimiento, confirmar, prepararSubida, procesar, repetir } from './actions'
 import { Garantias } from './Verificacion'
+import { Gracias } from './Gracias'
 
 /**
  * El portal: una tarjeta por viajero y, dentro, una casilla por documento que
@@ -98,15 +99,28 @@ export function Portal({ token, inicial }: { token: string; inicial: PortalDatos
   const completo = requeridos > 0 && confirmados >= requeridos
   const pct = requeridos ? Math.round((confirmados / requeridos) * 100) : 0
 
+  // Pantalla final: solo cuando el cliente completa en ESTA visita (no al recargar).
+  const [gracias, setGracias] = useState(false)
+
   function ponerArchivo(a: ArchivoPublico | null, viajero: number, tipo: TipoDocumento) {
-    setDatos(d => ({
-      ...d,
-      archivos: [...d.archivos.filter(x => !(x.viajero === viajero && x.tipo === tipo)), ...(a ? [a] : [])],
-    }))
+    const archivos = [...datos.archivos.filter(x => !(x.viajero === viajero && x.tipo === tipo)), ...(a ? [a] : [])]
+    const ahora = archivos.filter(x => x.confirmado_en && x.viajero <= datos.viajeros && tipos.includes(x.tipo)).length
+    if (!completo && requeridos > 0 && ahora >= requeridos) setGracias(true)
+    setDatos(d => ({ ...d, archivos }))
   }
 
   return (
     <div className="flex flex-col gap-4">
+      {gracias && (
+        <Gracias
+          nombre={datos.nombres[0] ?? null}
+          onCerrar={() => {
+            setGracias(false)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+        />
+      )}
+
       {/* ── Portada ── */}
       <section className="p-6" style={tarjeta}>
         <p className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.32em]" style={{ color: ACCENT }}>

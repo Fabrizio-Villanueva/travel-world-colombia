@@ -57,6 +57,20 @@ export default function PrivacidadPage() {
         gestión de clientes. No vendemos tus datos a terceros.
       </LegalP>
 
+      <LegalH2>Documentos de viaje (pasaporte, cédula y visa)</LegalH2>
+      <LegalP>
+        Cuando tu asesora te envía el enlace seguro para subir los documentos de los viajeros,
+        tratamos esas imágenes como datos sensibles y solo para gestionar tu reserva:
+      </LegalP>
+      <LegalList
+        items={[
+          'Las fotos se guardan cifradas en un almacenamiento privado, sin enlaces públicos; solo el equipo de la agencia que gestiona reservas puede verlas y cada consulta queda registrada.',
+          'Para leer los datos automáticamente (nombre, número, fechas), la imagen es procesada por Anthropic, PBC (Estados Unidos), proveedor del modelo de inteligencia artificial Claude, que actúa como encargado del tratamiento por cuenta de la agencia y no usa tu información para otros fines. Esto implica una transmisión internacional de datos, que autorizas al aceptar el tratamiento en el enlace.',
+          'Tú confirmas o corriges los datos leídos antes de que se guarden en tu reserva.',
+          'Las fotos se eliminan automáticamente 30 días después de la fecha de regreso del viaje. Los datos de identificación ya confirmados se conservan en tu reserva por los deberes legales y contables de la agencia.',
+        ]}
+      />
+
       <LegalH2>Tus derechos como titular</LegalH2>
       <LegalList
         items={[

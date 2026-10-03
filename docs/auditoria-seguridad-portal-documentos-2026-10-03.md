@@ -3,8 +3,9 @@
 > 2026-10-03 · Alcance: `lib/documentos/*`, `app/documentos/[token]/*`, pestaña Documentos del Generador
 > (`app/admin/reservas/[id]/DocumentosTab.tsx`, `documentos-actions.ts`), `/admin/documentos`, `/api/documentos/purga`,
 > migración 026 (bucket `documentos-viajeros`, tablas `doc_*`). Revisión de código + pruebas en vivo contra Supabase.
-> Estado: **#2 y #8 corregidos el mismo día** (código de un solo uso, migración 027). **#1 aceptado por el usuario** (textos se
-> dejan como están por ahora). El resto, pendiente.
+> Estado (cierre 03-oct): **corregidos #2, #8** (código de un solo uso, migr. 027), **#3** (tope de lecturas, migr. 028) y **#5**
+> (Anthropic en /privacidad). **Aceptados por el usuario**: #1 (textos), #4 (se borran solo las imágenes; los datos extraídos se
+> conservan) y #6 (todo el equipo del Generador puede ver las fotos). Pendientes bajos: #7, #9, #10, #11.
 
 ## Resumen
 Sin hallazgos críticos: nadie sin el enlace puede llegar a los documentos, y la llave pública de Supabase no lee ni
@@ -15,10 +16,10 @@ prometen más de lo que el sistema hace) y de **fuerza bruta de los 4 dígitos**
 |---|---|---|
 | 1 | Alta | Textos de seguridad engañosos ("cifrado de extremo a extremo", "nadie más puede verlas") — **riesgo aceptado por el usuario (03-oct)** |
 | 2 | Alta | Los 4 dígitos se pueden adivinar en la vida del enlace (~72 % de probabilidad) — **✅ corregido** |
-| 3 | Media | Lectura con IA sin límite de llamadas ni de páginas (abuso de costo) |
-| 4 | Media | Los datos extraídos (pasaporte, nacimiento, IP) no se purgan nunca de Supabase |
-| 5 | Media | El consentimiento no menciona que un proveedor externo (Anthropic) procesa las imágenes |
-| 6 | Media | Cualquier usuario del Generador ve los documentos de cualquier viaje |
+| 3 | Media | Lectura con IA sin límite de llamadas ni de páginas (abuso de costo) — **✅ corregido** |
+| 4 | Media | Los datos extraídos (pasaporte, nacimiento, IP) no se purgan nunca de Supabase — **aceptado por el usuario** |
+| 5 | Media | El consentimiento no menciona que un proveedor externo (Anthropic) procesa las imágenes — **✅ corregido en /privacidad** |
+| 6 | Media | Cualquier usuario del Generador ve los documentos de cualquier viaje — **aceptado por el usuario** |
 | 7 | Baja | El límite por IP depende de Upstash; sin él es por instancia |
 | 8 | Baja | El segundo factor (últimos 4 del celular) lo conoce todo el equipo y quien tenga el chat — **✅ corregido** |
 | 9 | Baja | El cliente puede sobrescribir P{n} sin revisión; texto `{{…}}` llegaría al contrato |
@@ -120,6 +121,16 @@ misma vía de Sol, registrado en `agente_mensajes_enviados`) o a su correo (`lib
   solicitud temporal, permisos) y de punta a punta con WhatsApp real al contacto de prueba.
 - Probabilidad de acierto por fuerza bruta: 5 intentos sobre 1.000.000 por código, y como máximo 10 en total por enlace
   → 0,001 %.
+
+## Corrección aplicada (03-oct) — #3 y #5
+- **#3**: cada archivo se lee una sola vez (repetir la llamada devuelve lo ya leído); cupo de lecturas por enlace =
+  máx(6, documentos requeridos × 3 + 3), descontado con la función atómica `doc_sumar_lectura_ia` (migración 028, solo
+  `service_role`); sin cupo, el cliente escribe a mano. PDF solo hasta 1,5 MB para la lectura automática; 30 lecturas/hora
+  por IP. Probado: cupo 1 → segunda lectura rechazada, archivo ya leído no consume cupo, anon 42501.
+- **#5**: /privacidad tiene la sección «Documentos de viaje (pasaporte, cédula y visa)»: almacenamiento privado,
+  procesamiento por Anthropic, PBC (EE. UU.) como encargado con transmisión internacional, confirmación por el cliente,
+  borrado de fotos a 30 días del regreso y conservación de los datos confirmados. (El usuario prefirió no cambiar el
+  texto del consentimiento en el portal.)
 
 ## Lo que está bien (verificado)
 - **Bucket privado**: sin políticas en `storage.objects` para `documentos-viajeros`; listar con la llave pública

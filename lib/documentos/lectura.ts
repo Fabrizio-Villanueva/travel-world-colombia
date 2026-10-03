@@ -26,6 +26,8 @@ const MODELO = 'claude-opus-5-5'
 /** Tipos de imagen que acepta la API de visión. HEIC se convierte en el navegador. */
 const MIMES_IMAGEN = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 const MAX_BYTES_MODELO = 5 * 1024 * 1024
+/** PDF: hasta 1,5 MB (escaneo de 1-2 páginas). */
+const MAX_BYTES_PDF = 1.5 * 1024 * 1024
 
 let cliente: Anthropic | null = null
 function anthropic(): Anthropic {
@@ -161,6 +163,11 @@ export async function leerDocumento(
     return manual('La imagen es muy pesada para leerla automáticamente. Escribe los datos a mano, por favor.')
   }
   const esPdf = mime === 'application/pdf'
+  // PDF: solo los livianos (un escaneo de 1-2 páginas). Un PDF pesado puede
+  // traer decenas de páginas y cada una cuesta como una imagen (auditoría #3).
+  if (esPdf && bytes.length > MAX_BYTES_PDF) {
+    return manual('Ese PDF es muy pesado para leerlo automáticamente. Mejor toma una foto del documento, o escribe los datos a mano.')
+  }
   if (!esPdf && !MIMES_IMAGEN.has(mime)) {
     return manual('Ese formato de imagen no se puede leer automáticamente (toma la foto con la cámara o súbela en JPG).')
   }
