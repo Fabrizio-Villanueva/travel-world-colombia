@@ -373,16 +373,8 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill, docum
       </div>
 
       {carpetaActual === PASO_DOCUMENTOS ? (
-        <div className="p-5" style={card}>
-          <h2 className="mb-1 font-inter text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Documentos de los viajeros
-          </h2>
-          <p className="mb-5 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
-            El cliente sube pasaportes, cédulas o visas desde un enlace seguro; el sistema lee los datos,
-            él los confirma y quedan escritos en P1–P8. Las fotos nunca pasan por WhatsApp ni por GHL.
-          </p>
-          <DocumentosTab opportunityId={opportunityId} inicial={documentos} />
-        </div>
+        // La pestaña trae su propio layout (título, resumen y tarjetas).
+        <DocumentosTab opportunityId={opportunityId} inicial={documentos} />
       ) : (
       <div className="p-5" style={card}>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
