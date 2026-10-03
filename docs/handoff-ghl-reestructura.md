@@ -1,12 +1,31 @@
 # Traspaso — Reestructura de GHL (pipelines, campos, contratos, workflows)
 
-> Estado al 2026-10-01 (cierre de sesión). Subcuenta TWC `RMFUo0i4KOVl7eZHEn7s`.
+> Estado al 2026-10-02 (cierre de sesión; recorrido de workflows COMPLETO y limpieza de campos en cuarentena). Subcuenta TWC `RMFUo0i4KOVl7eZHEn7s`.
 > API: `https://services.leadconnectorhq.com`, header `Version: 2021-07-28`, token
 > `GHL_TWC_PIT` (.env.local). Respaldos, logs, CSVs y scripts Python de esta etapa:
 > carpeta local `.respaldos-ghl/` (excluida de git: tiene datos de clientes).
-> ⚠️ Otra sesión tiene WIP sin commitear en `app/admin/reservas/actions.ts`
-> (manejo de contactos duplicados): NO usar `git add -A`; stagear solo lo propio
-> (para ese archivo se usó `git update-index --cacheinfo` con HEAD + hunks propios).
+> ⚠️ `app/admin/reservas/actions.ts` tiene WIP sin commitear de otra sesión (contactos
+> duplicados, ver pendiente 6): NO usar `git add -A`; stagear solo lo propio.
+
+## ▶️ PENDIENTES AL CIERRE DEL 02-OCT (empezar aquí)
+**Usuario / equipo, pronto**
+1. 3 clientes escalados que esperan persona: "😀" (reserva noviembre, 01-oct), Sandra Zapata (calificada 09-sep, nunca
+   contactada), Angie (25-sep). + 8 escaladas viejas sin asesora (solo asignar).
+2. Quitar la acción que llena "Etapa del Lead" (contacto) en E-01 y/o L-01 (12 de 40 contactos nuevos aún la reciben).
+**Con fecha**
+3. ~16-oct: si nada falló, el usuario borra en GHL la carpeta de contacto "🗄️ Por eliminar" (193 campos).
+4. Con la primera salida/regreso: confirmar en "Historial de inscripciones" que V-06/V-07 disparan con "0 días".
+**Para la próxima sesión de Claude**
+5. Ver en agente_eventos la nota nueva de Sol "calificación (...): guardada en la oportunidad".
+6. `app/admin/reservas/actions.ts` (WIP de otra sesión, 01-oct 12:27): arreglo de contactos duplicados del Generador;
+   completo y compila; falta OK del usuario para publicarlo.
+**Cuando se quiera**
+7. 148 leads en Lead Nuevo sin asesora → L-03 (24 h sin calificar → asignar). El usuario los revisa primero.
+8. Datos que corrige el equipo (sección al final). 9. Borrar 6 workflows viejos en borrador.
+10. Presentación "Así trabaja tu CRM" (https://claude.ai/artifact/8mNrAwVAkurCs8B6z4BoSE): compartir desde su menú.
+11. Opcional Sol de respaldo: presentarse como Sol, copiar usted/tú de la asesora, una sola nota.
+- C-04 (contrato no queda "Completado"): DESCARTADO por ahora (decisión del usuario).
+- Idea nueva: portal seguro de documentos de viajeros → ver docs/idea-portal-documentos.md.
 
 ## Reglas acordadas
 - Solo **2 pipelines**: 🎯 Leads (venta) → 🗂️ Reservaciones (operación, hasta el regreso).
@@ -21,7 +40,7 @@
 - Pipelines viejos (PRINCIPAL, Clientes Viajando) migrados y borrados.
 - Fases 1-4 y 6: ventas duplicadas borradas; valores cargados; 5.072 datos contacto→opp;
   plantillas de contrato v2 en oportunidad; Generador mueve etapa/valor por abonos;
-  Sol escribe calificación en contacto Y oportunidad (carpeta "⭐ Calificación (Sol)").
+  Sol escribe la calificación SOLO en la oportunidad (desde 02-oct; antes en ambos).
 - Generador de Contratos (`lib/admin/reservas-automatizacion.ts`):
   - `prepararEnvioContrato`: ENVIAR CONTRATO? queda solo con la acción pedida (el wf
     "ha cambiado a" siempre dispara).
