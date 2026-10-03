@@ -1,7 +1,6 @@
 # Idea — Portal seguro de documentos de viajeros
 
-> Propuesta del 2026-10-02. Estado: **plan, sin implementar**. Pendiente de las
-> decisiones de la sección final.
+> Propuesta del 2026-10-02. Estado: **plan aprobado, sin implementar** (decisiones al final).
 
 ## Problema
 Al cerrar una venta hay que pedir pasaportes, visas o cédulas de todos los viajeros.
@@ -105,4 +104,6 @@ contacto de prueba. Resultado:
 - Viajes nacionales: **solo cédula** por ahora (→ `P{n} - Documento`).
 - Pasaporte: usa los campos que ya existen (`P{n} - Nombre y Apellido`, `P{n} - Pasaporte`,
   `P{n} - Fecha de Nacimiento`, `P{n} - Vencimiento Pasaporte`); la foto va al bucket privado.
-- Verificación extra (últimos 4 del celular): la escribe el CLIENTE al abrir el enlace — pendiente de confirmar si se activa.
+- Verificación extra: **ACTIVADA**. El CLIENTE escribe los últimos 4 dígitos del celular del contacto al abrir el
+  enlace; varios intentos fallidos bloquean el enlace un rato.
+- ✅ Plan de la Fase 1 completo: listo para implementar en una sesión nueva.
