@@ -119,7 +119,10 @@ el interior de un workflow: el usuario manda capturas.
   iguales a la opp) → cuarentena y sus 4 carpetas borradas. Total en cuarentena: 180 (respaldos *.json.gz en
   .respaldos-ghl/). Quedan carpetas: Additional Info, Calificación (Sol), Contact, 📋Datos de Facturación. ⚠️ "Etapa del Lead" la sigue
   llenando algún workflow (¿E-01/L-01?): quitar esa acción antes del borrado. ~16-oct: si nada falló, el usuario los borra en GHL.
-- 2ª ronda: campos de calificación que Sol escribe en contacto Y opp (mensaje de cotización ya pasado a opp en L-01).
+- 2ª ronda (02-oct, 7f503f3): Sol escribe la calificación SOLO en la opp (al contacto solo ia__nombre). Pendiente:
+  verificar en agente_eventos la nota nueva "calificación (...): guardada en la oportunidad"; mandar a cuarentena los
+  13 campos de la carpeta de contacto "Calificación" (si ningún workflow los lee); decidir sol_* (11, solo contacto,
+  sin equivalente en opp).
 
 ## Datos pendientes que solo puede corregir el equipo
 - Sin fecha de viaje: Diego Valencia, Cecilia Peñuela (Por Viajar), Héctor Moreno (En Viaje).
