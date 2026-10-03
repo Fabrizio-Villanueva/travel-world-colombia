@@ -306,6 +306,17 @@ export async function enviarEnlace(
   return { url, solicitud, accion }
 }
 
+/**
+ * Vuelve a disparar el aviso al cliente (C-05) SIN cambiar el enlace: para
+ * cuando el cliente no lo encontró o la asesora quiere insistir. El enlace ya
+ * está en la tarjeta ("Link de documentos"); solo se mueve el disparador.
+ */
+export async function reenviarAviso(opportunityId: string): Promise<void> {
+  const s = await solicitudDeOportunidad(opportunityId)
+  if (!s || s.estado === 'revocada') throw new Error('No hay un enlace vigente: envía uno nuevo.')
+  await dispararSolicitar(opportunityId, 'Reenviar')
+}
+
 /** Cambia requisitos/viajeros de una solicitud vigente (el portal lo refleja al instante). */
 export async function actualizarSolicitud(
   id: string,

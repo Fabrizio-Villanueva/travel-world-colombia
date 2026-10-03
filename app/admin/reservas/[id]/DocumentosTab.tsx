@@ -29,6 +29,7 @@ import {
 import { CAMPO_LABEL, CAMPOS_FECHA, CAMPOS_POR_TIPO } from '@/lib/documentos/tipos'
 import {
   actualizarRequisitosDocumentos,
+  enviarAvisoDocumentos,
   enviarEnlaceDocumentos,
   reintentarEscrituraGhl,
   revocarEnlaceDocumentos,
@@ -105,10 +106,20 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
   }
 
   function enviar() {
-    if (vigente && !confirm('Se genera un enlace NUEVO (el anterior deja de servir) y C-05 vuelve a avisarle al cliente. ¿Seguir?')) return
+    if (vigente && !confirm('Se genera un enlace NUEVO: el anterior deja de servir (los documentos ya subidos se conservan) y C-05 vuelve a avisarle al cliente. Si solo quieres recordárselo, usa "Enviar al cliente". ¿Seguir?')) return
     correr('enviar', () => enviarEnlaceDocumentos(opportunityId, { viajeros, requisitos }), d => {
       setEstado(d.estado)
       setAviso({ ok: true, texto: `Enlace ${d.accion === 'Enviar' ? 'creado' : 'regenerado'} y guardado en la tarjeta. El workflow C-05 se lo manda al cliente.` })
+    })
+  }
+
+  function avisar() {
+    correr('avisar', () => enviarAvisoDocumentos(opportunityId), d => {
+      setEstado(d)
+      setAviso({
+        ok: true,
+        texto: 'Aviso enviado: C-05 le manda el enlace al cliente por WhatsApp y correo. Si C-05 aún no está armado, copia el enlace y mándalo tú.',
+      })
     })
   }
 
@@ -260,10 +271,19 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
                 {estado.link ?? 'El enlace se guarda en la tarjeta de GHL.'}
               </span>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <BotonPrimario onClick={copiar} disabled={!estado.link} Icono={copiado ? Check : Copy}>
-                {copiado ? 'Copiado' : 'Copiar'}
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <BotonPrimario onClick={avisar} disabled={ocupado !== null} cargando={ocupado === 'avisar'} Icono={Send}>
+                Enviar al cliente
               </BotonPrimario>
+              <button
+                type="button"
+                onClick={copiar}
+                disabled={!estado.link}
+                className="inline-flex h-10 items-center gap-1.5 rounded-[10px] bg-white px-4 font-inter text-xs font-semibold transition-colors hover:bg-slate-50 disabled:opacity-50"
+                style={{ border: `1px solid ${BORDER}`, color: NAVY }}
+              >
+                {copiado ? <Check size={14} /> : <Copy size={14} />} {copiado ? 'Copiado' : 'Copiar'}
+              </button>
               <a
                 href={estado.link ?? '#'}
                 target="_blank"
@@ -280,9 +300,8 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
             style={{ borderTop: `1px solid ${BORDER}` }}
           >
             <p className="max-w-2xl font-inter text-[11px] leading-normal" style={{ color: MUTED }}>
-              El enlace también queda en la tarjeta de GHL (campo{' '}
-              <span className="font-medium" style={{ color: NAVY }}>&quot;Link de documentos&quot;</span>); el workflow
-              C-05 lo envía por WhatsApp y correo. Si C-05 aún no está armado, cópialo y mándalo tú.
+              &quot;Enviar al cliente&quot; dispara el workflow C-05 (WhatsApp y correo con este mismo enlace, que
+              también queda en la tarjeta de GHL). Si C-05 aún no está armado, cópialo y mándalo tú.
             </p>
             <div className="flex shrink-0 items-center gap-3">
               <button
@@ -293,7 +312,7 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
                 style={{ color: NAVY }}
               >
                 {ocupado === 'enviar' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                Reenviar (enlace nuevo)
+                Generar enlace nuevo
               </button>
               <span style={{ color: BORDER }}>|</span>
               <button

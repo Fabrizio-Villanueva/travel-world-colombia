@@ -9,6 +9,7 @@ import {
   contextoOportunidad,
   enviarEnlace,
   progresoDe,
+  reenviarAviso,
   reescribirEnGhl,
   revocarSolicitud,
   solicitudDeOportunidad,
@@ -121,6 +122,23 @@ export async function enviarEnlaceDocumentos(
     return { ok: true, datos: { url: r.url, accion: r.accion, estado: await cargarEstadoDocumentos(opportunityId) } }
   } catch (e) {
     console.error('enviarEnlaceDocumentos:', e)
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+/** Vuelve a avisar al cliente (dispara C-05) con el MISMO enlace. */
+export async function enviarAvisoDocumentos(opportunityId: string): Promise<Resultado<EstadoDocumentos>> {
+  try {
+    const { user } = await requireReservas()
+    await reenviarAviso(opportunityId)
+    await registrarActividad({
+      email: user.email!,
+      accion: 'enviar-enlace-documentos',
+      nombre: opportunityId,
+      detalle: { accion: 'Aviso (mismo enlace)' },
+    })
+    return { ok: true, datos: await cargarEstadoDocumentos(opportunityId) }
+  } catch (e) {
     return { ok: false, error: (e as Error).message }
   }
 }
