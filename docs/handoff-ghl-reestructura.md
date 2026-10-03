@@ -113,7 +113,7 @@ el interior de un workflow: el usuario manda capturas.
   del Viaje, Informacion de Vuelos): para devolver un campo habría que recrear su carpeta.
 - (02-oct) También a cuarentena los 7 de "Acciones del Representante" (Etapa del Lead, Cliente en Viaje, Contrato y
   Facturación, Fecha del Viaje, Fecha de Regreso, Cotización Enviada, Tipo de Compra; respaldo
-  `respaldo_acciones_representante.json.gz`) y carpeta borrada → 161 en cuarentena. ⚠️ "Etapa del Lead" la sigue
+  `respaldo_acciones_representante.json.gz`) y carpeta borrada; luego "Firma del cliente" (vacío en los 7.060) y carpeta 🧾 Contratos borrada → 162 en cuarentena. ⚠️ "Etapa del Lead" la sigue
   llenando algún workflow (¿E-01/L-01?): quitar esa acción antes del borrado. ~16-oct: si nada falló, el usuario los borra en GHL.
 - 2ª ronda: campos de calificación que Sol escribe en contacto Y opp (mensaje de cotización ya pasado a opp en L-01).
 
