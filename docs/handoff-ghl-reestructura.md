@@ -106,7 +106,9 @@ el interior de un workflow: el usuario manda capturas.
 - Código (a7f72e7): Generador ya no espeja al contacto (ESPEJO_CONTACTO_TRANSICION=false) y la mudanza ya no
   copia CPA-Fecha de Ida → ningún proceso escribe los 154.
 - Plantillas 🌎8/🌎4 ya no se usan (C-02 usa las v2 con {{opportunity.*}}); textos de workflows pasados a opp.
-- Siguiente: cuarentena 2 semanas en carpeta "🗄️ Por eliminar" → el usuario borra en GHL.
+- ✅ Cuarentena (02-oct): los 154 movidos por API a la carpeta de contacto "🗄️ Por eliminar (migrados a oportunidad)"
+  (`8QoctQg2QrsSGx5vVNwv`); datos intactos (verificado). Carpetas originales en
+  `.respaldos-ghl/carpetas_originales_campos.json` (para devolverlos). ~16-oct: si nada falló, el usuario los borra en GHL.
 - 2ª ronda: campos de calificación que Sol escribe en contacto Y opp (mensaje de cotización ya pasado a opp en L-01).
 
 ## Datos pendientes que solo puede corregir el equipo
