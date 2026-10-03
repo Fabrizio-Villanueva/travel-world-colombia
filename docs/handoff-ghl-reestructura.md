@@ -25,7 +25,7 @@
 10. Presentación "Así trabaja tu CRM" (https://claude.ai/artifact/8mNrAwVAkurCs8B6z4BoSE): compartir desde su menú.
 11. Opcional Sol de respaldo: presentarse como Sol, copiar usted/tú de la asesora, una sola nota.
 - C-04 (contrato no queda "Completado"): DESCARTADO por ahora (decisión del usuario).
-- Idea nueva: portal seguro de documentos de viajeros → ver docs/idea-portal-documentos.md.
+- Portal seguro de documentos de viajeros: **IMPLEMENTADO 03-oct** (Fases 1-3) → ver sección "Portal de documentos" abajo y docs/idea-portal-documentos.md. **Falta armar C-05 en GHL** (pasos abajo).
 
 ## Reglas acordadas
 - Solo **2 pipelines**: 🎯 Leads (venta) → 🗂️ Reservaciones (operación, hasta el regreso).
@@ -157,3 +157,39 @@ nombre de la carpeta en GHL); los CAMPOS de oportunidad no se renombran (el Gene
 - Eliza Cloting: regreso antes que la salida. 12 clientes con reservas duplicadas en Reservaciones.
 - Luz Nelly Adz: liquidación ADL Multiple con tarifa/cantidad invertidas.
 - Fechas de oportunidad se imprimen en inglés en contratos (probar `| date: "%d/%m/%Y"`).
+
+## Portal de documentos de viajeros (03-oct, implementado)
+Código: `lib/documentos/*`, `app/documentos/[token]`, pestaña Documentos del Generador, `/admin/documentos`. Migración 026 en prod.
+Campos de oportunidad nuevos (carpeta 👥 Pasajeros): `Link de documentos` (`QGhEZI6g6dcUFrDcnAsD`, TEXT),
+`Solicitar documentos` (`BKkSYqWHYFufZET1oKl7`, Enviar/Reenviar), `Documentos del cliente` (`9TEMrVYyVwNhTVmJFkFr`,
+Solicitados/Parciales/Completos) y `P1..P8 - Visa Número` / `Visa Vencimiento` (16; también en el catálogo del Generador).
+Flujo: asesora (pestaña Documentos) → "Enviar enlace" → el servidor crea el token, escribe `Link de documentos`, pone
+`Documentos del cliente = Solicitados` y cambia `Solicitar documentos` (lo vacía y escribe Enviar o Reenviar: GHL siempre ve
+un cambio) → **C-05** manda el enlace → el cliente verifica con los últimos 4 dígitos de su celular, acepta la Ley 1581 y
+sube los documentos → el sistema lee (MRZ/visión), el cliente confirma → P{n} escritos → al completar:
+`Documentos del cliente = Completos` + nota en el contacto. Fotos solo en el bucket privado; se borran 30 días tras el regreso.
+Oportunidad de prueba: `NnDUr5gyZfnGI4LWGHWl` (PRUEBA – Portal documentos, contacto Fabrizio).
+
+### C-05 · Solicitar documentos → enlace al cliente (armar en la UI de GHL; no hay API)
+Carpeta 04 Contratos. Nombre: `C-05 · Solicitar documentos → enlace al cliente`.
+1. **Disparador 1**: Opportunity custom field changed → campo `Solicitar documentos` → "has changed to" `Enviar`.
+   **Disparador 2** (mismo workflow): igual, "has changed to" `Reenviar`. Filtro opcional: Pipeline = 🗂️ Reservaciones.
+2. **Acción WhatsApp/SMS** (canal de la cuenta): texto sugerido —
+   «Hola {{contact.first_name}} 👋 Para dejar lista tu reserva a {{opportunity.destino_de_inters}} necesitamos los
+   documentos de los viajeros (pasaporte, cédula o visa, según el viaje). Súbelos aquí de forma segura 🔒
+   {{opportunity.link_de_documentos}} — el enlace es personal: te pide los últimos 4 dígitos de tu celular. Las fotos
+   quedan cifradas, solo las ve tu asesora y se borran al terminar el viaje. ¡Gracias!»
+3. **Acción Email** (asunto «Documentos para tu viaje a {{opportunity.destino_de_inters}}»), mismo texto + botón al enlace.
+4. **Nota interna** (opcional): «Enlace de documentos enviado».
+Probar con la oportunidad de prueba: en el Generador → pestaña Documentos → "Reenviar (enlace nuevo)" y revisar que
+llegue el WhatsApp al contacto de prueba.
+
+### C-06 (opcional) · Documentos completos → tarea a la asesora
+Disparador: Opportunity custom field changed → `Documentos del cliente` → "has changed to" `Completos` → Assign/Task
+«Revisar documentos de viajeros» al usuario asignado (+ notificación interna). El sistema ya deja además una nota en el
+contacto con el enlace al panel.
+
+### Pendientes del portal
+- Revisar la semilla de reglas de visa (/admin/documentos/visas): 33 países, criterio "colombiano con pasaporte ordinario".
+- Opcional: en V-03/V-04 agregar rama «si `Documentos del cliente` ≠ Completos → recordar el enlace».
+- La oportunidad de prueba tiene el enlace apuntando a localhost (se generó en local); al probar C-05 usar "Reenviar".

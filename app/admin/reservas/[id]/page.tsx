@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { getAdminSession } from '@/lib/admin/guard'
 import { cargarReserva } from '../actions'
+import { cargarEstadoDocumentos } from './documentos-actions'
 import { Wizard } from './Wizard'
 
 export const metadata: Metadata = { title: 'Generador de Contratos · Panel' }
@@ -15,7 +16,7 @@ export default async function ReservaPage({ params }: { params: Promise<{ id: st
   if (session.rol === 'lector') redirect('/admin')
 
   const { id } = await params
-  const reserva = await cargarReserva(id)
+  const [reserva, documentos] = await Promise.all([cargarReserva(id), cargarEstadoDocumentos(id)])
 
   return (
     <div>
@@ -51,6 +52,7 @@ export default async function ReservaPage({ params }: { params: Promise<{ id: st
         campos={reserva.campos}
         valoresIniciales={reserva.valores}
         prefill={reserva.prefill}
+        documentos={documentos}
       />
     </div>
   )

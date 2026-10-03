@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Plane, Star, HelpCircle, Users, Activity, Globe, LogOut, Menu, X,
-  ClipboardList, Tags, Megaphone, Type,
+  ClipboardList, Tags, Megaphone, Type, FileCheck,
 } from 'lucide-react'
 import { signOut } from '../actions'
 import type { Role } from '@/lib/admin/allowlist'
@@ -17,6 +17,7 @@ const NAV = [
   { href: '/admin/categorias',  label: 'Categorías',   Icon: Tags },
   { href: '/admin/anuncios',    label: 'Anuncios',     Icon: Megaphone },
   { href: '/admin/reservas',    label: 'Generador de Contratos', Icon: ClipboardList },
+  { href: '/admin/documentos',  label: 'Documentos de viajeros', Icon: FileCheck },
   { href: '/admin/resenas',     label: 'Reseñas',      Icon: Star },
   { href: '/admin/faqs',        label: 'Preguntas',    Icon: HelpCircle },
   { href: '/admin/textos',      label: 'Textos del sitio', Icon: Type },

@@ -1,6 +1,7 @@
 # Idea — Portal seguro de documentos de viajeros
 
-> Propuesta del 2026-10-02. Estado: **plan aprobado, sin implementar** (decisiones al final).
+> Propuesta del 2026-10-02. Estado: **IMPLEMENTADO (Fases 1, 2 y 3) el 2026-10-03** — ver "Estado de implementación" al final.
+> Falta armar en GHL el workflow C-05 (instrucciones en docs/handoff-ghl-reestructura.md).
 
 ## Problema
 Al cerrar una venta hay que pedir pasaportes, visas o cédulas de todos los viajeros.
@@ -107,3 +108,27 @@ contacto de prueba. Resultado:
 - Verificación extra: **ACTIVADA**. El CLIENTE escribe los últimos 4 dígitos del celular del contacto al abrir el
   enlace; varios intentos fallidos bloquean el enlace un rato.
 - ✅ Plan de la Fase 1 completo: listo para implementar en una sesión nueva.
+
+## Estado de implementación (2026-10-03)
+
+**Hecho y publicado** (migración 026 ✓ en prod; 19 campos de oportunidad creados en GHL, carpeta 👥 Pasajeros):
+
+| Pieza | Dónde |
+|---|---|
+| Bucket privado `documentos-viajeros` (10 MB, imágenes/PDF, sin políticas: solo service-role) | migración 026 |
+| Tablas `doc_solicitudes` (token hasheado, requisitos, viajeros, consentimiento, bloqueo), `doc_archivos`, `doc_reglas_visa` | migración 026 |
+| Página pública `/documentos/<token>`: verificación por últimos 4 dígitos del celular (5 fallos → 30 min de bloqueo; rate limit por IP), cookie de acceso firmada (12 h), consentimiento Ley 1581 (fecha/IP/navegador), una tarjeta por viajero, subida directa al bucket con URL firmada, lectura automática, confirmación y progreso | `app/documentos/`, `lib/documentos/` |
+| Lectura: MRZ determinística (TD3 pasaporte y MRV-A visa, dígitos de control ICAO 9303) + visión Claude (`claude-opus-5-5`, salida JSON) para cédula/TI y respaldo | `lib/documentos/mrz.ts`, `lib/documentos/lectura.ts` |
+| Escritura en P{n}: Nombre y Apellido, Documento, Pasaporte, Fecha de Nacimiento, Vencimiento Pasaporte, Visa Número, Visa Vencimiento (campos resueltos por nombre) | `lib/documentos/ghl-pasajeros.ts` |
+| Estado en GHL: `Documentos del cliente` (Solicitados/Parciales/Completos) + nota en el contacto al completar | `lib/documentos/solicitudes.ts` |
+| Generador de Contratos → pestaña **Documentos**: requisitos sugeridos por destino, viajeros, "Enviar enlace" (escribe `Link de documentos` y dispara `Solicitar documentos` = Enviar/Reenviar para C-05), reenviar (token nuevo), desactivar, ver documentos con URL firmada de 5 min (audit log `ver-documento`), reintentar escritura en GHL | `app/admin/reservas/[id]/DocumentosTab.tsx` |
+| Panel `/admin/documentos` (lista de enlaces y progreso) y `/admin/documentos/visas` (reglas de visa por país, editables; semilla de 33 países) | `app/admin/documentos/` |
+| Aviso de pasaporte que vence antes de 6 meses tras el regreso (y visa vencida antes del regreso) | `calcularAvisos` |
+| Cron diario `/api/documentos/purga` (09:00 UTC): borra las fotos 30 días después del regreso (180 días desde la creación si no hay regreso) | `vercel.json`, `lib/documentos/purga.ts` |
+
+**Probado el 03-oct** con la oportunidad de prueba `NnDUr5gyZfnGI4LWGHWl` (contacto Fabrizio): enlace → verificación (dígitos malos y buenos) → consentimiento → pasaporte (MRZ válida, alta), cédula (visión, alta) y visa (MRZ, alta) sintéticos → P1 escrito en GHL → `Documentos del cliente = Completos` → nota en el contacto. Parser MRZ probado con líneas recortadas, espacios, O/0 y controles dañados.
+
+**Pendiente**
+- Armar en GHL el workflow **C-05** (no se puede por API): disparador = campo de oportunidad `Solicitar documentos` cambia a Enviar o Reenviar → WhatsApp + correo con `{{opportunity.link_de_documentos}}`; y un aviso interno/tarea cuando `Documentos del cliente` cambie a Completos. Pasos exactos en el traspaso.
+- Revisar la semilla de reglas de visa en `/admin/documentos/visas` (el equipo las conoce mejor que nadie).
+- Opcional: recordatorio de documentos faltantes en V-03/V-04 (condición `Documentos del cliente` ≠ Completos).

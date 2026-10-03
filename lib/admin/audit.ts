@@ -15,6 +15,11 @@ export type AccionAudit =
   | 'cambiar-rol'
   | 'cambiar-nombre-usuario'
   | 'guardar-reserva'
+  // Portal de documentos de viajeros (datos sensibles: cada vista queda registrada).
+  | 'enviar-enlace-documentos'
+  | 'revocar-enlace-documentos'
+  | 'ver-documento'
+  | 'editar-regla-visa'
 
 interface RegistroActividad {
   email: string

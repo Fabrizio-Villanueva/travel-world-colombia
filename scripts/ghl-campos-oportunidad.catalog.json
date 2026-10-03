@@ -1028,5 +1028,101 @@
    "Pendiente",
    "Completado"
   ]
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P1 - Visa Número",
+  "dataType": "TEXT",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P1 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P2 - Visa Número",
+  "dataType": "TEXT",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P2 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P3 - Visa Número",
+  "dataType": "TEXT",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P3 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P4 - Visa Número",
+  "dataType": "TEXT",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P4 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P5 - Visa Número",
+  "dataType": "TEXT",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P5 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P6 - Visa Número",
+  "dataType": "TEXT",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P6 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P7 - Visa Número",
+  "dataType": "TEXT",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P7 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P8 - Visa Número",
+  "dataType": "TEXT",
+  "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P8 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "portal de documentos (visa), creado 2026-10-03"
  }
 ]

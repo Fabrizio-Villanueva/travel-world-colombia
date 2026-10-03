@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react'
 import { Loader2, Check, ChevronLeft, ChevronRight, CreditCard, FileText, Eye } from 'lucide-react'
 import type { CampoReserva, ValorCampo } from '@/lib/admin/reservas'
 import { guardarReserva } from '../actions'
+import { DocumentosTab } from './DocumentosTab'
+import type { EstadoDocumentos } from './documentos-actions'
 
 /**
  * Wizard de reserva: un paso por carpeta del catálogo. Los campos numerados
@@ -17,7 +19,12 @@ interface Props {
   campos: CampoReserva[]
   valoresIniciales: Record<string, ValorCampo>
   prefill: Record<string, ValorCampo>
+  /** Estado del portal de documentos de viajeros (pestaña "Documentos"). */
+  documentos: EstadoDocumentos
 }
+
+/** Pestaña virtual (no es carpeta del catálogo): el portal seguro de documentos. */
+const PASO_DOCUMENTOS = 'Documentos'
 
 /** Prefijo de grupo: "P3 - Nombre" → "P3" · "Pago 2 - Fecha" → "Pago 2". */
 function prefijoDe(nombre: string): string | null {
@@ -53,7 +60,7 @@ const etiquetaPaso = (p: string) => ETIQUETA_PASO[p] ?? p
  * salta a ellos. Operaciones (envío de documentos) es de quien opera la
  * reserva, no parte del flujo de la asesora, que termina en Enviar Contrato.
  */
-const PASOS_APARTE = new Set(['Operaciones'])
+const PASOS_APARTE = new Set(['Operaciones', PASO_DOCUMENTOS])
 
 /* ------------------------------------------------------------------ */
 /* Autosumas: la aritmética del contrato se calcula sola.              */
@@ -150,10 +157,13 @@ const card: React.CSSProperties = {
   borderRadius: 12,
 }
 
-export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Props) {
+export function Wizard({ opportunityId, campos, valoresIniciales, prefill, documentos }: Props) {
   const pasos = useMemo(() => {
     const vistos: string[] = []
     for (const c of campos) if (!vistos.includes(c.folder)) vistos.push(c.folder)
+    // La pestaña Documentos va al final, aparte (como Operaciones): es el
+    // portal seguro de documentos de viajeros, no campos del contrato.
+    vistos.push(PASO_DOCUMENTOS)
     return vistos
   }, [campos])
 
@@ -362,6 +372,18 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
         })}
       </div>
 
+      {carpetaActual === PASO_DOCUMENTOS ? (
+        <div className="p-5" style={card}>
+          <h2 className="mb-1 font-inter text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Documentos de los viajeros
+          </h2>
+          <p className="mb-5 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
+            El cliente sube pasaportes, cédulas o visas desde un enlace seguro; el sistema lee los datos,
+            él los confirma y quedan escritos en P1–P8. Las fotos nunca pasan por WhatsApp ni por GHL.
+          </p>
+          <DocumentosTab opportunityId={opportunityId} inicial={documentos} />
+        </div>
+      ) : (
       <div className="p-5" style={card}>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-inter text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -500,6 +522,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
           )}
         </div>
       </div>
+      )}
 
       {/* Guía de 3 pasos al marcar "Preview Documento": dónde ver el borrador en GHL. */}
       {previewMarcado && <GuiaPreviewContrato />}
