@@ -84,36 +84,14 @@ export const CAMPOS_RESERVA = {
 export const PIPELINES_POSTVENTA = [PIPELINE_RESERVACIONES.id] as const
 
 /**
- * Campos de calificación que YA existen en la subcuenta (folder ⭐
- * `AmOICbYAU4SyDMfuDNCL`). Se reusan a propósito — los workflows y las
- * asesoras dependen de ellos — aunque tengan typos de origen (`fecha_de_vije`).
- */
-export const CAMPOS_CALIFICACION = {
-  destino: 'NXvGm4sqiOhcqu7frkz1', // contact.destino_principal (LARGE_TEXT)
-  fechas: 'BZk9ykccXGa8Sm2BHgFh', // contact.fecha_de_vije (TEXT)
-  ciudadSalida: 'HMOk7JJUomhEQ6TBlwzx', // contact.ciudad_de_salida (TEXT)
-  adultos: 'qtGK9F59HWK2u7Mqsyp1', // contact.cantidad_de_adultos (NUMERICAL)
-  ninos: '1WNgkrRxbGKKXEsZYs5n', // contact.cantidad_de_nios (NUMERICAL)
-  edadesNinos: 'q9pQKxDIUG9CuIKiQSpR', // contact.edades_de_los_nios (TEXT)
-  presupuesto: 'yd3GW4sXa8tiY8aCUpvq', // contact.presupuesto_estimado (MONETORY)
-  // Ampliación 2026-08-05: los 6 campos del folder ⭐ que Sol no llenaba.
-  duracion: '1wTz5oZRnHLo09EctUUK', // contact.duracin_del_viaje (TEXT)
-  habitaciones: 'f7ghGzey7b9kzpLzkSwX', // contact.habitaciones (TEXT)
-  nivelUrgencia: 'QBEH9FEY3GVI176JtwA4', // contact.nivel_de_urgencia (TEXT) — derivado de la temperatura
-  viajePersonalizado: 'TLYWLxgscWHRy4zwT5pG', // contact.viaje_personalizado (SINGLE yes/no)
-  fuenteLead: 'n0Tqq31LOxsaeHgI2vCQ', // contact.fuente_de_lead (TEXT) — solo si el cliente lo dice
-  mensajeCotizacion: '9VrVWrHxICznEh1e3f81', // contact.mensaje_de_cotizacion (LARGE_TEXT) — el brief para la asesora
-} as const
-
-/**
- * Los mismos datos de calificación, en la OPORTUNIDAD de Leads (Fase 6 de la
- * migración, 2026-10-01): regla "contacto = la persona, oportunidad = el
+ * Calificación que Sol escribe, en la OPORTUNIDAD de Leads (carpeta
+ * "⭐ Calificación (Sol)"): regla "contacto = la persona, oportunidad = el
  * viaje" — un cliente que vuelve a cotizar no pisa la calificación del viaje
- * anterior. Carpeta de oportunidad "⭐ Calificación (Sol)"; destino, presupuesto
- * y habitaciones reusan campos que ya existían (los imprime el contrato).
- * Mientras los workflows viejos lean el contacto, Sol escribe en los dos.
+ * anterior. Destino, presupuesto y habitaciones reusan campos que ya existían
+ * (los imprime el contrato). Hasta 2026-10-02 Sol escribía también los campos
+ * viejos del contacto (carpeta "Calificación", hoy en cuarentena).
  */
-export const CAMPOS_CALIFICACION_OPP: Record<keyof typeof CAMPOS_CALIFICACION, string> = {
+export const CAMPOS_CALIFICACION_OPP = {
   destino: '9x1Ui70nMDNBivYkPn8A', // opportunity.destino_de_inters (TEXT)
   fechas: 'bIWAbcbJpqlwI25CuR14', // opportunity.fechas_tentativas_de_viaje (TEXT)
   ciudadSalida: '4ms8gl4tchRFinJfyHb2', // opportunity.ciudad_de_salida (TEXT)
@@ -127,7 +105,7 @@ export const CAMPOS_CALIFICACION_OPP: Record<keyof typeof CAMPOS_CALIFICACION, s
   viajePersonalizado: 'LX3zNlP7xnkDderdvK4U', // opportunity.viaje_personalizado (Sí/No)
   fuenteLead: 'YYZ5nzaNLlceZJnkV8Ar', // opportunity.fuente_del_lead (TEXT)
   mensajeCotizacion: 'ZShI58MDGvpT3bh1mLLv', // opportunity.mensaje_de_cotizacion (LARGE_TEXT)
-}
+} as const
 
 /**
  * "IA - NOMBRE" (folder IA `a3uTifBfuZDOYpqDRYzj`): el nombre REAL que el cliente

@@ -11,7 +11,6 @@ import {
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   CAMPO_IA_NOMBRE,
-  CAMPOS_CALIFICACION,
   CAMPOS_CALIFICACION_OPP,
   HORARIO,
   MAX_INTENTOS_SEGUIMIENTO,
@@ -26,8 +25,8 @@ import type { Decision } from '@/lib/agente/claude'
  * Cada turno del modelo ya devuelve `datos` y `resumen` estructurados; aquí se
  * escriben en GoHighLevel para que las asesoras y los workflows los vean:
  *
- * 1. La calificación va a los campos EXISTENTES del folder ⭐ de la cuenta
- *    (reusar, no duplicar: los workflows dependen de ellos).
+ * 1. La calificación va a la tarjeta abierta de Leads (carpeta de oportunidad
+ *    "⭐ Calificación (Sol)"); al contacto solo va el nombre real (ia__nombre).
  * 2. Al escalar queda una nota interna con el briefing para la asesora.
  * 3. Con destino + fechas + pasajeros, la oportunidad sube de "Lead Nuevo" a
  *    "Calificado por Bot" — nunca al revés, y solo desde Lead Nuevo: cualquier
@@ -87,17 +86,17 @@ function estaCalificado(d: Decision['datos']): boolean {
 async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
   const { contactId, decision } = e
   const d = decision.datos
+  // Contacto = la persona: de Sol solo recibe el nombre real (ia__nombre).
   const campos: { id: string; field_value: string | number }[] = []
-  // Lo mismo, para la oportunidad de Leads (Fase 6). Algunos cambian de forma:
-  // el presupuesto es texto en la oportunidad y "personalizado" es Sí/No.
+  // Oportunidad = el viaje: TODA la calificación va aquí (desde 2026-10-02 ya no
+  // se copia a los campos viejos del contacto, que quedaron en cuarentena).
   const camposOpp: { id: string; field_value: string | number }[] = []
   const escritos: string[] = []
 
-  const calif = (clave: keyof typeof CAMPOS_CALIFICACION, valor: string | number, valorOpp = valor) => {
-    campos.push({ id: CAMPOS_CALIFICACION[clave], field_value: valor })
-    camposOpp.push({ id: CAMPOS_CALIFICACION_OPP[clave], field_value: valorOpp })
+  const calif = (clave: keyof typeof CAMPOS_CALIFICACION_OPP, valor: string | number) => {
+    camposOpp.push({ id: CAMPOS_CALIFICACION_OPP[clave], field_value: valor })
   }
-  const texto = (clave: keyof typeof CAMPOS_CALIFICACION, nombre: string, valor?: string) => {
+  const texto = (clave: keyof typeof CAMPOS_CALIFICACION_OPP, nombre: string, valor?: string) => {
     if (valor?.trim()) {
       calif(clave, valor.trim())
       escritos.push(nombre)
@@ -130,16 +129,8 @@ async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
     escritos.push('niños')
   }
 
-  if (d.presupuesto?.trim()) {
-    const monto = presupuestoANumero(d.presupuesto)
-    // El campo de contacto es MONETORY: si la cifra no es clara ("algo
-    // económico"), mejor no escribir que escribir basura. El de oportunidad es
-    // texto y guarda lo que dijo el cliente, tal cual.
-    if (monto !== null) {
-      calif('presupuesto', monto, d.presupuesto.trim())
-      escritos.push('presupuesto')
-    }
-  }
+  // El de oportunidad es texto: guarda lo que dijo el cliente, tal cual.
+  texto('presupuesto', 'presupuesto', d.presupuesto)
 
   // Nivel de urgencia: intención (temperatura) + qué tan pronto viaja. No se le
   // pregunta al cliente; se deriva de lo que Sol ya razonó.
@@ -152,7 +143,7 @@ async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
   // Viaje a la medida: solo se marca cuando el modelo lo detecta; un plan
   // estándar del catálogo no toca el campo (para no pisar lo que ponga una asesora).
   if (decision.viaje_personalizado === true) {
-    calif('viajePersonalizado', 'yes', 'Sí')
+    calif('viajePersonalizado', 'Sí')
     escritos.push('personalizado')
   }
 
@@ -164,9 +155,9 @@ async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
     escritos.push('brief cotización')
   }
 
+  if (campos.length === 0 && camposOpp.length === 0) return null
   // IA - NOMBRE es de la persona: solo contacto.
-  if (campos.length === 0) return null
-  await actualizarCampos(contactId, campos)
+  if (campos.length > 0) await actualizarCampos(contactId, campos)
   // La tarjeta nace con el nombre del perfil de WhatsApp ("User", apodos,
   // emojis): con el nombre real confirmado, también se renombra.
   const nombreNuevo = escritos.includes('nombre') ? nombre : undefined
@@ -174,7 +165,7 @@ async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
     camposOpp.length > 0 || nombreNuevo
       ? await calificarOportunidad(contactId, camposOpp, nombreNuevo)
       : null
-  return `calificación guardada (${escritos.join(', ')})${enOpp ? `; ${enOpp}` : ''}`
+  return `calificación (${escritos.join(', ')})${enOpp ? `: ${enOpp}` : ''}`
 }
 
 /**
@@ -189,13 +180,13 @@ async function calificarOportunidad(
 ): Promise<string> {
   const oportunidades = await oportunidadesDe(contactId)
   const abierta = oportunidades.find(o => o.pipelineId === PIPELINE.id && o.status === 'open')
-  if (!abierta) return 'sin oportunidad abierta en Leads (calificación solo en el contacto)'
+  if (!abierta) return 'NO guardada: el contacto no tiene tarjeta abierta en Leads'
   if ((PIPELINE.etapasVedadas as readonly string[]).includes(abierta.pipelineStageId ?? '')) {
-    return 'oportunidad en territorio humano (calificación solo en el contacto)'
+    return 'NO guardada: la tarjeta ya está en territorio humano (mandan los datos de la asesora)'
   }
   if (campos.length > 0) await actualizarCamposOportunidad(abierta.id, campos)
   if (nombre) await renombrarOportunidad(abierta.id, nombre)
-  return nombre ? 'también en la oportunidad (y renombrada)' : 'también en la oportunidad'
+  return nombre ? 'guardada en la oportunidad (y renombrada)' : 'guardada en la oportunidad'
 }
 
 /**
@@ -298,20 +289,6 @@ function lineaTermometro(decision: Decision): string | null {
   ]
     .filter(Boolean)
     .join(' · ')
-}
-
-/** "5 millones", "$4.500.000", "2500 USD", "2k" → número para el campo MONETORY. */
-function presupuestoANumero(texto: string): number | null {
-  const sinSeparadorDeMiles = texto.replace(/[.,](?=\d{3}(\D|$))/g, '')
-  const m = sinSeparadorDeMiles.match(/(\d+(?:[.,]\d+)?)/)
-  if (!m) return null
-
-  let n = parseFloat(m[1].replace(',', '.'))
-  if (!Number.isFinite(n) || n <= 0) return null
-
-  if (/mill/i.test(texto)) n *= 1_000_000
-  else if (/\d\s*k\b/i.test(texto)) n *= 1_000
-  return Math.round(n)
 }
 
 /**
