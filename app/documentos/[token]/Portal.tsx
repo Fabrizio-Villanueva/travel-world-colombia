@@ -315,6 +315,7 @@ function Casilla({
     setError(null)
     setFase('subiendo')
     setProgreso(10)
+    const inicio = Date.now()
     try {
       const listo = await prepararArchivo(file)
       setProgreso(30)
@@ -329,6 +330,8 @@ function Casilla({
       setFase('leyendo')
       const lectura = await procesar(token, prep.datos.archivoId)
       if (!lectura.ok) throw new Error(lectura.error)
+      // La pantalla de análisis se queda al menos 2 s: sin parpadeos.
+      await new Promise(r => setTimeout(r, Math.max(0, 2000 - (Date.now() - inicio))))
       onCambio(lectura.datos)
       setForm(lectura.datos.datos_extraidos ?? {})
       setFase('confirmar')
@@ -406,6 +409,8 @@ function Casilla({
       </div>
 
       <input ref={inputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={elegir} />
+
+      {(fase === 'subiendo' || fase === 'leyendo') && <PantallaAnalisis fase={fase} tipo={tipo} />}
 
       {fase === 'vacio' && (
         <div className="mt-4">
@@ -498,7 +503,7 @@ function Casilla({
                     <div key={c} className="min-w-0">
                       <dt className="font-inter text-[10px] uppercase tracking-wide" style={{ color: MUTED }}>{CAMPO_LABEL[c]}</dt>
                       <dd
-                        className={`truncate font-inter text-[13px] font-semibold tabular-nums ${c === 'numero' || c === 'documento_identidad' ? 'font-mono font-medium' : ''}`}
+                        className={`break-words font-inter text-[13px] font-semibold leading-snug tabular-nums ${c === 'numero' || c === 'documento_identidad' ? 'font-mono font-medium' : ''}`}
                         style={{ color: NAVY }}
                       >
                         {CAMPOS_FECHA.includes(c) ? fmtFecha(archivo?.datos_confirmados?.[c]) : archivo?.datos_confirmados?.[c]}
@@ -575,3 +580,72 @@ function CampoForm({
     </label>
   )
 }
+
+/* ------------------------------------------------------------------ */
+/* Pantalla completa mientras se sube y se analiza el documento        */
+/* ------------------------------------------------------------------ */
+
+function PantallaAnalisis({ fase, tipo }: { fase: 'subiendo' | 'leyendo'; tipo: TipoDocumento }) {
+  const pasos = [
+    { t: 'Cifrado', listo: true },
+    { t: 'Subido al canal seguro', listo: fase === 'leyendo' },
+    { t: 'Leyendo los datos', listo: false, activo: fase === 'leyendo' },
+  ]
+  return (
+    <div className="analisis-twc" role="status" aria-live="polite">
+      <div className="analisis-glow" />
+      <div className="analisis-doc" aria-hidden>
+        <span className="analisis-linea" />
+        <span className="analisis-linea" style={{ width: '40%' }} />
+        <span className="analisis-linea" style={{ width: '70%' }} />
+        <span className="analisis-linea" style={{ width: '55%' }} />
+        <span className="analisis-mrz" />
+        <span className="analisis-scan" />
+        <span className="analisis-candado">
+          <ShieldCheck size={18} strokeWidth={2} />
+        </span>
+      </div>
+      <p className="analisis-titulo">{fase === 'subiendo' ? 'Subiendo de forma cifrada…' : 'Analizando tu documento…'}</p>
+      <p className="analisis-sub">
+        {fase === 'subiendo'
+          ? `Tu ${TIPO_LABEL[tipo].toLowerCase()} viaja cifrado hasta el servidor de la agencia.`
+          : 'El sistema lee los datos automáticamente. En un momento los confirmas.'}
+      </p>
+      <ul className="analisis-pasos">
+        {pasos.map(p => (
+          <li key={p.t} className={p.listo ? 'listo' : p.activo ? 'activo' : ''}>
+            <span className="punto">{p.listo ? <Check size={11} strokeWidth={3} /> : null}</span>
+            {p.t}
+          </li>
+        ))}
+      </ul>
+      <p className="analisis-pie">No cierres esta pantalla</p>
+      <style>{CSS_ANALISIS}</style>
+    </div>
+  )
+}
+
+const CSS_ANALISIS = `
+.analisis-twc{position:fixed;inset:0;z-index:55;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;color:#fff;
+  background:radial-gradient(120% 80% at 50% 0%,#15305d 0%,#0d1e3c 55%,#081226 100%);animation:analisis-aparece .35s ease both}
+.analisis-glow{position:absolute;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,rgba(255,204,41,.18) 0%,rgba(255,204,41,0) 65%);filter:blur(10px)}
+.analisis-doc{position:relative;width:168px;height:220px;border-radius:18px;background:#fff;box-shadow:0 24px 60px rgba(0,0,0,.4);padding:26px 20px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.analisis-linea{display:block;height:9px;width:85%;border-radius:6px;background:#E2E8F0}
+.analisis-mrz{display:block;margin-top:auto;height:22px;border-radius:6px;background:repeating-linear-gradient(90deg,#CBD5E1 0 6px,transparent 6px 10px)}
+.analisis-scan{position:absolute;left:0;right:0;top:0;height:3px;background:#FFCC29;box-shadow:0 0 18px 4px rgba(255,204,41,.55);animation:analisis-scan 1.9s ease-in-out infinite}
+.analisis-candado{position:absolute;right:-8px;bottom:-8px;width:44px;height:44px;border-radius:50%;background:#2957A4;color:#fff;display:flex;align-items:center;justify-content:center;border:3px solid #0d1e3c}
+.analisis-titulo{margin-top:30px;font-family:var(--font-plus-jakarta),sans-serif;font-weight:800;font-size:21px;letter-spacing:-.01em}
+.analisis-sub{margin-top:6px;max-width:300px;font-family:var(--font-inter),sans-serif;font-size:13px;line-height:1.5;color:rgba(255,255,255,.72)}
+.analisis-pasos{margin-top:22px;display:flex;flex-direction:column;gap:9px;list-style:none;padding:0;font-family:var(--font-inter),sans-serif;font-size:13px;color:rgba(255,255,255,.55);text-align:left}
+.analisis-pasos li{display:flex;align-items:center;gap:10px;transition:color .3s}
+.analisis-pasos li.listo{color:#fff}
+.analisis-pasos li.activo{color:#FFCC29}
+.analisis-pasos .punto{width:18px;height:18px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.analisis-pasos li.listo .punto{background:#10B981;border-color:#10B981;color:#fff}
+.analisis-pasos li.activo .punto{border-color:#FFCC29;animation:analisis-pulso 1.1s ease-in-out infinite}
+.analisis-pie{position:absolute;bottom:28px;font-family:var(--font-inter),sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4)}
+@keyframes analisis-scan{0%{top:6px}50%{top:calc(100% - 9px)}100%{top:6px}}
+@keyframes analisis-pulso{0%,100%{box-shadow:0 0 0 0 rgba(255,204,41,.5)}50%{box-shadow:0 0 0 6px rgba(255,204,41,0)}}
+@keyframes analisis-aparece{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.analisis-scan,.analisis-pasos li.activo .punto{animation:none}}
+`
