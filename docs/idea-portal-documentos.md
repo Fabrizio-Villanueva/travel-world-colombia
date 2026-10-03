@@ -86,8 +86,20 @@ documento, el cliente los confirma y quedan escritos en la tarjeta.
 | 2 | Lectura MRZ + visión + confirmación + escritura en P1–P8 | Nadie transcribe a mano |
 | 3 | Reglas de visa por país, recordatorios de faltantes, alertas de vencimiento, borrado automático | Control y cumplimiento |
 
+## Prueba: ¿guardar los archivos en campos de archivo de GHL? (02-oct)
+Se subió una imagen falsa por API (`POST /forms/upload-custom-files`) a un campo FILE_UPLOAD del
+contacto de prueba. Resultado:
+- GHL guarda un enlace permanente `backend.leadconnectorhq.com/contacts/file/download?id=…` que
+  **descarga el archivo SIN iniciar sesión** (redirige a Google Storage con firma de 10 min, pero el
+  enlace de GHL genera una firma nueva cada vez).
+- Al **vaciar el campo**, el enlace viejo **sigue descargando** el archivo: no se puede revocar ni
+  borrar el archivo desde la API.
+- Conclusión: para pasaportes NO se usan los campos de archivo de GHL. Archivos en bucket privado
+  propio (con borrado real); en GHL solo los datos extraídos + un enlace al panel (que pide sesión).
+- La imagen de prueba (171 bytes, gris, sin datos) quedó huérfana en el almacenamiento de GHL.
+
 ## Decisiones pendientes del usuario
-- ¿Dónde guardar los archivos? (recomendado: Supabase privado, no GHL).
+- ~~¿Dónde guardar los archivos?~~ → bucket privado propio (ver la prueba de arriba).
 - ¿Cuántos días guardarlos después del regreso? (p. ej. 30).
 - ¿Pedir verificación extra al abrir el enlace (últimos 4 del celular)?
 - ¿Visas: 2 campos nuevos por viajero o un texto resumen?
