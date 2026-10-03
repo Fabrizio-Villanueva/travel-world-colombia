@@ -60,3 +60,8 @@ export function accesoFirmadoValido(valor: string | undefined, solicitudId: stri
   const b = Buffer.from(esperado)
   return a.length === b.length && timingSafeEqual(a, b)
 }
+
+/** Huella del código de acceso (solo esto se guarda), ligada a la solicitud. */
+export function hashCodigo(solicitudId: string, codigo: string): string {
+  return createHmac('sha256', claveFirma()).update(`otp:${solicitudId}:${codigo}`).digest('hex')
+}

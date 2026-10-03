@@ -105,7 +105,7 @@ contacto de prueba. Resultado:
 - Viajes nacionales: **solo cédula** por ahora (→ `P{n} - Documento`).
 - Pasaporte: usa los campos que ya existen (`P{n} - Nombre y Apellido`, `P{n} - Pasaporte`,
   `P{n} - Fecha de Nacimiento`, `P{n} - Vencimiento Pasaporte`); la foto va al bucket privado.
-- Verificación extra: **ACTIVADA**. El CLIENTE escribe los últimos 4 dígitos del celular del contacto al abrir el
+- Verificación extra: **ACTIVADA** (03-oct reemplazada por código de 6 dígitos por WhatsApp/correo; la idea original era: el CLIENTE escribe los últimos 4 dígitos del celular del contacto al abrir el
   enlace; varios intentos fallidos bloquean el enlace un rato.
 - ✅ Plan de la Fase 1 completo: listo para implementar en una sesión nueva.
 
@@ -117,7 +117,7 @@ contacto de prueba. Resultado:
 |---|---|
 | Bucket privado `documentos-viajeros` (10 MB, imágenes/PDF, sin políticas: solo service-role) | migración 026 |
 | Tablas `doc_solicitudes` (token hasheado, requisitos, viajeros, consentimiento, bloqueo), `doc_archivos`, `doc_reglas_visa` | migración 026 |
-| Página pública `/documentos/<token>`: verificación por últimos 4 dígitos del celular (5 fallos → 30 min de bloqueo; rate limit por IP), cookie de acceso firmada (12 h), consentimiento Ley 1581 (fecha/IP/navegador), una tarjeta por viajero, subida directa al bucket con URL firmada, lectura automática, confirmación y progreso | `app/documentos/`, `lib/documentos/` |
+| Página pública `/documentos/<token>`: acceso con **código de 6 dígitos por WhatsApp o correo** (desde 03-oct, migración 027; antes últimos 4 dígitos del celular), tope de 10 fallos por enlace, cookie de acceso firmada (12 h), consentimiento Ley 1581 (fecha/IP/navegador), una tarjeta por viajero, subida directa al bucket con URL firmada, lectura automática, confirmación y progreso | `app/documentos/`, `lib/documentos/` |
 | Lectura: MRZ determinística (TD3 pasaporte y MRV-A visa, dígitos de control ICAO 9303) + visión Claude (`claude-opus-5-5`, salida JSON) para cédula/TI y respaldo | `lib/documentos/mrz.ts`, `lib/documentos/lectura.ts` |
 | Escritura en P{n}: Nombre y Apellido, Documento, Pasaporte, Fecha de Nacimiento, Vencimiento Pasaporte, Visa Número, Visa Vencimiento (campos resueltos por nombre) | `lib/documentos/ghl-pasajeros.ts` |
 | Estado en GHL: `Documentos del cliente` (Solicitados/Parciales/Completos) + nota en el contacto al completar | `lib/documentos/solicitudes.ts` |

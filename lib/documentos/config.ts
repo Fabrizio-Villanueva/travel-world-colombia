@@ -61,9 +61,16 @@ export const DIAS_RETENCION_TRAS_REGRESO = 30
 /** Sin fecha de regreso conocida: tope de seguridad desde la creación. */
 export const DIAS_RETENCION_SIN_REGRESO = 180
 
-/** Verificación por los últimos 4 dígitos del celular. */
-export const MAX_INTENTOS_VERIFICACION = 5
-export const MINUTOS_BLOQUEO = 30
+/**
+ * Acceso con código de un solo uso (migración 027): 6 dígitos por WhatsApp o
+ * correo, vence en 10 min, 5 intentos por código, 1 envío por minuto y 5 por
+ * hora (límites aplicados en SQL), y tope de fallos en la vida del enlace:
+ * al llegar, el enlace se desactiva y la asesora recibe una nota.
+ */
+export const OTP_MINUTOS = 10
+export const OTP_INTENTOS_POR_CODIGO = 5
+export const OTP_ESPERA_SEGUNDOS = 60
+export const MAX_FALLOS_ENLACE = 10
 /** Horas que dura el acceso una vez verificado (cookie firmada). */
 export const HORAS_ACCESO = 12
 

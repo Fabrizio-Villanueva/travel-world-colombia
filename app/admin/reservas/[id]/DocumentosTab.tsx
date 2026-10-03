@@ -223,7 +223,7 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
         </div>
 
         <p className="mt-4 font-inter text-[11px]" style={{ color: MUTED }}>
-          El cliente entra con los últimos 4 dígitos de su celular
+          El cliente entra con un código de 6 dígitos que le llega por WhatsApp (o por correo) al celular
           {estado.telefonoMascara ? (
             <>
               {' '}(<span className="font-mono font-medium" style={{ color: NAVY }}>{estado.telefonoMascara}</span>)

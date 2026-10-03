@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { AlertCircle } from 'lucide-react'
 import { accesoFirmadoValido, nombreCookieAcceso, tokenValido } from '@/lib/documentos/token'
-import { estadoEnlace, minutosBloqueo, portalDatos, solicitudPorToken } from '@/lib/documentos/solicitudes'
+import { estadoEnlace, portalDatos, solicitudPorToken } from '@/lib/documentos/solicitudes'
 import { Verificacion } from './Verificacion'
 import { Portal } from './Portal'
 import { IntroSeguro } from './IntroSeguro'
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 /**
  * /documentos/<token>: el enlace personal de un viaje. Tres estados:
  *  1. enlace inválido / vencido / desactivado → aviso;
- *  2. sin cookie de acceso → pedir los últimos 4 dígitos del celular;
+ *  2. sin cookie de acceso → código de 6 dígitos por WhatsApp o correo;
  *  3. verificado → el portal de carga.
  */
 export default async function DocumentosPage({ params }: { params: Promise<{ token: string }> }) {
@@ -37,7 +37,7 @@ export default async function DocumentosPage({ params }: { params: Promise<{ tok
 
   return (
     <IntroSeguro clave={clave}>
-      <Verificacion token={token} nombreViaje={s.nombre_viaje} bloqueadoMinutos={minutosBloqueo(s)} />
+      <Verificacion token={token} nombreViaje={s.nombre_viaje} telefonoFinal={s.telefono_ultimos4} />
     </IntroSeguro>
   )
 }

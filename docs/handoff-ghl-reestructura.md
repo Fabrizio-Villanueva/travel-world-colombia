@@ -167,7 +167,8 @@ Campos de oportunidad nuevos (carpeta 👥 Pasajeros): `Link de documentos` (`QG
 Solicitados/Parciales/Completos) y `P1..P8 - Visa Número` / `Visa Vencimiento` (16; también en el catálogo del Generador).
 Flujo: asesora (pestaña Documentos) → "Enviar enlace" → el servidor crea el token, escribe `Link de documentos`, pone
 `Documentos del cliente = Solicitados` y cambia `Solicitar documentos` (lo vacía y escribe Enviar o Reenviar: GHL siempre ve
-un cambio) → **C-05** manda el enlace → el cliente verifica con los últimos 4 dígitos de su celular, acepta la Ley 1581 y
+un cambio) → **C-05** manda el enlace → el cliente pide un código de 6 dígitos (le llega por WhatsApp desde la cuenta, o por
+correo; lo envía el servidor, no un workflow), acepta la Ley 1581 y
 sube los documentos → el sistema lee (MRZ/visión), el cliente confirma → P{n} escritos → al completar:
 `Documentos del cliente = Completos` + nota en el contacto. Fotos solo en el bucket privado; se borran 30 días tras el regreso.
 Oportunidad de prueba: `NnDUr5gyZfnGI4LWGHWl` (PRUEBA – Portal documentos, contacto Fabrizio).
@@ -179,7 +180,7 @@ Carpeta 04 Contratos. Nombre: `C-05 · Solicitar documentos → enlace al client
 2. **Acción WhatsApp/SMS** (canal de la cuenta): texto sugerido —
    «Hola {{contact.first_name}} 👋 Para dejar lista tu reserva a {{opportunity.destino_de_inters}} necesitamos los
    documentos de los viajeros (pasaporte, cédula o visa, según el viaje). Súbelos aquí de forma segura 🔒
-   {{opportunity.link_de_documentos}} — el enlace es personal: te pide los últimos 4 dígitos de tu celular. Las fotos
+   {{opportunity.link_de_documentos}} — el enlace es personal: al abrirlo te llega un código a este WhatsApp. Las fotos
    quedan cifradas, solo las ve tu asesora y se borran al terminar el viaje. ¡Gracias!»
 3. **Acción Email** (asunto «Documentos para tu viaje a {{opportunity.destino_de_inters}}»), mismo texto + botón al enlace.
 4. **Nota interna** (opcional): «Enlace de documentos enviado».

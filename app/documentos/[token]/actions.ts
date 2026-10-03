@@ -19,11 +19,11 @@ import {
   procesarArchivo,
   registrarConsentimiento,
   solicitudPorToken,
-  verificarDigitos,
   type SolicitudRow,
   type SubidaPreparada,
 } from '@/lib/documentos/solicitudes'
 import type { ArchivoPublico, PortalDatos, Progreso } from '@/lib/documentos/tipos'
+import { enviarCodigo, verificarCodigo, type CanalCodigo, type EnvioCodigo } from '@/lib/documentos/codigo'
 
 /**
  * Acciones del portal público /documentos/<token>. Todas reciben el token del
@@ -70,8 +70,22 @@ function fallo<T>(e: unknown): Resultado<T> {
   return { ok: false, error: e instanceof Error ? e.message : 'Algo salió mal. Intenta de nuevo.' }
 }
 
-/** Paso 1: los últimos 4 dígitos del celular. Si cuadran, deja la cookie firmada. */
-export async function verificar(token: string, digitos: string): Promise<Resultado<PortalDatos>> {
+/** Paso 1: pedir el código de acceso por WhatsApp o correo (nunca se envía solo al abrir). */
+export async function pedirCodigo(token: string, canal: CanalCodigo): Promise<Resultado<EnvioCodigo>> {
+  const ip = await ipCliente()
+  const rl = await checkRateLimit(`doc-codigo:${ip}`, { limit: 10, windowMs: 60 * 60_000 })
+  if (!rl.success) return { ok: false, error: 'Pediste muchos códigos. Espera un rato e intenta de nuevo.' }
+  const r = await abrir(token)
+  if ('error' in r) return { ok: false, error: r.error }
+  try {
+    return { ok: true, datos: await enviarCodigo(r.s, canal === 'email' ? 'email' : 'whatsapp') }
+  } catch (e) {
+    return fallo(e)
+  }
+}
+
+/** Paso 2: el código de 6 dígitos. Si es correcto, deja la cookie firmada. */
+export async function verificar(token: string, codigo: string): Promise<Resultado<PortalDatos>> {
   const ip = await ipCliente()
   const rl = await checkRateLimit(`doc-verif:${ip}`, { limit: 15, windowMs: 10 * 60_000 })
   if (!rl.success) return { ok: false, error: `Demasiados intentos. Espera ${Math.ceil(rl.retryAfter / 60) || 1} minutos.` }
@@ -79,16 +93,8 @@ export async function verificar(token: string, digitos: string): Promise<Resulta
   const r = await abrir(token)
   if ('error' in r) return { ok: false, error: r.error }
 
-  const v = await verificarDigitos(r.s, String(digitos ?? ''))
-  if (!v.ok) {
-    return {
-      ok: false,
-      error:
-        v.motivo === 'bloqueado'
-          ? `Por seguridad el enlace quedó bloqueado ${v.minutos} minutos. Inténtalo después o escríbele a tu asesora.`
-          : `Los dígitos no coinciden. Te quedan ${v.restantes} intento${v.restantes === 1 ? '' : 's'}.`,
-    }
-  }
+  const v = await verificarCodigo(r.s, String(codigo ?? ''))
+  if (!v.ok) return { ok: false, error: v.error }
 
   const { valor, vence } = firmarAcceso(r.s.id)
   ;(await cookies()).set(nombreCookieAcceso(r.s.token_hash), valor, {

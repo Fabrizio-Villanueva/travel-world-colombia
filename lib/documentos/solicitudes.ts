@@ -13,11 +13,9 @@ import {
   CAMPOS_PORTAL,
   DIAS_VIGENCIA_ENLACE,
   MAX_BYTES_DOCUMENTO,
-  MAX_INTENTOS_VERIFICACION,
   MAX_VIAJEROS,
   MESES_VIGENCIA_PASAPORTE,
   MIMES_PERMITIDOS,
-  MINUTOS_BLOQUEO,
   tiposRequeridos,
   urlPortal,
   type EstadoDocumentosGhl,
@@ -54,6 +52,11 @@ export interface SolicitudRow {
   telefono_ultimos4: string
   intentos_fallidos: number
   bloqueada_hasta: string | null
+  otp_hash: string | null
+  otp_vence: string | null
+  otp_intentos: number
+  otp_ultimo_envio_en: string | null
+  fallos_totales: number
   requisitos: Requisitos
   viajeros: number
   nombres: (string | null)[]
@@ -242,7 +245,7 @@ export async function enviarEnlace(
   const ctx = await contextoOportunidad(opportunityId)
   if (!ctx.ultimos4) {
     throw new Error(
-      'El contacto no tiene celular en GHL. El cliente verifica su acceso con los últimos 4 dígitos: agrega el teléfono en el paso Contacto y vuelve a intentar.'
+      'El contacto no tiene celular en GHL. El cliente recibe su código de acceso por WhatsApp: agrega el teléfono en el paso Contacto y vuelve a intentar.'
     )
   }
   const requisitos = limpiarRequisitos(opciones.requisitos)
@@ -263,6 +266,10 @@ export async function enviarEnlace(
     telefono_ultimos4: ctx.ultimos4,
     intentos_fallidos: 0,
     bloqueada_hasta: null,
+    otp_hash: null,
+    otp_vence: null,
+    otp_intentos: 0,
+    fallos_totales: 0,
     requisitos,
     viajeros,
     nombres: ctx.nombres.slice(0, viajeros),
@@ -347,52 +354,13 @@ export async function revocarSolicitud(id: string): Promise<void> {
 /* Acceso del cliente                                                  */
 /* ------------------------------------------------------------------ */
 
-export type EstadoEnlace = 'ok' | 'no-existe' | 'vencido' | 'revocado' | 'bloqueado'
+export type EstadoEnlace = 'ok' | 'no-existe' | 'vencido' | 'revocado'
 
 export function estadoEnlace(s: SolicitudRow | null): EstadoEnlace {
   if (!s) return 'no-existe'
   if (s.estado === 'revocada') return 'revocado'
   if (new Date(s.vence_en).getTime() < Date.now()) return 'vencido'
-  if (s.bloqueada_hasta && new Date(s.bloqueada_hasta).getTime() > Date.now()) return 'bloqueado'
   return 'ok'
-}
-
-export type ResultadoVerificacion =
-  | { ok: true }
-  | { ok: false; motivo: 'incorrecto'; restantes: number }
-  | { ok: false; motivo: 'bloqueado'; minutos: number }
-
-/** Compara los 4 dígitos; lleva la cuenta de fallos y bloquea el enlace un rato. */
-export async function verificarDigitos(s: SolicitudRow, digitos: string): Promise<ResultadoVerificacion> {
-  if (s.bloqueada_hasta && new Date(s.bloqueada_hasta).getTime() > Date.now()) {
-    return { ok: false, motivo: 'bloqueado', minutos: minutosHasta(s.bloqueada_hasta) }
-  }
-  const d = digitos.replace(/\D/g, '')
-  if (d.length === 4 && d === s.telefono_ultimos4) {
-    await admin()
-      .from('doc_solicitudes')
-      .update({ intentos_fallidos: 0, bloqueada_hasta: null, ultimo_acceso_en: new Date().toISOString() })
-      .eq('id', s.id)
-    return { ok: true }
-  }
-  const intentos = s.intentos_fallidos + 1
-  if (intentos >= MAX_INTENTOS_VERIFICACION) {
-    const hasta = new Date(Date.now() + MINUTOS_BLOQUEO * 60_000).toISOString()
-    await admin().from('doc_solicitudes').update({ intentos_fallidos: 0, bloqueada_hasta: hasta }).eq('id', s.id)
-    return { ok: false, motivo: 'bloqueado', minutos: MINUTOS_BLOQUEO }
-  }
-  await admin().from('doc_solicitudes').update({ intentos_fallidos: intentos }).eq('id', s.id)
-  return { ok: false, motivo: 'incorrecto', restantes: MAX_INTENTOS_VERIFICACION - intentos }
-}
-
-function minutosHasta(iso: string): number {
-  return Math.max(1, Math.ceil((new Date(iso).getTime() - Date.now()) / 60_000))
-}
-
-/** Minutos que le quedan al bloqueo por intentos fallidos (0 si no está bloqueada). */
-export function minutosBloqueo(s: SolicitudRow): number {
-  if (!s.bloqueada_hasta || new Date(s.bloqueada_hasta).getTime() <= Date.now()) return 0
-  return minutosHasta(s.bloqueada_hasta)
 }
 
 export async function registrarConsentimiento(id: string, ip: string, ua: string): Promise<void> {
