@@ -96,6 +96,19 @@ el interior de un workflow: el usuario manda capturas.
 6. Migrar sin huecos: duplicar el viejo, armar la nueva, publicarla y apagar la vieja el
    mismo día.
 
+## Limpieza de campos de contacto (en curso, 02-oct)
+- 154 campos de contacto tienen copia en la oportunidad (catálogo scripts/ghl-campos-oportunidad.catalog.json).
+- Respaldo de sus valores (7.059 contactos): `.respaldos-ghl/respaldo_campos_contacto_migrados.json.gz`;
+  clasificación: `.respaldos-ghl/inventario_campos_contacto.csv` (scripts `inventario_campos.py`, `huerfanos.py`).
+- Datos sin copia en opp: solo 30 contactos (4 de prueba/equipo, 24 con 1 dato ≈ Acomodación, 4 reales:
+  Jairo Londoño, Sergio León, Javier Jiménez, Guillermo Ramos). CPA-Fecha de Ida: 119/125 iguales, Sergio copiada;
+  Javier NO (tarjeta abandonada, dispararía V-01).
+- Código (a7f72e7): Generador ya no espeja al contacto (ESPEJO_CONTACTO_TRANSICION=false) y la mudanza ya no
+  copia CPA-Fecha de Ida → ningún proceso escribe los 154.
+- Plantillas 🌎8/🌎4 ya no se usan (C-02 usa las v2 con {{opportunity.*}}); textos de workflows pasados a opp.
+- Siguiente: cuarentena 2 semanas en carpeta "🗄️ Por eliminar" → el usuario borra en GHL.
+- 2ª ronda: campos de calificación que Sol escribe en contacto Y opp (mensaje de cotización ya pasado a opp en L-01).
+
 ## Datos pendientes que solo puede corregir el equipo
 - Sin fecha de viaje: Diego Valencia, Cecilia Peñuela (Por Viajar), Héctor Moreno (En Viaje).
 - Diana Alarcón: salida 8-ago-2028 (¿2026?). Rocío Salazar: Reserva Creada con salida pasada.
