@@ -98,9 +98,11 @@ contacto de prueba. Resultado:
   propio (con borrado real); en GHL solo los datos extraídos + un enlace al panel (que pide sesión).
 - La imagen de prueba (171 bytes, gris, sin datos) quedó huérfana en el almacenamiento de GHL.
 
-## Decisiones pendientes del usuario
-- ~~¿Dónde guardar los archivos?~~ → bucket privado propio (ver la prueba de arriba).
-- ¿Cuántos días guardarlos después del regreso? (p. ej. 30).
-- ¿Pedir verificación extra al abrir el enlace (últimos 4 del celular)?
-- ¿Visas: 2 campos nuevos por viajero o un texto resumen?
-- ¿Qué identificaciones pide la agencia en viajes nacionales (cédula, TI, registro civil)?
+## Decisiones del usuario (02-oct)
+- Archivos: bucket privado propio (los campos de archivo de GHL quedaron descartados por la prueba).
+- Retención: **30 días** después de la fecha de regreso, luego se borran las fotos (los datos quedan).
+- Visa: **2 campos nuevos por viajero** en la oportunidad: `P{n} - Visa Número` y `P{n} - Visa Vencimiento` (16).
+- Viajes nacionales: **solo cédula** por ahora (→ `P{n} - Documento`).
+- Pasaporte: usa los campos que ya existen (`P{n} - Nombre y Apellido`, `P{n} - Pasaporte`,
+  `P{n} - Fecha de Nacimiento`, `P{n} - Vencimiento Pasaporte`); la foto va al bucket privado.
+- Verificación extra (últimos 4 del celular): la escribe el CLIENTE al abrir el enlace — pendiente de confirmar si se activa.
