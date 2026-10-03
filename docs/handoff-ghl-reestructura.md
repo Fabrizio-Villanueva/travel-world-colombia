@@ -96,6 +96,8 @@ el interior de un workflow: el usuario manda capturas.
 | 23 | P-02 · Reseña Google/Facebook | ✅ (02-oct) rama 1-3: tag `cliente_con_mala_experiencia` + notificación interna (asignada + 3 personas fijas) + tarea "Llamar por reseña negativa"; ya no usa Add to Workflow → P-03 |
 | 24 | P-03 · Formulario reseña negativa | ✅ |
 | — | R-01 · Cumpleaños | ✅ |
+| 25 | C-05 · Solicitar documentos → enlace al cliente | ⏳ Por armar (pasos en «Portal de documentos») |
+| 26 | C-06 · Documentos completos → tarea a la asesora | ✅ Armado 03-oct (falta probar con la tarjeta de prueba) |
 | ZZ | 1.-Nuevo Lead, Compro, compradores, Picture Review (borradores) | Borrar |
 
 ### Patrón para V-01..V-07 y P-01
@@ -184,10 +186,11 @@ Carpeta 04 Contratos. Nombre: `C-05 · Solicitar documentos → enlace al client
 Probar con la oportunidad de prueba: en el Generador → pestaña Documentos → "Reenviar (enlace nuevo)" y revisar que
 llegue el WhatsApp al contacto de prueba.
 
-### C-06 (opcional) · Documentos completos → tarea a la asesora
-Disparador: Opportunity custom field changed → `Documentos del cliente` → "has changed to" `Completos` → Assign/Task
-«Revisar documentos de viajeros» al usuario asignado (+ notificación interna). El sistema ya deja además una nota en el
-contacto con el enlace al panel.
+### C-06 · Documentos completos → tarea a la asesora — ✅ ARMADO por el usuario (03-oct), publicado
+Disparador «La oportunidad ha cambiado»: `Documentos del cliente` ha cambiado a `Completos` + pipeline = 🗂️ Reservaciones →
+Add task «Revisar documentos de viajeros» (asignado del contacto, vence en 1 día) → notificación interna SMS al propietario
+asignado → notificación interna SMS fija a Luisa Aguirre. Falta la prueba: en la tarjeta de prueba poner el campo en
+Parciales y volver a Completos; debe inscribirse y crear la tarea. El sistema además deja una nota en el contacto.
 
 ### Pendientes del portal
 - Revisar la semilla de reglas de visa (/admin/documentos/visas): 33 países, criterio "colombiano con pasaporte ordinario".
