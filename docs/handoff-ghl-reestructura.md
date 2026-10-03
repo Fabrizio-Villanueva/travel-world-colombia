@@ -126,6 +126,12 @@ el interior de un workflow: el usuario manda capturas.
   conversación con la persona). Cuarentena total: 193. Pendiente: ver en agente_eventos la nota nueva
   "calificación (...): guardada en la oportunidad".
 
+## Carpetas de oportunidad (02-oct)
+Renombradas y ordenadas como el contrato (nombres previos en .respaldos-ghl/carpetas_opp_nombres_antes.json):
+⭐ Calificación (Sol) · 📄 Contrato · 🧾 Facturación · 🗺️ Generales del Viaje · ✈️ Vuelos · 👥 Pasajeros ·
+🧮 Liquidación · 💳 Plan de Pagos · ✅ Inclusiones y Exclusiones. El Generador agrupa por su catálogo (no por el
+nombre de la carpeta en GHL); los CAMPOS de oportunidad no se renombran (el Generador los resuelve por nombre).
+
 ## Datos pendientes que solo puede corregir el equipo
 - Sin fecha de viaje: Diego Valencia, Cecilia Peñuela (Por Viajar), Héctor Moreno (En Viaje).
 - Diana Alarcón: salida 8-ago-2028 (¿2026?). Rocío Salazar: Reserva Creada con salida pasada.
