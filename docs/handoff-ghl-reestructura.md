@@ -119,10 +119,12 @@ el interior de un workflow: el usuario manda capturas.
   iguales a la opp) → cuarentena y sus 4 carpetas borradas. Total en cuarentena: 180 (respaldos *.json.gz en
   .respaldos-ghl/). Quedan carpetas: Additional Info, Calificación (Sol), Contact, 📋Datos de Facturación. ⚠️ "Etapa del Lead" la sigue
   llenando algún workflow (¿E-01/L-01?): quitar esa acción antes del borrado. ~16-oct: si nada falló, el usuario los borra en GHL.
-- 2ª ronda (02-oct, 7f503f3): Sol escribe la calificación SOLO en la opp (al contacto solo ia__nombre). Pendiente:
-  verificar en agente_eventos la nota nueva "calificación (...): guardada en la oportunidad"; mandar a cuarentena los
-  13 campos de la carpeta de contacto "Calificación" (si ningún workflow los lee); decidir sol_* (11, solo contacto,
-  sin equivalente en opp).
+- 2ª ronda (02-oct, 7f503f3): Sol escribe la calificación SOLO en la opp (al contacto solo ia__nombre). Los 13 campos de la carpeta
+  de contacto "Calificación" → cuarentena (respaldo respaldo_calificacion_contacto.json.gz, 1.026 contactos) y carpeta
+  borrada; antes se copiaron 1.608 datos a 320 tarjetas abiertas de Leads que solo los tenían en el contacto
+  (calif_copia.py / calif_aplicar.py, 0 errores). sol_* (11) SE QUEDAN en el contacto (decisión: describen la
+  conversación con la persona). Cuarentena total: 193. Pendiente: ver en agente_eventos la nota nueva
+  "calificación (...): guardada en la oportunidad".
 
 ## Datos pendientes que solo puede corregir el equipo
 - Sin fecha de viaje: Diego Valencia, Cecilia Peñuela (Por Viajar), Héctor Moreno (En Viaje).
