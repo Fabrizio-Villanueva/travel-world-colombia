@@ -62,7 +62,7 @@ el interior de un workflow: el usuario manda capturas.
 | 6 | S-02 · IA-NOMBRE → nombre | ✅ |
 | 7 | Stop/Active Bot (wait 2 h → quita stop_bot) | 🔁 Reemplazado por **Sol de respaldo** (código, 02-oct): vigilante cada 10 min cubre chats con stop_bot sin respuesta (15 min fuera de horario / 2 h en horario), tag `sol_respaldo`, se retira cuando la asesora escribe; `AGENTE_RESPALDO=off` lo apaga. Usuario: apagar este wf → ZZ y quitar línea `stop_bot` de S-01 |
 | 8 | L-01 · Sol califica → Calificado + asignar + tarea | ✅ |
-| 9 | L-04 · Sol escala → aviso + tarea a la asesora | ✅ (02-oct): tag `transferencia a humano` → Assign to user (5 asesoras, equitativo, solo no asignados) → SMS interno + tarea. Antes 11/59 escalados sin asesora = nadie avisado. 🟡 Pendiente: el tag nunca se quita → 2ª escalada del mismo cliente no avisa |
+| 9 | L-04 · Sol escala → aviso + tarea a la asesora | ✅ (02-oct): tag `transferencia a humano` → Assign to user (5 asesoras, equitativo, solo no asignados) → SMS interno + tarea. Antes 11/59 escalados sin asesora = nadie avisado. Rearmado: al final Wait 24 h → Remove Tag `transferencia a humano` (escaladas repetidas en 24 h no re-avisan; después vuelve a avisar) |
 | 10 | L-02 · Lead sin respuesta 60 min | ✅ |
 | — | 148 leads en Lead Nuevo sin asesora | Falta automatizar (24 h sin calificar → asignar) |
 | 11 | C-01 · Venta ganada → Reservaciones | ✅ (2 disparadores) |
