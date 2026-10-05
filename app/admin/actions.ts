@@ -22,6 +22,19 @@ async function ipActual(): Promise<string> {
 
 const MSG_DEMASIADOS = 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.'
 
+/**
+ * A dónde volver tras iniciar sesión: solo rutas internas del panel (nunca
+ * otro dominio ni `//host`), para que `?next=` no sirva de redirección abierta.
+ */
+function destinoSeguro(next: FormDataEntryValue | null): string {
+  const n = typeof next === 'string' ? next : ''
+  if (!/^\/admin(\/[A-Za-z0-9._~%\-\/]*)?(\?[A-Za-z0-9._~%&=\-]*)?$/.test(n) || n.includes('//') || n.includes('\\')) {
+    return '/admin'
+  }
+  if (n.startsWith('/admin/login') || n.startsWith('/admin/registro')) return '/admin'
+  return n
+}
+
 /** Inicio de sesión del admin. */
 export async function signIn(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const email = String(formData.get('email') ?? '').trim()
@@ -49,7 +62,7 @@ export async function signIn(_prev: LoginState, formData: FormData): Promise<Log
 
   // Aprobado (env o allowlist) → su panel/backend. Pendiente → pantalla de
   // "pendiente de aprobación". (El proxy refuerza el mismo gate.)
-  if (await isApprovedEmail(email)) redirect('/admin')
+  if (await isApprovedEmail(email)) redirect(destinoSeguro(formData.get('next')))
   redirect('/admin/registro')
 }
 

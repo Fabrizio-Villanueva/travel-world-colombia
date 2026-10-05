@@ -45,7 +45,11 @@ export async function proxy(req: NextRequest) {
     path.startsWith('/admin/actualizar-password')
 
   if (!user && !isAuthPage) {
-    return NextResponse.redirect(new URL('/admin/login', req.url))
+    // Conserva a dónde iba (p. ej. el enlace "Documentos (panel)" del CRM)
+    // para volver ahí después de iniciar sesión.
+    const destino = new URL('/admin/login', req.url)
+    if (path !== '/admin') destino.searchParams.set('next', path + req.nextUrl.search)
+    return NextResponse.redirect(destino)
   }
 
   if (user && !isAuthPage) {

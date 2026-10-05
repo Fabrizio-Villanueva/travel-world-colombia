@@ -25,7 +25,7 @@
 10. Presentación "Así trabaja tu CRM" (https://claude.ai/artifact/8mNrAwVAkurCs8B6z4BoSE): compartir desde su menú.
 11. Opcional Sol de respaldo: presentarse como Sol, copiar usted/tú de la asesora, una sola nota.
 - C-04 (contrato no queda "Completado"): DESCARTADO por ahora (decisión del usuario).
-- Portal seguro de documentos de viajeros: **IMPLEMENTADO 03-oct** (Fases 1-3) → ver sección "Portal de documentos" abajo y docs/idea-portal-documentos.md. C-05 y C-06 armados y probados. **Siguiente: v2 del portal (tipos de viajero, dos caras, imágenes en el CRM) → docs/handoff-portal-documentos-v2.md.**
+- Portal seguro de documentos de viajeros: **IMPLEMENTADO 03-oct** (Fases 1-3) → ver sección "Portal de documentos" abajo y docs/idea-portal-documentos.md. C-05 y C-06 armados y probados. **v2 HECHA 05-oct** (tipos de viajero, dos caras, enlace `P{n} - Documentos (panel)` en la opp) → docs/handoff-portal-documentos-v2.md.
 
 ## Reglas acordadas
 - Solo **2 pipelines**: 🎯 Leads (venta) → 🗂️ Reservaciones (operación, hasta el regreso).
@@ -172,6 +172,8 @@ correo; lo envía el servidor, no un workflow), acepta la Ley 1581 y
 sube los documentos → el sistema lee (MRZ/visión), el cliente confirma → P{n} escritos → al completar:
 `Documentos del cliente = Completos` + nota en el contacto. Fotos solo en el bucket privado; se borran 30 días tras el regreso.
 Oportunidad de prueba: `NnDUr5gyZfnGI4LWGHWl` (PRUEBA – Portal documentos, contacto Fabrizio).
+v2 (05-oct): 8 campos TEXT de oportunidad `P1..P8 - Documentos (panel)` (👥 Pasajeros) con el enlace a
+`/admin/reservas/<opp>/documentos/<n>` (pide sesión; las asesoras con rol representante lo abren). Ninguna foto se sube a GHL.
 
 ### C-05 · Solicitar documentos → enlace al cliente — ✅ ARMADO y probado por el usuario (03-oct)
 Carpeta 04 Contratos. Nombre: `C-05 · Solicitar documentos → enlace al cliente`.

@@ -2,7 +2,7 @@
 
 import { cookies, headers } from 'next/headers'
 import { checkRateLimit } from '@/lib/security/rateLimit'
-import { type TipoDocumento } from '@/lib/documentos/config'
+import { type Cara, type TipoDocumento } from '@/lib/documentos/config'
 import {
   accesoFirmadoValido,
   firmarAcceso,
@@ -133,6 +133,7 @@ export async function prepararSubida(
   token: string,
   viajero: number,
   tipo: TipoDocumento,
+  cara: Cara,
   mime: string,
   bytes: number
 ): Promise<Resultado<SubidaPreparada>> {
@@ -144,7 +145,8 @@ export async function prepararSubida(
   const rl = await checkRateLimit(`doc-subida:${ip}`, { limit: 80, windowMs: 60 * 60_000 })
   if (!rl.success) return { ok: false, error: 'Demasiadas subidas seguidas. Espera unos minutos.' }
   try {
-    return { ok: true, datos: await prepararSubidaDb(r.s, Number(viajero), tipo, String(mime), Number(bytes), ip) }
+    const caraOk: Cara = cara === 'frente' || cara === 'reverso' ? cara : 'unica'
+    return { ok: true, datos: await prepararSubidaDb(r.s, Number(viajero), tipo, caraOk, String(mime), Number(bytes), ip) }
   } catch (e) {
     return fallo(e)
   }
@@ -178,7 +180,7 @@ export async function confirmar(
   }
 }
 
-/** "Cambiar foto": borra el documento de esa casilla. */
+/** "Otra foto": borra el documento de esa casilla (todas sus caras). */
 export async function repetir(token: string, archivoId: string): Promise<Resultado<true>> {
   const r = await conAcceso(token)
   if ('error' in r) return { ok: false, error: r.error }

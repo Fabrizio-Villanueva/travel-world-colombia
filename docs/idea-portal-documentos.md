@@ -132,3 +132,8 @@ contacto de prueba. Resultado:
 - Armar en GHL el workflow **C-05** (no se puede por API): disparador = campo de oportunidad `Solicitar documentos` cambia a Enviar o Reenviar → WhatsApp + correo con `{{opportunity.link_de_documentos}}`; y un aviso interno/tarea cuando `Documentos del cliente` cambie a Completos. Pasos exactos en el traspaso.
 - Revisar la semilla de reglas de visa en `/admin/documentos/visas` (el equipo las conoce mejor que nadie).
 - Opcional: recordatorio de documentos faltantes en V-03/V-04 (condición `Documentos del cliente` ≠ Completos).
+
+## v2 (2026-10-05)
+Tipos de viajero (adulto/menor/infante), cédula y TI por los dos lados (MRZ TD1 del reverso), registro civil para
+infantes (nacional) y menores/infantes (internacional), y enlace `P{n} - Documentos (panel)` en la oportunidad (las fotos
+NO se copian a GHL). Migración 029 ✓. Detalle en `docs/handoff-portal-documentos-v2.md`.

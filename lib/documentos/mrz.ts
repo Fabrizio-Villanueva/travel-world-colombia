@@ -174,3 +174,86 @@ const NACIONALIDADES: Record<string, string> = {
 export function nacionalidadLegible(codigo: string): string {
   return NACIONALIDADES[codigo] ?? codigo
 }
+
+/**
+ * MRZ TD1 (3 líneas × 30): documentos de identidad tamaño tarjeta, como la
+ * cédula digital colombiana (va en el REVERSO). Mismos dígitos de control.
+ *   L1: tipo(2) país(3) número(9) control(1) opcional(15)
+ *   L2: nacimiento(6) control(1) sexo(1) vencimiento(6) control(1) nacionalidad(3) opcional(11) compuesto(1)
+ *   L3: APELLIDOS<<NOMBRES
+ * En la cédula colombiana el número de cédula (NUIP) no siempre va en el
+ * campo "número" (que puede ser el serial de la tarjeta): se devuelven las
+ * cifras de los campos opcionales para cotejarlas con el número impreso.
+ */
+export interface MrzTd1 {
+  tipoDocumento: string
+  paisEmisor: string
+  numero: string
+  /** Secuencias de 6+ dígitos de los campos opcionales (candidatas a NUIP). */
+  numerosOpcionales: string[]
+  apellidos: string
+  nombres: string
+  nacionalidad: string
+  fechaNacimiento: string
+  sexo: 'M' | 'F' | ''
+  fechaVencimiento: string
+  controles: { numero: boolean; nacimiento: boolean; vencimiento: boolean; compuesto: boolean }
+  /** Nacimiento y vencimiento cuadran (los datos que se usan de la MRZ). */
+  valido: boolean
+}
+
+export function parsearMrzTd1(lineas: string[] | null | undefined): MrzTd1 | null {
+  if (!lineas) return null
+  const limpias = lineas.map(limpiar).filter(l => l.length >= 10)
+  if (limpias.length < 3) return null
+  // Orden: la que empieza por I/A/C es la 1; la que empieza con 6 dígitos (tras
+  // corregir O/0) es la 2; la restante, los nombres.
+  const l1raw = limpias.find(l => /^[IAC]/.test(l)) ?? limpias[0]
+  const resto = limpias.filter(l => l !== l1raw)
+  const l2raw = resto.find(l => /^\d{6}/.test(numerico(l.slice(0, 6)))) ?? resto[0]
+  const l3raw = resto.find(l => l !== l2raw) ?? ''
+  const l1 = l1raw.padEnd(30, '<').slice(0, 30)
+  const l2 = l2raw.padEnd(30, '<').slice(0, 30)
+  const l3 = l3raw.padEnd(30, '<').slice(0, 30)
+
+  const numeroCampo = l1.slice(5, 14)
+  const numeroCtrl = numerico(l1[14])
+  const opcional1 = l1.slice(15, 30)
+  const nacCampo = numerico(l2.slice(0, 6))
+  const nacCtrl = numerico(l2[6])
+  const sexoRaw = l2[7]
+  const venCampo = numerico(l2.slice(8, 14))
+  const venCtrl = numerico(l2[14])
+  const nacionalidad = l2.slice(15, 18).replace(/</g, '')
+  const opcional2 = l2.slice(18, 29)
+  const compuestoCtrl = numerico(l2[29])
+
+  const controles = {
+    numero: controlOk(numeroCampo, numeroCtrl),
+    nacimiento: controlOk(nacCampo, nacCtrl),
+    vencimiento: controlOk(venCampo, venCtrl),
+    compuesto: controlOk(
+      l1.slice(5, 30) + nacCampo + nacCtrl + venCampo + venCtrl + opcional2,
+      compuestoCtrl
+    ),
+  }
+
+  const [apellidosRaw, ...nombresRaw] = l3.split('<<')
+  const sexo: MrzTd1['sexo'] = sexoRaw === 'M' || sexoRaw === 'F' ? sexoRaw : ''
+  const numerosOpcionales = [...`${opcional1}<${opcional2}`.matchAll(/\d{6,}/g)].map(m => m[0])
+
+  return {
+    tipoDocumento: l1.slice(0, 2).replace(/</g, ''),
+    paisEmisor: l1.slice(2, 5).replace(/</g, ''),
+    numero: numeroCampo.replace(/</g, ''),
+    numerosOpcionales,
+    apellidos: nombreLegible(apellidosRaw ?? ''),
+    nombres: nombreLegible(nombresRaw.join(' ')),
+    nacionalidad,
+    fechaNacimiento: fechaIso(nacCampo, false),
+    sexo,
+    fechaVencimiento: fechaIso(venCampo, true),
+    controles,
+    valido: controles.nacimiento && controles.vencimiento,
+  }
+}

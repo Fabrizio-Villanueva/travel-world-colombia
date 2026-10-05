@@ -25,19 +25,26 @@ export const CAMPOS_PORTAL = {
 
 export type EstadoDocumentosGhl = 'Solicitados' | 'Parciales' | 'Completos'
 
-export type TipoDocumento = 'pasaporte' | 'cedula' | 'visa'
-export const TIPOS_DOCUMENTO: TipoDocumento[] = ['pasaporte', 'cedula', 'visa']
+export type TipoDocumento = 'pasaporte' | 'cedula' | 'visa' | 'registro_civil'
+
+/** Lo que la asesora marca por VIAJE (el detalle por viajero sale de documentosDe). */
+export type Requisito = 'pasaporte' | 'cedula' | 'visa'
+export const REQUISITOS_TIPOS: Requisito[] = ['pasaporte', 'cedula', 'visa']
+/** Alias de REQUISITOS_TIPOS (nombre que usa el panel). */
+export const TIPOS_DOCUMENTO = REQUISITOS_TIPOS
 
 export const TIPO_LABEL: Record<TipoDocumento, string> = {
   pasaporte: 'Pasaporte',
   cedula: 'Cédula o tarjeta de identidad',
   visa: 'Visa',
+  registro_civil: 'Registro civil de nacimiento',
 }
 
 export const TIPO_EMOJI: Record<TipoDocumento, string> = {
   pasaporte: '🛂',
   cedula: '🪪',
   visa: '📄',
+  registro_civil: '📜',
 }
 
 /** Qué documentos pide un viaje (lo marca la asesora; se sugiere por destino). */
@@ -50,8 +57,118 @@ export interface Requisitos {
 export const REQUISITOS_INTERNACIONAL: Requisitos = { pasaporte: true, cedula: false, visa: false }
 export const REQUISITOS_NACIONAL: Requisitos = { pasaporte: false, cedula: true, visa: false }
 
-export function tiposRequeridos(r: Requisitos): TipoDocumento[] {
-  return TIPOS_DOCUMENTO.filter(t => r[t])
+export function tiposRequeridos(r: Requisitos): Requisito[] {
+  return REQUISITOS_TIPOS.filter(t => r[t])
+}
+
+/* ------------------------------------------------------------------ */
+/* Tipos de viajero y documentos por viajero (v2, 05-oct)              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Adulto (18+), menor (7–17) e infante (0–6), con la regla colombiana: a los 7
+ * años se expide la tarjeta de identidad y a los 18 la cédula. Lo marca la
+ * asesora en la pestaña Documentos (prellenado con la liquidación).
+ */
+export type TipoViajero = 'adulto' | 'menor' | 'infante'
+export const TIPOS_VIAJERO: TipoViajero[] = ['adulto', 'menor', 'infante']
+export const TIPO_VIAJERO_LABEL: Record<TipoViajero, string> = {
+  adulto: 'Adulto',
+  menor: 'Menor',
+  infante: 'Infante',
+}
+export const TIPO_VIAJERO_EDADES: Record<TipoViajero, string> = {
+  adulto: '18 años o más',
+  menor: '7 a 17 años',
+  infante: '0 a 6 años',
+}
+
+/** Cara de un documento: los de dos lados se suben en dos fotos. */
+export type Cara = 'frente' | 'reverso' | 'unica'
+export const CARA_LABEL: Record<Cara, string> = { frente: 'Frente', reverso: 'Reverso', unica: 'Foto' }
+
+export interface DocumentoRequerido {
+  tipo: TipoDocumento
+  /** ['frente', 'reverso'] o ['unica']. La primera es la principal (lleva la lectura). */
+  caras: Cara[]
+}
+
+const DOS_CARAS: Cara[] = ['frente', 'reverso']
+const UNA_CARA: Cara[] = ['unica']
+
+export function tipoViajeroDe(tipos: readonly (string | null | undefined)[] | null | undefined, viajero: number): TipoViajero {
+  const t = tipos?.[viajero - 1]
+  return t === 'menor' || t === 'infante' ? t : 'adulto'
+}
+
+/**
+ * Documentos que pide un viajero según su tipo y lo que marcó la asesora:
+ *  - Nacional ("cédula"): adulto → cédula (2 caras); menor → tarjeta de
+ *    identidad (2 caras); infante → registro civil (1 foto).
+ *  - Internacional ("pasaporte"): pasaporte (página de datos) para todos; menores
+ *    e infantes además el registro civil (prueba de parentesco).
+ *  - Visa: una foto, para quien la necesite el viaje.
+ */
+export function documentosDe(tipoViajero: TipoViajero, r: Requisitos): DocumentoRequerido[] {
+  const out: DocumentoRequerido[] = []
+  if (r.pasaporte) out.push({ tipo: 'pasaporte', caras: UNA_CARA })
+  if (r.cedula) {
+    out.push(tipoViajero === 'infante' ? { tipo: 'registro_civil', caras: UNA_CARA } : { tipo: 'cedula', caras: DOS_CARAS })
+  }
+  if (r.pasaporte && tipoViajero !== 'adulto' && !out.some(d => d.tipo === 'registro_civil')) {
+    out.push({ tipo: 'registro_civil', caras: UNA_CARA })
+  }
+  if (r.visa) out.push({ tipo: 'visa', caras: UNA_CARA })
+  return out
+}
+
+/** Nombre del documento para ese viajero (la "cédula" de un menor es su tarjeta de identidad). */
+export function etiquetaDocumento(tipo: TipoDocumento, tipoViajero: TipoViajero): string {
+  if (tipo === 'cedula') return tipoViajero === 'menor' ? 'Tarjeta de identidad' : 'Cédula de ciudadanía'
+  return TIPO_LABEL[tipo]
+}
+
+/** La cara que guarda la lectura y la confirmación de un documento. */
+export function esCaraPrincipal(cara: Cara): boolean {
+  return cara !== 'reverso'
+}
+
+/**
+ * Progreso común (servidor, panel y portal): un documento cuenta cuando su
+ * cara principal está confirmada (confirmar exige antes todas sus caras).
+ */
+export function calcularProgreso(
+  viajeros: number,
+  tiposViajero: readonly (string | null | undefined)[] | null | undefined,
+  requisitos: Requisitos,
+  archivos: readonly { viajero: number; tipo: TipoDocumento; cara?: Cara | null; confirmado_en: string | null }[]
+): { requeridos: number; confirmados: number; subidos: number; completo: boolean } {
+  let requeridos = 0
+  let confirmados = 0
+  let subidos = 0
+  for (let n = 1; n <= viajeros; n++) {
+    for (const d of documentosDe(tipoViajeroDe(tiposViajero, n), requisitos)) {
+      requeridos++
+      const propios = archivos.filter(a => a.viajero === n && a.tipo === d.tipo)
+      if (propios.length > 0) subidos++
+      if (propios.some(a => esCaraPrincipal(a.cara ?? 'unica') && a.confirmado_en)) confirmados++
+    }
+  }
+  return { requeridos, confirmados, subidos, completo: requeridos > 0 && confirmados >= requeridos }
+}
+
+/** Edad cumplida en una fecha (ISO YYYY-MM-DD). */
+export function edadEn(nacimiento: string, fecha: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nacimiento) || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return null
+  const [ny, nm, nd] = nacimiento.split('-').map(Number)
+  const [fy, fm, fd] = fecha.split('-').map(Number)
+  let edad = fy - ny
+  if (fm < nm || (fm === nm && fd < nd)) edad--
+  return edad >= 0 && edad < 130 ? edad : null
+}
+
+export function tipoViajeroPorEdad(edad: number): TipoViajero {
+  return edad >= 18 ? 'adulto' : edad >= 7 ? 'menor' : 'infante'
 }
 
 /** Días que vive un enlace desde que se crea (se puede reenviar: nace otro). */

@@ -14,11 +14,17 @@ const inputStyle = {
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(signIn, initial)
+  // ?next= (lo pone el proxy): volver a la página que se pidió, p. ej. el
+  // enlace de documentos del CRM. El servidor valida que sea del panel.
+  function entrar(formData: FormData) {
+    formData.set('next', new URLSearchParams(window.location.search).get('next') ?? '')
+    action(formData)
+  }
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
       <form
-        action={action}
+        action={entrar}
         className="w-full max-w-sm rounded-2xl p-8"
         style={{ background: '#16315f', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 30px 60px -24px rgba(13, 30, 60,0.45)' }}
       >

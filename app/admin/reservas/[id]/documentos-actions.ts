@@ -2,7 +2,7 @@
 
 import { requireReservas } from '@/lib/admin/guard'
 import { registrarActividad } from '@/lib/admin/audit'
-import type { Requisitos } from '@/lib/documentos/config'
+import { tipoViajeroDe, MAX_VIAJEROS, type Requisitos, type TipoViajero } from '@/lib/documentos/config'
 import {
   actualizarSolicitud,
   archivosDe,
@@ -47,6 +47,10 @@ export interface EstadoDocumentos {
   telefonoMascara: string | null
   destino: string | null
   viajerosSugeridos: number
+  /** Tipo de cada viajero (índice 0 = viajero 1): el guardado, o el sugerido por la liquidación. */
+  tiposViajero: TipoViajero[]
+  /** true si tiposViajero sale de la liquidación (aún no hay enlace). */
+  tiposSugeridos: boolean
   nombres: (string | null)[]
   sugerencia: Sugerencia
 }
@@ -56,6 +60,7 @@ function aPanel(a: ArchivoRow): ArchivoPanel {
     id: a.id,
     viajero: a.viajero,
     tipo: a.tipo,
+    cara: a.cara ?? 'unica',
     subido_en: a.subido_en,
     metodo: a.metodo,
     confianza: a.confianza,
@@ -94,6 +99,10 @@ export async function cargarEstadoDocumentos(opportunityId: string): Promise<Est
     telefonoMascara: ctx.telefonoMascara,
     destino: ctx.destino,
     viajerosSugeridos: solicitud?.viajeros ?? ctx.viajerosSugeridos,
+    tiposViajero: solicitud
+      ? Array.from({ length: MAX_VIAJEROS }, (_, i) => tipoViajeroDe(solicitud.viajeros_tipo, i + 1))
+      : ctx.tiposSugeridos,
+    tiposSugeridos: !solicitud,
     nombres: ctx.nombres,
     sugerencia,
   }
@@ -108,7 +117,7 @@ async function solicitudPropia(opportunityId: string): Promise<SolicitudRow> {
 /** Crea (o regenera) el enlace, lo escribe en GHL y dispara "Solicitar documentos" para C-05. */
 export async function enviarEnlaceDocumentos(
   opportunityId: string,
-  opciones: { viajeros: number; requisitos: Requisitos }
+  opciones: { viajeros: number; requisitos: Requisitos; viajerosTipo: TipoViajero[] }
 ): Promise<Resultado<{ url: string; accion: 'Enviar' | 'Reenviar'; estado: EstadoDocumentos }>> {
   try {
     const { user } = await requireReservas()
@@ -117,7 +126,12 @@ export async function enviarEnlaceDocumentos(
       email: user.email!,
       accion: 'enviar-enlace-documentos',
       nombre: opportunityId,
-      detalle: { accion: r.accion, viajeros: r.solicitud.viajeros, requisitos: r.solicitud.requisitos },
+      detalle: {
+        accion: r.accion,
+        viajeros: r.solicitud.viajeros,
+        tipos: (r.solicitud.viajeros_tipo ?? []).slice(0, r.solicitud.viajeros),
+        requisitos: r.solicitud.requisitos,
+      },
     })
     return { ok: true, datos: { url: r.url, accion: r.accion, estado: await cargarEstadoDocumentos(opportunityId) } }
   } catch (e) {
@@ -146,7 +160,7 @@ export async function enviarAvisoDocumentos(opportunityId: string): Promise<Resu
 /** Cambia viajeros/requisitos sin regenerar el enlace. */
 export async function actualizarRequisitosDocumentos(
   opportunityId: string,
-  cambios: { viajeros?: number; requisitos?: Requisitos }
+  cambios: { viajeros?: number; requisitos?: Requisitos; viajerosTipo?: TipoViajero[] }
 ): Promise<Resultado<EstadoDocumentos>> {
   try {
     const { user } = await requireReservas()
@@ -183,7 +197,7 @@ export async function verDocumento(opportunityId: string, archivoId: string): Pr
       email: user.email!,
       accion: 'ver-documento',
       nombre: opportunityId,
-      detalle: { archivo: a.id, viajero: a.viajero, tipo: a.tipo },
+      detalle: { archivo: a.id, viajero: a.viajero, tipo: a.tipo, cara: a.cara },
     })
     return { ok: true, datos: url }
   } catch (e) {

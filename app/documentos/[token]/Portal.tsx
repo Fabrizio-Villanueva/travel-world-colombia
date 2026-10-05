@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   BookOpenText,
   Camera,
@@ -12,6 +12,7 @@ import {
   PencilLine,
   RefreshCw,
   ScanLine,
+  ScrollText,
   ShieldCheck,
   TriangleAlert,
   type LucideIcon,
@@ -19,8 +20,14 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import {
   BUCKET_DOCUMENTOS_VIAJEROS,
-  TIPO_LABEL,
-  tiposRequeridos,
+  TIPO_VIAJERO_LABEL,
+  calcularProgreso,
+  documentosDe,
+  esCaraPrincipal,
+  etiquetaDocumento,
+  tipoViajeroDe,
+  type Cara,
+  type DocumentoRequerido,
   type TipoDocumento,
 } from '@/lib/documentos/config'
 import {
@@ -38,7 +45,9 @@ import { Gracias } from './Gracias'
 
 /**
  * El portal: una tarjeta por viajero y, dentro, una casilla por documento que
- * el viaje pide. Flujo por casilla: foto → sube directo al bucket privado →
+ * ese viajero necesita según su tipo (adulto / menor / infante). La cédula y la
+ * tarjeta de identidad van por los dos lados (frente → reverso). Flujo por
+ * casilla: foto(s) → suben directo al bucket privado →
  * lectura automática → el cliente confirma o corrige → queda escrito en la
  * tarjeta del viaje. Puede volver con el mismo enlace: todo se recuerda.
  *
@@ -54,7 +63,12 @@ const ACCENT = '#2957A4'
 const VERDE = '#047857'
 const tarjeta: React.CSSProperties = { background: 'white', border: `1px solid ${BORDER}`, borderRadius: 24, boxShadow: '0 2px 12px rgba(13,30,60,0.04)' }
 
-const ICONO: Record<TipoDocumento, LucideIcon> = { pasaporte: BookOpenText, cedula: IdCard, visa: FileBadge }
+const ICONO: Record<TipoDocumento, LucideIcon> = {
+  pasaporte: BookOpenText,
+  cedula: IdCard,
+  visa: FileBadge,
+  registro_civil: ScrollText,
+}
 
 function fmtFecha(iso: string | null | undefined): string {
   if (!iso) return ''
@@ -92,20 +106,18 @@ async function prepararArchivo(file: File): Promise<File> {
 
 export function Portal({ token, inicial }: { token: string; inicial: PortalDatos }) {
   const [datos, setDatos] = useState<PortalDatos>(inicial)
-  const tipos = useMemo(() => tiposRequeridos(datos.requisitos), [datos.requisitos])
 
-  const requeridos = datos.viajeros * tipos.length
-  const confirmados = datos.archivos.filter(a => a.confirmado_en && a.viajero <= datos.viajeros && tipos.includes(a.tipo)).length
-  const completo = requeridos > 0 && confirmados >= requeridos
+  const { requeridos, confirmados, completo } = calcularProgreso(datos.viajeros, datos.viajeros_tipo, datos.requisitos, datos.archivos)
   const pct = requeridos ? Math.round((confirmados / requeridos) * 100) : 0
 
   // Pantalla final: solo cuando el cliente completa en ESTA visita (no al recargar).
   const [gracias, setGracias] = useState(false)
 
-  function ponerArchivo(a: ArchivoPublico | null, viajero: number, tipo: TipoDocumento) {
-    const archivos = [...datos.archivos.filter(x => !(x.viajero === viajero && x.tipo === tipo)), ...(a ? [a] : [])]
-    const ahora = archivos.filter(x => x.confirmado_en && x.viajero <= datos.viajeros && tipos.includes(x.tipo)).length
-    if (!completo && requeridos > 0 && ahora >= requeridos) setGracias(true)
+  /** Reemplaza todas las caras de un documento (viajero + tipo). */
+  function ponerArchivos(filas: ArchivoPublico[], viajero: number, tipo: TipoDocumento) {
+    const archivos = [...datos.archivos.filter(x => !(x.viajero === viajero && x.tipo === tipo)), ...filas]
+    const ahora = calcularProgreso(datos.viajeros, datos.viajeros_tipo, datos.requisitos, archivos)
+    if (!completo && ahora.completo) setGracias(true)
     setDatos(d => ({ ...d, archivos }))
   }
 
@@ -178,6 +190,8 @@ export function Portal({ token, inicial }: { token: string; inicial: PortalDatos
       ) : (
         Array.from({ length: datos.viajeros }, (_, i) => i + 1).map(n => {
           const nombre = datos.nombres[n - 1]
+          const tipoViajero = tipoViajeroDe(datos.viajeros_tipo, n)
+          const docs = documentosDe(tipoViajero, datos.requisitos)
           return (
             <section key={n} className="p-5" style={tarjeta}>
               <div className="flex items-center gap-3">
@@ -192,19 +206,20 @@ export function Portal({ token, inicial }: { token: string; inicial: PortalDatos
                     Viajero {n}
                   </h2>
                   <p className="truncate font-inter text-[13px]" style={{ color: MUTED }}>
-                    {nombre ?? (n === 1 ? 'Titular de la reserva' : 'Acompañante')}
+                    {nombre ?? (n === 1 ? 'Titular de la reserva' : 'Acompañante')} · {TIPO_VIAJERO_LABEL[tipoViajero]}
                   </p>
                 </div>
               </div>
               <div className="mt-4 flex flex-col gap-3">
-                {tipos.map(tipo => (
+                {docs.map(doc => (
                   <Casilla
-                    key={tipo}
+                    key={`${doc.tipo}-${tipoViajero}`}
                     token={token}
                     viajero={n}
-                    tipo={tipo}
-                    archivo={datos.archivos.find(a => a.viajero === n && a.tipo === tipo) ?? null}
-                    onCambio={a => ponerArchivo(a, n, tipo)}
+                    doc={doc}
+                    etiqueta={etiquetaDocumento(doc.tipo, tipoViajero)}
+                    archivos={datos.archivos.filter(a => a.viajero === n && a.tipo === doc.tipo)}
+                    onCambio={filas => ponerArchivos(filas, n, doc.tipo)}
                   />
                 ))}
               </div>
@@ -294,46 +309,91 @@ function Consentimiento({ token, onAceptado }: { token: string; onAceptado: () =
 }
 
 /* ------------------------------------------------------------------ */
-/* Una casilla = un documento de un viajero                            */
+/* Una casilla = un documento de un viajero (una o dos caras)          */
 /* ------------------------------------------------------------------ */
 
-type Fase = 'vacio' | 'subiendo' | 'leyendo' | 'confirmar' | 'listo'
+/**
+ * vacio → (foto) → [siguiente cara] → leyendo → confirmar → listo.
+ * "leer": todas las caras están pero aún no se leyó (p. ej. volvió más tarde
+ * o falló la lectura): un botón la lanza.
+ */
+type Fase = 'vacio' | 'siguiente' | 'subiendo' | 'leyendo' | 'leer' | 'confirmar' | 'listo'
+
+function principalDe(archivos: ArchivoPublico[]): ArchivoPublico | null {
+  return archivos.find(a => esCaraPrincipal(a.cara)) ?? null
+}
+
+/** Caras que aún faltan (una foto vieja de cara única cuenta como documento completo). */
+function carasFaltantes(doc: DocumentoRequerido, archivos: ArchivoPublico[]): Cara[] {
+  if (archivos.some(a => a.cara === 'unica')) return []
+  return doc.caras.filter(c => !archivos.some(a => a.cara === c))
+}
+
+function faseDe(doc: DocumentoRequerido, archivos: ArchivoPublico[]): Fase {
+  if (archivos.length === 0) return 'vacio'
+  const p = principalDe(archivos)
+  if (p?.confirmado_en) return 'listo'
+  if (carasFaltantes(doc, archivos).length > 0) return 'siguiente'
+  return p?.metodo ? 'confirmar' : 'leer'
+}
 
 function Casilla({
   token,
   viajero,
-  tipo,
-  archivo,
+  doc,
+  etiqueta,
+  archivos,
   onCambio,
 }: {
   token: string
   viajero: number
-  tipo: TipoDocumento
-  archivo: ArchivoPublico | null
-  onCambio: (a: ArchivoPublico | null) => void
+  doc: DocumentoRequerido
+  etiqueta: string
+  archivos: ArchivoPublico[]
+  onCambio: (filas: ArchivoPublico[]) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [fase, setFase] = useState<Fase>(() => (archivo ? (archivo.confirmado_en ? 'listo' : 'confirmar') : 'vacio'))
+  const [fase, setFase] = useState<Fase>(() => faseDe(doc, archivos))
   const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState<DatosDocumento>(() => archivo?.datos_confirmados ?? archivo?.datos_extraidos ?? {})
+  const principal = principalDe(archivos)
+  const [form, setForm] = useState<DatosDocumento>(() => principal?.datos_confirmados ?? principal?.datos_extraidos ?? {})
   const [guardando, setGuardando] = useState(false)
   const [progreso, setProgreso] = useState(0)
 
+  const tipo = doc.tipo
   const Icono = ICONO[tipo]
   const campos = CAMPOS_POR_TIPO[tipo]
+  const dosCaras = doc.caras.length > 1
+  const faltan = carasFaltantes(doc, archivos)
+  const caraSiguiente: Cara = faltan[0] ?? doc.caras[0]
+
+  async function leer(filas: ArchivoPublico[], inicio: number) {
+    const p = principalDe(filas)
+    if (!p) return
+    setFase('leyendo')
+    const lectura = await procesar(token, p.id)
+    if (!lectura.ok) throw new Error(lectura.error)
+    // La pantalla de análisis se queda al menos 2 s: sin parpadeos.
+    await new Promise(r => setTimeout(r, Math.max(0, 2000 - (Date.now() - inicio))))
+    onCambio(filas.map(f => (f.id === lectura.datos.id ? lectura.datos : f)))
+    setForm(lectura.datos.datos_extraidos ?? {})
+    setFase('confirmar')
+  }
 
   async function elegir(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
+    const cara = caraSiguiente
     setError(null)
     setFase('subiendo')
     setProgreso(10)
     const inicio = Date.now()
+    let filas = archivos
     try {
       const listo = await prepararArchivo(file)
       setProgreso(30)
-      const prep = await prepararSubida(token, viajero, tipo, listo.type, listo.size)
+      const prep = await prepararSubida(token, viajero, tipo, cara, listo.type, listo.size)
       if (!prep.ok) throw new Error(prep.error)
       const sb = createClient()
       const { error: eSubida } = await sb.storage
@@ -341,29 +401,58 @@ function Casilla({
         .uploadToSignedUrl(prep.datos.ruta, prep.datos.tokenSubida, listo, { contentType: listo.type })
       if (eSubida) throw new Error('No se pudo subir la foto. Revisa tu conexión e intenta de nuevo.')
       setProgreso(100)
-      setFase('leyendo')
-      const lectura = await procesar(token, prep.datos.archivoId)
-      if (!lectura.ok) throw new Error(lectura.error)
-      // La pantalla de análisis se queda al menos 2 s: sin parpadeos.
-      await new Promise(r => setTimeout(r, Math.max(0, 2000 - (Date.now() - inicio))))
-      onCambio(lectura.datos)
-      setForm(lectura.datos.datos_extraidos ?? {})
-      setFase('confirmar')
+      const nueva: ArchivoPublico = {
+        id: prep.datos.archivoId,
+        viajero,
+        tipo,
+        cara,
+        subido_en: new Date().toISOString(),
+        metodo: null,
+        confianza: null,
+        datos_extraidos: null,
+        datos_confirmados: null,
+        confirmado_en: null,
+        revision_requerida: false,
+        avisos: [],
+      }
+      // Igual que el servidor: una foto nueva invalida la lectura anterior.
+      filas = [
+        ...archivos
+          .filter(a => a.cara !== cara)
+          .map(a => ({ ...a, metodo: null, confianza: null, datos_extraidos: null, datos_confirmados: null, confirmado_en: null, avisos: [] })),
+        nueva,
+      ]
+      onCambio(filas)
+      if (carasFaltantes(doc, filas).length > 0) {
+        setFase('siguiente')
+        return
+      }
+      await leer(filas, inicio)
     } catch (err) {
       setError((err as Error).message)
-      setFase(archivo ? (archivo.confirmado_en ? 'listo' : 'confirmar') : 'vacio')
+      setFase(faseDe(doc, filas))
+    }
+  }
+
+  async function reintentarLectura() {
+    setError(null)
+    try {
+      await leer(archivos, Date.now())
+    } catch (err) {
+      setError((err as Error).message)
+      setFase('leer')
     }
   }
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault()
-    if (!archivo) return
+    if (!principal) return
     setGuardando(true)
     setError(null)
     try {
-      const r = await confirmar(token, archivo.id, form)
+      const r = await confirmar(token, principal.id, form)
       if (!r.ok) throw new Error(r.error)
-      onCambio(r.datos.archivo)
+      onCambio(archivos.map(f => (f.id === r.datos.archivo.id ? r.datos.archivo : f)))
       setFase('listo')
     } catch (err) {
       setError((err as Error).message)
@@ -373,22 +462,24 @@ function Casilla({
   }
 
   async function cambiarFoto() {
-    if (archivo) {
-      const r = await repetir(token, archivo.id).catch(() => null)
+    const cualquiera = archivos[0]
+    if (cualquiera) {
+      const r = await repetir(token, cualquiera.id).catch(() => null)
       if (!r || !r.ok) {
         setError(r?.ok === false ? r.error : 'No se pudo quitar la foto anterior.')
         return
       }
-      onCambio(null)
+      onCambio([])
     }
     setForm({})
     setFase('vacio')
     setTimeout(() => inputRef.current?.click(), 0)
   }
 
-  const avisos = archivo?.avisos ?? []
-  const confianzaBaja = archivo?.confianza === 'baja' || archivo?.metodo === 'manual'
+  const avisos = principal?.avisos ?? []
+  const confianzaBaja = principal?.confianza === 'baja' || principal?.metodo === 'manual'
   const listo = fase === 'listo'
+  const pidiendoFoto = fase === 'vacio' || fase === 'siguiente'
 
   return (
     <div
@@ -407,8 +498,15 @@ function Casilla({
           >
             <Icono size={18} strokeWidth={1.8} />
           </span>
-          <span className="font-plus-jakarta text-[15px] font-bold" style={{ color: NAVY }}>
-            {TIPO_LABEL[tipo]}
+          <span>
+            <span className="block font-plus-jakarta text-[15px] font-bold leading-tight" style={{ color: NAVY }}>
+              {etiqueta}
+            </span>
+            {dosCaras && (
+              <span className="block font-inter text-[11px]" style={{ color: MUTED }}>
+                Foto por los dos lados
+              </span>
+            )}
           </span>
         </span>
         {listo ? (
@@ -424,20 +522,30 @@ function Casilla({
 
       <input ref={inputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={elegir} />
 
-      {(fase === 'subiendo' || fase === 'leyendo') && <PantallaAnalisis fase={fase} tipo={tipo} />}
+      {(fase === 'subiendo' || fase === 'leyendo') && <PantallaAnalisis fase={fase} etiqueta={etiqueta} />}
 
-      {fase === 'vacio' && (
+      {pidiendoFoto && (
         <div className="mt-4">
+          {dosCaras && <PasosCaras doc={doc} archivos={archivos} actual={caraSiguiente} />}
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl font-inter text-[15px] font-semibold text-white transition-all active:scale-[0.99]"
             style={{ background: ACCENT }}
           >
-            <Camera size={18} /> Tomar foto o subir archivo
+            <Camera size={18} />
+            {!dosCaras
+              ? 'Tomar foto o subir archivo'
+              : caraSiguiente === 'reverso'
+                ? 'Ahora, foto del reverso'
+                : 'Foto del frente'}
           </button>
           <p className="mt-2 text-center font-inter text-[11px]" style={{ color: MUTED }}>
-            Con buena luz, sin brillo y el documento completo.
+            {tipo === 'pasaporte'
+              ? 'La página de la foto, completa (con las dos líneas de letras y <<< de abajo), con buena luz y sin brillo.'
+              : tipo === 'registro_civil'
+                ? 'El registro completo, derecho y legible, con buena luz.'
+                : 'Con buena luz, sin brillo y el documento completo.'}
           </p>
         </div>
       )}
@@ -457,6 +565,27 @@ function Casilla({
         <p className="mt-4 flex items-center gap-2 font-inter text-[13px]" style={{ color: NAVY }}>
           <ScanLine size={16} className="animate-pulse" style={{ color: ACCENT }} /> Leyendo los datos del documento (unos segundos)…
         </p>
+      )}
+
+      {fase === 'leer' && (
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={reintentarLectura}
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl font-inter text-[15px] font-semibold text-white transition-all active:scale-[0.99]"
+            style={{ background: ACCENT }}
+          >
+            <ScanLine size={17} /> Leer los datos
+          </button>
+          <button
+            type="button"
+            onClick={cambiarFoto}
+            className="flex h-12 items-center justify-center gap-1.5 rounded-2xl bg-white px-4 font-inter text-[13px] font-medium"
+            style={{ border: `1px solid ${BORDER}`, color: NAVY }}
+          >
+            <RefreshCw size={14} /> Empezar de nuevo
+          </button>
+        </div>
       )}
 
       {(fase === 'confirmar' || listo) && (
@@ -504,7 +633,7 @@ function Casilla({
                   className="flex h-12 items-center justify-center gap-1.5 rounded-2xl bg-white px-4 font-inter text-[13px] font-medium"
                   style={{ border: `1px solid ${BORDER}`, color: NAVY }}
                 >
-                  <RefreshCw size={14} /> Otra foto
+                  <RefreshCw size={14} /> {dosCaras ? 'Otras fotos' : 'Otra foto'}
                 </button>
               </div>
             </form>
@@ -512,7 +641,7 @@ function Casilla({
             <div className="mt-3">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {campos
-                  .filter(c => archivo?.datos_confirmados?.[c])
+                  .filter(c => principal?.datos_confirmados?.[c])
                   .map(c => (
                     <div key={c} className="min-w-0">
                       <dt className="font-inter text-[10px] uppercase tracking-wide" style={{ color: MUTED }}>{CAMPO_LABEL[c]}</dt>
@@ -520,7 +649,7 @@ function Casilla({
                         className={`break-words font-inter text-[13px] font-semibold leading-snug tabular-nums ${c === 'numero' || c === 'documento_identidad' ? 'font-mono font-medium' : ''}`}
                         style={{ color: NAVY }}
                       >
-                        {CAMPOS_FECHA.includes(c) ? fmtFecha(archivo?.datos_confirmados?.[c]) : archivo?.datos_confirmados?.[c]}
+                        {CAMPOS_FECHA.includes(c) ? fmtFecha(principal?.datos_confirmados?.[c]) : principal?.datos_confirmados?.[c]}
                       </dd>
                     </div>
                   ))}
@@ -531,19 +660,84 @@ function Casilla({
                 className="mt-3 inline-flex items-center gap-1.5 font-inter text-[12px] font-medium"
                 style={{ color: ACCENT }}
               >
-                <PencilLine size={13} /> Cambiar foto o corregir
+                <PencilLine size={13} /> {dosCaras ? 'Cambiar fotos o corregir' : 'Cambiar foto o corregir'}
               </button>
             </div>
           )}
         </>
       )}
 
-      {error && fase === 'vacio' && (
+      {error && fase !== 'confirmar' && (
         <p className="mt-3 rounded-xl px-4 py-3 font-inter text-[13px]" style={{ background: '#FFF1F2', color: '#BE123C', border: '1px solid #FECDD3' }}>
           {error}
         </p>
       )}
     </div>
+  )
+}
+
+/** "1 Frente ✓ · 2 Reverso" con una silueta de qué lado fotografiar. */
+function PasosCaras({ doc, archivos, actual }: { doc: DocumentoRequerido; archivos: ArchivoPublico[]; actual: Cara }) {
+  return (
+    <div className="mb-3 flex items-center gap-3 rounded-2xl bg-white p-3" style={{ border: `1px solid ${BORDER}` }}>
+      <SiluetaCara cara={actual} />
+      <ol className="flex flex-1 flex-col gap-1.5">
+        {doc.caras.map((c, i) => {
+          const hecha = archivos.some(a => a.cara === c)
+          const activa = c === actual && !hecha
+          return (
+            <li
+              key={c}
+              className="flex items-center gap-2 font-inter text-[13px]"
+              style={{ color: hecha ? VERDE : activa ? NAVY : MUTED, fontWeight: activa ? 600 : 500 }}
+            >
+              <span
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+                style={
+                  hecha
+                    ? { background: '#10B981', color: 'white' }
+                    : activa
+                      ? { background: ACCENT, color: 'white' }
+                      : { border: `1.5px solid ${BORDER}` }
+                }
+              >
+                {hecha ? <Check size={12} strokeWidth={3} /> : i + 1}
+              </span>
+              {c === 'frente' ? 'Frente (el lado de la foto)' : 'Reverso (el otro lado)'}
+              {hecha ? ' · lista' : ''}
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
+}
+
+/** Dibujo simple de la tarjeta: frente con foto y datos; reverso con huella/código y franja. */
+function SiluetaCara({ cara }: { cara: Cara }) {
+  return (
+    <svg width="72" height="48" viewBox="0 0 72 48" aria-hidden className="shrink-0">
+      <rect x="1" y="1" width="70" height="46" rx="6" fill={PAGE} stroke={ACCENT} strokeWidth="1.5" />
+      {cara === 'reverso' ? (
+        <>
+          <rect x="8" y="8" width="22" height="14" rx="2" fill="#CBD5E1" />
+          <rect x="36" y="9" width="28" height="3" rx="1.5" fill="#CBD5E1" />
+          <rect x="36" y="15" width="20" height="3" rx="1.5" fill="#CBD5E1" />
+          <rect x="6" y="29" width="60" height="3" rx="1.5" fill={ACCENT} opacity=".55" />
+          <rect x="6" y="35" width="60" height="3" rx="1.5" fill={ACCENT} opacity=".55" />
+          <rect x="6" y="41" width="60" height="3" rx="1.5" fill={ACCENT} opacity=".55" />
+        </>
+      ) : (
+        <>
+          <rect x="7" y="9" width="17" height="22" rx="3" fill="#CBD5E1" />
+          <circle cx="15.5" cy="16.5" r="4" fill="#94A3B8" />
+          <rect x="30" y="10" width="34" height="3" rx="1.5" fill="#CBD5E1" />
+          <rect x="30" y="17" width="26" height="3" rx="1.5" fill="#CBD5E1" />
+          <rect x="30" y="24" width="30" height="3" rx="1.5" fill="#CBD5E1" />
+          <rect x="7" y="37" width="40" height="3" rx="1.5" fill="#CBD5E1" />
+        </>
+      )}
+    </svg>
   )
 }
 
@@ -560,7 +754,12 @@ function CampoForm({
 }) {
   const estilo: React.CSSProperties = { border: `1px solid ${BORDER}`, color: NAVY, background: 'white' }
   const clase = 'h-11 w-full rounded-xl px-3 font-inter text-[15px] outline-none focus:ring-4 focus:ring-[rgba(41,87,164,0.12)]'
-  const etiqueta = campo === 'numero' ? `Número de ${tipo === 'cedula' ? 'documento' : tipo}` : CAMPO_LABEL[campo]
+  const etiqueta =
+    campo === 'numero'
+      ? tipo === 'registro_civil'
+        ? 'NUIP (o indicativo serial)'
+        : `Número de ${tipo === 'cedula' ? 'documento' : tipo}`
+      : CAMPO_LABEL[campo]
   return (
     <label className="block">
       <span className="mb-1 block font-inter text-[11px] font-medium" style={{ color: MUTED }}>
@@ -599,7 +798,7 @@ function CampoForm({
 /* Pantalla completa mientras se sube y se analiza el documento        */
 /* ------------------------------------------------------------------ */
 
-function PantallaAnalisis({ fase, tipo }: { fase: 'subiendo' | 'leyendo'; tipo: TipoDocumento }) {
+function PantallaAnalisis({ fase, etiqueta }: { fase: 'subiendo' | 'leyendo'; etiqueta: string }) {
   const pasos = [
     { t: 'Cifrado', listo: true },
     { t: 'Subido al canal seguro', listo: fase === 'leyendo' },
@@ -622,7 +821,7 @@ function PantallaAnalisis({ fase, tipo }: { fase: 'subiendo' | 'leyendo'; tipo: 
       <p className="analisis-titulo">{fase === 'subiendo' ? 'Subiendo de forma cifrada…' : 'Analizando tu documento…'}</p>
       <p className="analisis-sub">
         {fase === 'subiendo'
-          ? `Tu ${TIPO_LABEL[tipo].toLowerCase()} viaja cifrado hasta el servidor de la agencia.`
+          ? `Tu ${etiqueta.toLowerCase()} viaja cifrado hasta el servidor de la agencia.`
           : 'El sistema lee los datos automáticamente. En un momento los confirmas.'}
       </p>
       <ul className="analisis-pasos">

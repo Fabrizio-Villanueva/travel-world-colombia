@@ -1,5 +1,57 @@
 # Traspaso — Portal de documentos v2 (tipos de viajero, dos caras, imágenes en el CRM)
 
+## ✅ ESTADO 05-oct (tarde): v2 IMPLEMENTADA Y PUBLICADA
+Decisiones del usuario (respuestas a la sección 3):
+- **A/B — imágenes en el CRM:** NO se suben archivos a GHL. En la OPORTUNIDAD quedan 8 campos TEXT
+  **`P1…P8 - Documentos (panel)`** (carpeta 👥 Pasajeros, creados por API con
+  `scripts/ghl-crear-campos-documentos-panel.mjs`; NO están en el catálogo del Generador a propósito) con el enlace
+  `https://travelworldcolombia.com/admin/reservas/<opp>/documentos/<n>`. Esa página pide sesión del equipo (admin, editor o
+  **representante**: las 6 asesoras), firma las fotos por 5 min, registra `ver-documento` (origen `enlace-crm`) en la bitácora
+  y muestra frente/reverso + datos + avisos. Sin sesión → `/admin/login?next=…` y vuelve al documento tras entrar
+  (`destinoSeguro` en `app/admin/actions.ts` solo acepta rutas `/admin/…`). /privacidad no cambia (las fotos siguen solo en
+  el bucket privado y se borran a 30 días). Los 10 FILE_UPLOAD en cuarentena NO se tocaron.
+- **D — menores internacionales:** solo **registro civil** (sin permiso de salida).
+- **Tipo de viajero:** lo marca la asesora (selector Adulto/Menor/Infante por viajero en la pestaña Documentos),
+  prellenado desde la liquidación (`Valor Niño - Cantidad` / `Cantidad de niños` y `Valor Infante - Cantidad`: los
+  últimos viajeros son infantes, luego menores). Si la fecha de nacimiento leída no cuadra, aviso al cliente y a la asesora.
+
+Reglas (`documentosDe` en `lib/documentos/config.ts`):
+| Viaje marca | Adulto (18+) | Menor (7–17) | Infante (0–6) |
+|---|---|---|---|
+| Cédula (nacional) | Cédula de ciudadanía, frente + reverso | Tarjeta de identidad, frente + reverso | Registro civil (1 foto) |
+| Pasaporte (internacional) | Pasaporte (página de datos) | Pasaporte + registro civil | Pasaporte + registro civil |
+| Visa | Visa (1 foto) | Visa | Visa |
+
+Técnico:
+- **Migración 029 ✓ en prod**: `doc_solicitudes.viajeros_tipo jsonb`, `doc_archivos.cara` (frente/reverso/unica), tipo
+  `registro_civil`, único `(solicitud_id, viajero, tipo, cara)`. Filas viejas = `unica` (cuentan como documento completo).
+- La lectura y la confirmación viven en la **cara principal** (frente/única); el reverso solo guarda la imagen. Subir de
+  nuevo una cara borra la lectura del documento. "Otra foto" borra todas las caras. Progreso = documentos (no caras),
+  `calcularProgreso` compartido por servidor, panel y portal.
+- Lectura: frente + reverso en UNA llamada (cuenta una sola vez en el cupo de la migración 028). Cédula/TI digital:
+  **MRZ TD1** del reverso (`parsearMrzTd1`, probado con el ejemplo ICAO) → nombres y nacimiento verificados; el número
+  impreso (NUIP) se coteja con la franja (alta si aparece, media si no). Registro civil: visión (NUIP, nombres,
+  nacimiento, sexo) → `P{n} - Nombre y Apellido`, `Documento`, `Fecha de Nacimiento`.
+- Portal: casilla de dos pasos ("Foto del frente" → "Ahora, foto del reverso") con silueta del lado; botón "Leer los
+  datos" si las caras están pero falta la lectura (cliente que vuelve o lectura caída).
+
+Probado el 05-oct (local, solicitud TEMPORAL en la opp de prueba con V2 adulto / V3 menor / V4 infante, nacional; ya
+borrada junto con sus fotos, y P2–P4 vaciados): cédula y TI leídas por MRZ TD1 con confianza alta, registro civil por
+visión, escritura en P2–P4 + `Documentos (panel)`, estado `Parciales` (C-06 no se disparó). Visor y pestaña revisados en
+captura; sin sesión redirige al login con `?next=`. **Efecto colateral:** `Documentos del cliente` de la opp de prueba
+quedó en **Parciales** (antes Completos); no se volvió a poner Completos para no disparar C-06 (SMS a Luisa).
+Una lectura falló en local por `SELF_SIGNED_CERT_IN_CHAIN` (red de este PC), no por código; el reintento funcionó.
+
+Pendiente / ideas:
+- Probar en producción con el celular (cédula real por los dos lados) desde la opp de prueba.
+- Opcional: campo `P{n} - Tipo de documento` (CC/TI/RC/PA) en GHL; hoy el tipo solo vive en Supabase.
+- Opcional: en GHL, mostrar los `P{n} - Documentos (panel)` en la vista de la tarjeta (son enlaces clicables de texto).
+- La capacitación (sección 5) sigue pendiente; las 9 opps de capacitación ya verán el selector de tipo.
+
+---
+
+## (Contexto original del traspaso, previo a la implementación)
+
 > Preparado el 2026-10-05 al cierre de sesión. Lee también: `docs/idea-portal-documentos.md` (diseño y estado v1),
 > `docs/auditoria-seguridad-portal-documentos-2026-10-03.md` (auditoría y decisiones aceptadas) y la sección
 > "Portal de documentos" de `docs/handoff-ghl-reestructura.md` (campos GHL, C-05/C-06, capacitación).

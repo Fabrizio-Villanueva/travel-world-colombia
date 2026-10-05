@@ -1,4 +1,4 @@
-import type { Requisitos, TipoDocumento } from '@/lib/documentos/config'
+import type { Cara, Requisitos, TipoDocumento, TipoViajero } from '@/lib/documentos/config'
 
 /**
  * Tipos que viajan entre servidor y cliente (página pública y panel). Sin
@@ -40,6 +40,7 @@ export const CAMPOS_POR_TIPO: Record<TipoDocumento, CampoDocumento[]> = {
   ],
   cedula: ['tipo_documento', 'numero', 'nombres', 'apellidos', 'fecha_nacimiento'],
   visa: ['pais_emisor', 'tipo_documento', 'numero', 'nombres', 'apellidos', 'fecha_vencimiento'],
+  registro_civil: ['numero', 'nombres', 'apellidos', 'fecha_nacimiento', 'sexo'],
 }
 
 export const CAMPO_LABEL: Record<CampoDocumento, string> = {
@@ -65,6 +66,7 @@ export interface ArchivoPublico {
   id: string
   viajero: number
   tipo: TipoDocumento
+  cara: Cara
   subido_en: string
   metodo: MetodoLectura | null
   confianza: Confianza | null
@@ -83,6 +85,8 @@ export interface PortalDatos {
   fecha_regreso: string | null
   requisitos: Requisitos
   viajeros: number
+  /** Índice 0 = viajero 1. Faltante = adulto. */
+  viajeros_tipo: TipoViajero[]
   nombres: (string | null)[]
   consentimiento: boolean
   estado: 'activa' | 'completa' | 'revocada'

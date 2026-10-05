@@ -15,16 +15,28 @@ import {
   Minus,
   Plus,
   RefreshCw,
+  ScrollText,
   Send,
   TriangleAlert,
   type LucideIcon,
 } from 'lucide-react'
 import {
+  CARA_LABEL,
   TIPO_LABEL,
+  TIPO_VIAJERO_EDADES,
+  TIPO_VIAJERO_LABEL,
   TIPOS_DOCUMENTO,
+  TIPOS_VIAJERO,
+  documentosDe,
+  esCaraPrincipal,
+  etiquetaDocumento,
+  tipoViajeroDe,
   tiposRequeridos,
+  type DocumentoRequerido,
+  type Requisito,
   type Requisitos,
   type TipoDocumento,
+  type TipoViajero,
 } from '@/lib/documentos/config'
 import { CAMPO_LABEL, CAMPOS_FECHA, CAMPOS_POR_TIPO } from '@/lib/documentos/tipos'
 import {
@@ -58,11 +70,21 @@ const SHADOW = '0 2px 12px rgba(13, 30, 60, 0.04)'
 
 const tarjeta: React.CSSProperties = { background: 'white', border: `1px solid ${BORDER}`, borderRadius: 18, boxShadow: SHADOW }
 
-const ICONO: Record<TipoDocumento, LucideIcon> = { pasaporte: BookOpenText, cedula: IdCard, visa: FileBadge }
-const SUBTITULO: Record<TipoDocumento, string> = {
-  pasaporte: 'Viajes internacionales',
-  cedula: 'Viajes nacionales y menores',
+const ICONO: Record<TipoDocumento, LucideIcon> = {
+  pasaporte: BookOpenText,
+  cedula: IdCard,
+  visa: FileBadge,
+  registro_civil: ScrollText,
+}
+const SUBTITULO: Record<Requisito, string> = {
+  pasaporte: 'Internacional · menores e infantes + registro civil',
+  cedula: 'Nacional · cédula o TI por los dos lados; infantes, registro civil',
   visa: 'Según el país de destino',
+}
+
+/** "Cédula de ciudadanía (frente y reverso)". */
+function resumenDocumento(d: DocumentoRequerido, t: TipoViajero): string {
+  return `${etiquetaDocumento(d.tipo, t)}${d.caras.length > 1 ? ' (frente y reverso)' : ''}`
 }
 
 const fmt = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' })
@@ -75,6 +97,7 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
   const [estado, setEstado] = useState<EstadoDocumentos>(inicial)
   const [viajeros, setViajeros] = useState(inicial.solicitud?.viajeros ?? inicial.viajerosSugeridos)
   const [requisitos, setRequisitos] = useState<Requisitos>(inicial.solicitud?.requisitos ?? inicial.sugerencia.requisitos)
+  const [tiposViajero, setTiposViajero] = useState<TipoViajero[]>(inicial.tiposViajero)
   const [ocupado, setOcupado] = useState<string | null>(null)
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null)
   const [copiado, setCopiado] = useState(false)
@@ -83,7 +106,10 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
   const vigente = s !== null && s.estado !== 'revocada'
   const tipos = tiposRequeridos(requisitos)
   const cambios =
-    vigente && (s.viajeros !== viajeros || TIPOS_DOCUMENTO.some(t => Boolean(s.requisitos[t]) !== requisitos[t]))
+    vigente &&
+    (s.viajeros !== viajeros ||
+      TIPOS_DOCUMENTO.some(t => Boolean(s.requisitos[t]) !== requisitos[t]) ||
+      Array.from({ length: viajeros }, (_, i) => i + 1).some(n => tipoViajeroDe(s.viajeros_tipo, n) !== tiposViajero[n - 1]))
 
   async function correr<T>(clave: string, fn: () => Promise<Res<T>>, luego: (d: T) => void) {
     setOcupado(clave)
@@ -107,7 +133,7 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
 
   function enviar() {
     if (vigente && !confirm('Se genera un enlace NUEVO: el anterior deja de servir (los documentos ya subidos se conservan) y C-05 vuelve a avisarle al cliente. Si solo quieres recordárselo, usa "Enviar al cliente". ¿Seguir?')) return
-    correr('enviar', () => enviarEnlaceDocumentos(opportunityId, { viajeros, requisitos }), d => {
+    correr('enviar', () => enviarEnlaceDocumentos(opportunityId, { viajeros, requisitos, viajerosTipo: tiposViajero }), d => {
       setEstado(d.estado)
       setAviso({ ok: true, texto: `Enlace ${d.accion === 'Enviar' ? 'creado' : 'regenerado'} y guardado en la tarjeta. El workflow C-05 se lo manda al cliente.` })
     })
@@ -124,7 +150,7 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
   }
 
   function guardarCambios() {
-    correr('guardar', () => actualizarRequisitosDocumentos(opportunityId, { viajeros, requisitos }), d => {
+    correr('guardar', () => actualizarRequisitosDocumentos(opportunityId, { viajeros, requisitos, viajerosTipo: tiposViajero }), d => {
       setEstado(d)
       setAviso({ ok: true, texto: 'Requisitos actualizados. El cliente los ve al recargar su enlace.' })
     })
@@ -171,8 +197,9 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
             Documentos de los viajeros
           </h2>
           <p className="mt-1.5 font-inter text-[13px] leading-relaxed" style={{ color: MUTED }}>
-            El cliente sube pasaportes, cédulas o visas desde un enlace seguro; el sistema lee los datos, él los
-            confirma y quedan escritos en P1–P8. Las fotos nunca pasan por WhatsApp ni por GHL.
+            El cliente sube pasaportes, cédulas o tarjetas de identidad (por los dos lados), registros civiles o visas
+            desde un enlace seguro; el sistema lee los datos, él los confirma y quedan escritos en P1–P8. Las fotos
+            no pasan por WhatsApp ni se copian a GHL: en la tarjeta queda el enlace «P{'{n}'} - Documentos (panel)».
           </p>
         </div>
         <ResumenEstado estado={estado} />
@@ -221,6 +248,15 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
             />
           ))}
         </div>
+
+        <TiposViajero
+          viajeros={viajeros}
+          tipos={tiposViajero}
+          nombres={estado.nombres}
+          requisitos={requisitos}
+          sugeridos={estado.tiposSugeridos}
+          onChange={(n, t) => setTiposViajero(prev => prev.map((x, i) => (i === n - 1 ? t : x)))}
+        />
 
         <p className="mt-4 font-inter text-[11px]" style={{ color: MUTED }}>
           El cliente entra con un código de 6 dígitos que le llega por WhatsApp (o por correo) al celular
@@ -332,10 +368,13 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
       {/* ── Viajeros ── */}
       {s &&
         Array.from({ length: s.viajeros }, (_, i) => i + 1).map(n => {
-          const tiposViaje = tiposRequeridos(s.requisitos)
+          const tipoViajero = tipoViajeroDe(s.viajeros_tipo, n)
+          const docs = documentosDe(tipoViajero, s.requisitos)
           const nombre = estado.nombres[n - 1]
-          const propios = estado.archivos.filter(a => a.viajero === n && tiposViaje.includes(a.tipo))
-          const listos = propios.filter(a => a.confirmado_en).length
+          const propios = estado.archivos.filter(a => a.viajero === n)
+          const listos = docs.filter(d =>
+            propios.some(a => a.tipo === d.tipo && esCaraPrincipal(a.cara) && a.confirmado_en)
+          ).length
           return (
             <section key={n} className="flex flex-col gap-4">
               <div className="flex items-center justify-between gap-3">
@@ -352,7 +391,16 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
                       {nombre ? ` · ${nombre}` : ''}
                     </h3>
                     <p className="font-inter text-xs" style={{ color: MUTED }}>
-                      {n === 1 ? 'Titular de la reserva' : 'Acompañante'}
+                      {TIPO_VIAJERO_LABEL[tipoViajero]} · {n === 1 ? 'titular de la reserva' : 'acompañante'} ·{' '}
+                      <a
+                        href={`/admin/reservas/${opportunityId}/documentos/${n}`}
+                        target="_blank"
+                        rel="noopener"
+                        className="font-semibold underline-offset-2 hover:underline"
+                        style={{ color: ACCENT }}
+                      >
+                        abrir página del viajero
+                      </a>
                     </p>
                   </div>
                 </div>
@@ -360,15 +408,16 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
                   className="rounded-full bg-white px-2.5 py-1 font-inter text-xs font-medium tabular-nums"
                   style={{ color: MUTED, border: `1px solid ${BORDER}` }}
                 >
-                  {listos} de {tiposViaje.length} confirmados
+                  {listos} de {docs.length} confirmados
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-                {tiposViaje.map(t => (
+                {docs.map(d => (
                   <TarjetaDocumento
-                    key={t}
-                    tipo={t}
-                    archivo={propios.find(a => a.tipo === t) ?? null}
+                    key={d.tipo}
+                    doc={d}
+                    etiqueta={resumenDocumento(d, tipoViajero)}
+                    archivos={propios.filter(a => a.tipo === d.tipo)}
                     ocupado={ocupado}
                     onVer={ver}
                     onReintentar={reintentar}
@@ -501,7 +550,7 @@ function Stepper({ valor, onChange, disabled }: { valor: number; onChange: (n: n
   )
 }
 
-function Seleccionable({ tipo, activo, onToggle }: { tipo: TipoDocumento; activo: boolean; onToggle: () => void }) {
+function Seleccionable({ tipo, activo, onToggle }: { tipo: Requisito; activo: boolean; onToggle: () => void }) {
   const Icono = ICONO[tipo]
   return (
     <button
@@ -536,22 +585,102 @@ function Seleccionable({ tipo, activo, onToggle }: { tipo: TipoDocumento; activo
   )
 }
 
+/** Tipo de cada viajero (adulto / menor / infante) y los documentos que eso le pide. */
+function TiposViajero({
+  viajeros,
+  tipos,
+  nombres,
+  requisitos,
+  sugeridos,
+  onChange,
+}: {
+  viajeros: number
+  tipos: TipoViajero[]
+  nombres: (string | null)[]
+  requisitos: Requisitos
+  sugeridos: boolean
+  onChange: (n: number, t: TipoViajero) => void
+}) {
+  return (
+    <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h4 className="font-plus-jakarta text-[13px] font-bold" style={{ color: NAVY }}>
+          Tipo de cada viajero
+        </h4>
+        <span className="font-inter text-[11px]" style={{ color: MUTED }}>
+          {sugeridos ? 'Sugerido por la liquidación (adultos, niños, infantes): revísalo. ' : ''}
+          Adulto 18+ · Menor 7–17 · Infante 0–6
+        </span>
+      </div>
+      <ul className="mt-3 flex flex-col gap-2">
+        {Array.from({ length: viajeros }, (_, i) => i + 1).map(n => {
+          const t = tipos[n - 1] ?? 'adulto'
+          const docs = documentosDe(t, requisitos)
+          return (
+            <li
+              key={n}
+              className="flex flex-col gap-2 rounded-xl px-3 py-2.5 md:flex-row md:items-center md:justify-between"
+              style={{ background: PAGE, border: `1px solid ${BORDER}` }}
+            >
+              <div className="min-w-0">
+                <p className="truncate font-inter text-xs font-semibold" style={{ color: NAVY }}>
+                  Viajero {n}
+                  {nombres[n - 1] ? ` · ${nombres[n - 1]}` : ''}
+                </p>
+                <p className="font-inter text-[11px]" style={{ color: MUTED }}>
+                  {docs.length ? docs.map(d => resumenDocumento(d, t)).join(' · ') : 'Sin documentos marcados'}
+                </p>
+              </div>
+              <div
+                className="inline-flex shrink-0 self-start rounded-lg bg-white p-0.5 md:self-auto"
+                role="radiogroup"
+                aria-label={`Tipo del viajero ${n}`}
+                style={{ border: `1px solid ${BORDER}` }}
+              >
+                {TIPOS_VIAJERO.map(op => (
+                  <button
+                    key={op}
+                    type="button"
+                    role="radio"
+                    aria-checked={t === op}
+                    title={TIPO_VIAJERO_EDADES[op]}
+                    onClick={() => onChange(n, op)}
+                    className="h-7 rounded-md px-3 font-inter text-xs font-semibold transition-colors"
+                    style={t === op ? { background: ACCENT, color: 'white' } : { color: MUTED }}
+                  >
+                    {TIPO_VIAJERO_LABEL[op]}
+                  </button>
+                ))}
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 function TarjetaDocumento({
-  tipo,
-  archivo: a,
+  doc,
+  etiqueta,
+  archivos,
   ocupado,
   onVer,
   onReintentar,
 }: {
-  tipo: TipoDocumento
-  archivo: ArchivoPanel | null
+  doc: DocumentoRequerido
+  etiqueta: string
+  archivos: ArchivoPanel[]
   ocupado: string | null
   onVer: (a: ArchivoPanel) => void
   onReintentar: (a: ArchivoPanel) => void
 }) {
-  const Icono = ICONO[tipo]
+  const Icono = ICONO[doc.tipo]
+  const a = archivos.find(x => esCaraPrincipal(x.cara)) ?? null
+  const legado = archivos.some(x => x.cara === 'unica')
+  const faltan = legado ? [] : doc.caras.filter(c => !archivos.some(x => x.cara === c))
 
-  if (!a) {
+  if (archivos.length === 0) {
     return (
       <div
         className="flex flex-col items-center justify-center gap-2 rounded-[18px] p-6 text-center"
@@ -560,17 +689,33 @@ function TarjetaDocumento({
         <span className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: PAGE, border: `1px solid ${BORDER}`, color: MUTED }}>
           <Icono size={20} strokeWidth={1.5} />
         </span>
-        <span className="font-plus-jakarta text-sm font-semibold" style={{ color: NAVY }}>{TIPO_LABEL[tipo]}</span>
+        <span className="font-plus-jakarta text-sm font-semibold" style={{ color: NAVY }}>{etiqueta}</span>
         <span className="font-inter text-xs" style={{ color: MUTED }}>Pendiente · el cliente aún no lo sube</span>
       </div>
     )
   }
 
-  const estado = a.confirmado_en ? 'confirmado' : a.datos_extraidos ? 'leido' : 'subido'
-  const dot = estado === 'confirmado' ? { c: '#047857', bg: '#10B981', t: 'Confirmado' } : estado === 'leido' ? { c: '#B45309', bg: '#F59E0B', t: 'Leído, sin confirmar' } : { c: '#B45309', bg: '#F59E0B', t: 'Subido, sin confirmar' }
-  const datos = a.datos_confirmados ?? a.datos_extraidos ?? null
-  const lectura = a.metodo === 'mrz' ? 'lectura MRZ (verificada)' : a.metodo === 'vision' ? 'lectura por visión' : a.metodo === 'manual' ? 'datos escritos a mano' : 'sin lectura aún'
-  const notas = [...(a.revision_requerida ? ['Revisar: la lectura no fue segura.'] : []), ...a.avisos]
+  const estado = a?.confirmado_en ? 'confirmado' : faltan.length ? 'incompleto' : a?.datos_extraidos ? 'leido' : 'subido'
+  const dot =
+    estado === 'confirmado'
+      ? { c: '#047857', bg: '#10B981', t: 'Confirmado' }
+      : estado === 'incompleto'
+        ? { c: '#B45309', bg: '#F59E0B', t: `Falta el ${CARA_LABEL[faltan[0]].toLowerCase()}` }
+        : estado === 'leido'
+          ? { c: '#B45309', bg: '#F59E0B', t: 'Leído, sin confirmar' }
+          : { c: '#B45309', bg: '#F59E0B', t: 'Subido, sin confirmar' }
+  const datos = a?.datos_confirmados ?? a?.datos_extraidos ?? null
+  const lectura = !a
+    ? 'falta el frente'
+    : a.metodo === 'mrz'
+      ? 'lectura MRZ (verificada)'
+      : a.metodo === 'vision'
+        ? 'lectura por visión'
+        : a.metodo === 'manual'
+          ? 'datos escritos a mano'
+          : 'sin lectura aún'
+  const notas = [...(a?.revision_requerida ? ['Revisar: la lectura no fue segura.'] : []), ...(a?.avisos ?? [])]
+  const ordenadas = [...archivos].sort((x, y) => Number(esCaraPrincipal(y.cara)) - Number(esCaraPrincipal(x.cara)))
 
   return (
     <article className="flex flex-col justify-between overflow-hidden transition-shadow hover:shadow-[0_6px_20px_rgba(13,30,60,0.07)]" style={tarjeta}>
@@ -580,7 +725,7 @@ function TarjetaDocumento({
             <Icono size={16} strokeWidth={1.8} />
           </span>
           <div>
-            <h4 className="font-plus-jakarta text-sm font-bold" style={{ color: NAVY }}>{TIPO_LABEL[tipo]}</h4>
+            <h4 className="font-plus-jakarta text-sm font-bold" style={{ color: NAVY }}>{etiqueta}</h4>
             <div className="mt-0.5 flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot.bg }} />
               <span className="font-inter text-[11px] font-semibold" style={{ color: dot.c }}>{dot.t}</span>
@@ -589,13 +734,13 @@ function TarjetaDocumento({
         </div>
 
         <div className="rounded-md p-2 font-inter text-[11px] leading-snug" style={{ background: 'rgba(244,247,251,0.7)', border: `1px solid ${BORDER}`, color: MUTED }}>
-          {fmt.format(new Date(a.subido_en))} · {lectura}
-          {a.confianza ? ` · confianza ${a.confianza}` : ''}
+          {fmt.format(new Date((a ?? ordenadas[0]).subido_en))} · {lectura}
+          {a?.confianza ? ` · confianza ${a.confianza}` : ''}
         </div>
 
         {datos && (
           <dl className="flex flex-col gap-2 pt-1" style={{ borderTop: `1px solid ${BORDER}` }}>
-            {CAMPOS_POR_TIPO[tipo]
+            {CAMPOS_POR_TIPO[doc.tipo]
               .filter(c => datos[c])
               .map(c => (
                 <div key={c} className="flex items-baseline justify-between gap-3 font-inter text-xs">
@@ -619,8 +764,8 @@ function TarjetaDocumento({
         ))}
       </div>
 
-      <div className="mt-auto flex items-center justify-between gap-2 p-4" style={{ background: 'rgba(244,247,251,0.4)', borderTop: `1px solid ${BORDER}` }}>
-        {a.confirmado_en ? (
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 p-4" style={{ background: 'rgba(244,247,251,0.4)', borderTop: `1px solid ${BORDER}` }}>
+        {a?.confirmado_en ? (
           a.escrito_ghl_en ? (
             <span className="inline-flex items-center gap-1 font-inter text-[11px] font-medium" style={{ color: '#047857' }}>
               Escrito en P{a.viajero} de la tarjeta <Check size={12} strokeWidth={2.5} />
@@ -640,15 +785,21 @@ function TarjetaDocumento({
         ) : (
           <span className="font-inter text-[11px]" style={{ color: MUTED }}>Aún no se escribe en la tarjeta</span>
         )}
-        <button
-          type="button"
-          disabled={ocupado !== null}
-          onClick={() => onVer(a)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-[10px] bg-white px-3 font-inter text-xs font-medium transition-colors hover:bg-slate-50 disabled:opacity-50"
-          style={{ border: `1px solid ${BORDER}`, color: NAVY }}
-        >
-          {ocupado === `ver-${a.id}` ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} style={{ color: MUTED }} />} Ver (5 min)
-        </button>
+        <div className="flex flex-wrap gap-1.5">
+          {ordenadas.map(x => (
+            <button
+              key={x.id}
+              type="button"
+              disabled={ocupado !== null}
+              onClick={() => onVer(x)}
+              className="inline-flex h-8 items-center gap-1.5 rounded-[10px] bg-white px-3 font-inter text-xs font-medium transition-colors hover:bg-slate-50 disabled:opacity-50"
+              style={{ border: `1px solid ${BORDER}`, color: NAVY }}
+            >
+              {ocupado === `ver-${x.id}` ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} style={{ color: MUTED }} />}
+              {x.cara === 'unica' ? 'Ver' : `Ver ${CARA_LABEL[x.cara].toLowerCase()}`}
+            </button>
+          ))}
+        </div>
       </div>
     </article>
   )
