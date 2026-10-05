@@ -56,6 +56,10 @@
   resuelven POR NOMBRE en el Generador (no renombrarlos).
 - Sol renombra la tarjeta de Leads al confirmar el nombre real (cd4d90b).
 - Limpieza Leads: 17 pares de duplicados resueltos; 62 tarjetas renombradas.
+- 05-oct: 273 tarjetas con mensaje de asesora → 📞 Contactado (44 recibieron asesor = quien escribió;
+  las de Pilar → Ginna); 20 sin actividad >90 días → ❌ Abandonado; tag `new_lead` (muerto desde ~08-ago)
+  quitado de toda la cuenta. Desde ahí el cron `/api/agente/etapas` (cada 10 min, `lib/agente/etapas.ts`)
+  lo mantiene solo: mensaje de asesora → Contactado; Lead Nuevo con asesor → Asignado. Solo avanza.
 
 ## 🔴 Bloqueo abierto — contratos no quedan "Completado"
 El cliente firma pero el doc queda "Visualizado" esperando a la asesora (firmante porque
