@@ -21,6 +21,7 @@ export const PIPELINE = {
     leadNuevo: '369a3d70-ec39-4a88-9289-5d578fe63180', // 🆕 Lead Nuevo
     calificadoPorBot: '311ed363-2809-4443-8849-73a444bec6df', // 🤖 Calificado por Bot
     asignadoAAgente: '24cc9101-80ec-4478-910e-bf253d0f206d', // 👤 Asignado a Agente
+    contactado: 'faa05280-9bb8-477e-9dfb-b8448bdee719', // 📞 Contactado
   },
   /**
    * A partir de aquí manda un humano: si la oportunidad ya está en cotización o
@@ -147,6 +148,12 @@ export const TAGS = {
    * quita en cuanto la asesora vuelve a escribir. Las asesoras lo ven en GHL.
    */
   respaldo: 'sol_respaldo',
+  /**
+   * Heredado: lo ponía un workflow viejo (en borrador desde ~08-ago-2026). Se
+   * quitó de toda la cuenta el 05-oct-2026; `avanzarEtapas` lo retira si
+   * reaparece en un lead que la asesora ya contactó.
+   */
+  nuevoLead: 'new_lead',
 } as const
 
 /**

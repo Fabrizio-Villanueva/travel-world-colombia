@@ -61,6 +61,8 @@ export interface MensajeGhl {
   userId?: string
   dateAdded?: string
   attachments?: string[]
+  /** Quién lo originó: 'api', 'app', 'workflow'… (los de workflow no los escribe una persona). */
+  source?: string
   /** Presente cuando el canal es una app del marketplace (custom provider). */
   conversationProviderId?: string
 }
@@ -290,6 +292,44 @@ export async function moverOportunidad(
   })
 }
 
+/** Mueve de etapa y, si se indica, asigna la oportunidad en un solo PUT. */
+export async function moverYAsignarOportunidad(
+  opportunityId: string,
+  pipelineId: string,
+  pipelineStageId: string,
+  assignedTo?: string
+): Promise<void> {
+  await mandar('PUT', `/opportunities/${id(opportunityId)}`, {
+    pipelineId,
+    pipelineStageId,
+    ...(assignedTo ? { assignedTo } : {}),
+  })
+}
+
+export interface OportunidadEnEtapaGhl extends OportunidadGhl {
+  contactId?: string
+  assignedTo?: string | null
+  contact?: { tags?: string[] }
+}
+
+/** Oportunidades abiertas de una etapa (paginado; la API da 100 por página). */
+export async function oportunidadesEnEtapa(
+  pipelineId: string,
+  pipelineStageId: string
+): Promise<OportunidadEnEtapaGhl[]> {
+  const todas: OportunidadEnEtapaGhl[] = []
+  for (let pagina = 1; pagina <= 20; pagina++) {
+    const r = await pedir<{ opportunities?: OportunidadEnEtapaGhl[] }>(
+      `/opportunities/search?location_id=${GHL.locationId}&pipeline_id=${id(pipelineId)}` +
+        `&pipeline_stage_id=${id(pipelineStageId)}&status=open&limit=100&page=${pagina}`
+    )
+    const lote = r.opportunities ?? []
+    todas.push(...lote)
+    if (lote.length < 100) break
+  }
+  return todas
+}
+
 /** Cambia el nombre visible de una oportunidad (la tarjeta del tablero). */
 export async function renombrarOportunidad(opportunityId: string, nombre: string): Promise<void> {
   await mandar('PUT', `/opportunities/${id(opportunityId)}`, { name: nombre })
@@ -343,6 +383,34 @@ export async function conversacionDe(contactId: string): Promise<ConversacionGhl
     `/conversations/search?locationId=${GHL.locationId}&contactId=${id(contactId)}&limit=1`
   )
   return r.conversations?.[0] ?? null
+}
+
+/**
+ * Conversaciones con movimiento (entrante o saliente) desde `desde`, de la más
+ * reciente a la más antigua. `tope` evita recorrer de más si hubo avalancha.
+ */
+export async function conversacionesRecientes(
+  desde: Date,
+  tope = 500
+): Promise<{ id: string; contactId: string }[]> {
+  const salida: { id: string; contactId: string }[] = []
+  let despuesDe: number | null = null
+  while (salida.length < tope) {
+    const r: { conversations?: { id: string; contactId?: string; lastMessageDate?: number; sort?: number[] }[] } =
+      await pedir(
+        `/conversations/search?locationId=${GHL.locationId}&limit=100&sort=desc&sortBy=last_message_date` +
+          (despuesDe ? `&startAfterDate=${despuesDe}` : '')
+      )
+    const lote = r.conversations ?? []
+    for (const c of lote) {
+      if ((c.lastMessageDate ?? 0) < desde.getTime()) return salida
+      if (c.contactId) salida.push({ id: c.id, contactId: c.contactId })
+    }
+    if (lote.length < 100) break
+    despuesDe = lote[lote.length - 1].sort?.[0] ?? lote[lote.length - 1].lastMessageDate ?? null
+    if (!despuesDe) break
+  }
+  return salida
 }
 
 /** Últimos mensajes de una conversación, del más reciente al más antiguo. */

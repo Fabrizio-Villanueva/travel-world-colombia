@@ -275,7 +275,7 @@ export async function humanoTomoElChat(mensajes: MensajeGhl[]): Promise<boolean>
 }
 
 /** Salientes escritos por alguien (excluye los registros de actividad del sistema). */
-function salientesReales(mensajes: MensajeGhl[]): (MensajeGhl & { id: string })[] {
+export function salientesReales(mensajes: MensajeGhl[]): (MensajeGhl & { id: string })[] {
   return mensajes.filter(
     (m): m is MensajeGhl & { id: string } =>
       m.direction === 'outbound' &&
@@ -289,7 +289,7 @@ function salientesReales(mensajes: MensajeGhl[]): (MensajeGhl & { id: string })[
  * Cuáles de estos mensajes los envió Sol (una sola consulta en lote a
  * `agente_mensajes_enviados`). `null` si la lectura falla.
  */
-async function idsDeSol(mensajes: { id: string }[]): Promise<Set<string> | null> {
+export async function idsDeSol(mensajes: { id: string }[]): Promise<Set<string> | null> {
   if (mensajes.length === 0) return new Set()
   const admin = createAdminClient()
   const { data, error } = await admin
