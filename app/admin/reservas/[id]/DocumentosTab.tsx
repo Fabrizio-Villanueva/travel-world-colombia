@@ -118,7 +118,7 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
       setEstado(d)
       setAviso({
         ok: true,
-        texto: 'Aviso enviado: C-05 le manda el enlace al cliente por WhatsApp y correo. Si C-05 aún no está armado, copia el enlace y mándalo tú.',
+        texto: 'Aviso enviado: el cliente recibe el enlace por WhatsApp y correo en unos segundos.',
       })
     })
   }
@@ -301,7 +301,7 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
           >
             <p className="max-w-2xl font-inter text-[11px] leading-normal" style={{ color: MUTED }}>
               &quot;Enviar al cliente&quot; dispara el workflow C-05 (WhatsApp y correo con este mismo enlace, que
-              también queda en la tarjeta de GHL). Si C-05 aún no está armado, cópialo y mándalo tú.
+              también queda en la tarjeta de GHL). También puedes copiarlo y mandarlo tú.
             </p>
             <div className="flex shrink-0 items-center gap-3">
               <button

@@ -25,7 +25,7 @@
 10. Presentación "Así trabaja tu CRM" (https://claude.ai/artifact/8mNrAwVAkurCs8B6z4BoSE): compartir desde su menú.
 11. Opcional Sol de respaldo: presentarse como Sol, copiar usted/tú de la asesora, una sola nota.
 - C-04 (contrato no queda "Completado"): DESCARTADO por ahora (decisión del usuario).
-- Portal seguro de documentos de viajeros: **IMPLEMENTADO 03-oct** (Fases 1-3) → ver sección "Portal de documentos" abajo y docs/idea-portal-documentos.md. **Falta armar C-05 en GHL** (pasos abajo).
+- Portal seguro de documentos de viajeros: **IMPLEMENTADO 03-oct** (Fases 1-3) → ver sección "Portal de documentos" abajo y docs/idea-portal-documentos.md. C-05 y C-06 armados y probados.
 
 ## Reglas acordadas
 - Solo **2 pipelines**: 🎯 Leads (venta) → 🗂️ Reservaciones (operación, hasta el regreso).
@@ -96,8 +96,8 @@ el interior de un workflow: el usuario manda capturas.
 | 23 | P-02 · Reseña Google/Facebook | ✅ (02-oct) rama 1-3: tag `cliente_con_mala_experiencia` + notificación interna (asignada + 3 personas fijas) + tarea "Llamar por reseña negativa"; ya no usa Add to Workflow → P-03 |
 | 24 | P-03 · Formulario reseña negativa | ✅ |
 | — | R-01 · Cumpleaños | ✅ |
-| 25 | C-05 · Solicitar documentos → enlace al cliente | ⏳ Por armar (pasos en «Portal de documentos») |
-| 26 | C-06 · Documentos completos → tarea a la asesora | ✅ Armado 03-oct (falta probar con la tarjeta de prueba) |
+| 25 | C-05 · Solicitar documentos → enlace al cliente | ✅ Armado y probado por el usuario (03-oct) |
+| 26 | C-06 · Documentos completos → tarea a la asesora | ✅ Armado y probado por el usuario (03-oct) |
 | ZZ | 1.-Nuevo Lead, Compro, compradores, Picture Review (borradores) | Borrar |
 
 ### Patrón para V-01..V-07 y P-01
@@ -173,7 +173,7 @@ sube los documentos → el sistema lee (MRZ/visión), el cliente confirma → P{
 `Documentos del cliente = Completos` + nota en el contacto. Fotos solo en el bucket privado; se borran 30 días tras el regreso.
 Oportunidad de prueba: `NnDUr5gyZfnGI4LWGHWl` (PRUEBA – Portal documentos, contacto Fabrizio).
 
-### C-05 · Solicitar documentos → enlace al cliente (armar en la UI de GHL; no hay API)
+### C-05 · Solicitar documentos → enlace al cliente — ✅ ARMADO y probado por el usuario (03-oct)
 Carpeta 04 Contratos. Nombre: `C-05 · Solicitar documentos → enlace al cliente`.
 1. **Disparador 1**: Opportunity custom field changed → campo `Solicitar documentos` → "has changed to" `Enviar`.
    **Disparador 2** (mismo workflow): igual, "has changed to" `Reenviar`. Filtro opcional: Pipeline = 🗂️ Reservaciones.
@@ -197,3 +197,13 @@ Parciales y volver a Completos; debe inscribirse y crear la tarea. El sistema ad
 - Revisar la semilla de reglas de visa (/admin/documentos/visas): 33 países, criterio "colombiano con pasaporte ordinario".
 - Opcional: en V-03/V-04 agregar rama «si `Documentos del cliente` ≠ Completos → recordar el enlace».
 - La oportunidad de prueba tiene el enlace apuntando a localhost (se generó en local); al probar C-05 usar "Reenviar".
+
+### Capacitación del equipo (05-oct)
+Oportunidades "CAPACITACIÓN – Portal documentos (Nombre)" en 🗂️ Reservaciones / Reserva Creada, asignadas a cada asesor,
+destino Cancún, México, 1 pasajero, SIN fecha de salida (para no disparar V-01..V-07):
+Alejandra `Afh31Y92ciu2SEU75FQ0`, Ginna `5N1sJi9oX91wDtFqMK7P`, Juan Camilo `AsR4istQ6T4LjUawHN18`, Juanita `N8AfO5I4hg6ozQSIgbYb`,
+Luisa `xfV90cli1OcvJ1JgdUxR` (contacto sin correo), Lynda `4dO3QKZsM6Vit9HXOm3U`, Maria Pilar `P9ccLVyqPloRSYo0q5qO`,
+Adriana `vM6B2H38UUjladE9ZIL5` (contacto SIN celular: su usuario tiene el número de la agencia; falta su celular personal),
+Johana `lmss11BLOWacsyrhWebq` (contacto sin celular; su número está en el contacto "Cl Conta al día" `Dpby2l4v7VZBpk53HsVS`, tag
+johana_lozano: confirmar con el usuario antes de mover). Alejandra, Ginna y Juan Camilo se movieron al contacto que tiene su
+celular (zgflFnJFQCDvYTFGGZ0N, J2zSGMpjGr865pH1Qx95, Yo0UDSlBsxSq95YFsXkZ). Al terminar: borrar fotos y cerrar estas oportunidades.
