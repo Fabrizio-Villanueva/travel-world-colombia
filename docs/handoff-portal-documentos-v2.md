@@ -42,10 +42,29 @@ captura; sin sesión redirige al login con `?next=`. **Efecto colateral:** `Docu
 quedó en **Parciales** (antes Completos); no se volvió a poner Completos para no disparar C-06 (SMS a Luisa).
 Una lectura falló en local por `SELF_SIGNED_CERT_IN_CHAIN` (red de este PC), no por código; el reintento funcionó.
 
-Pendiente / ideas:
+### Ajustes del 05-oct (noche)
+- **Contadores**: en la pestaña Documentos, el "Viajeros" único se cambió por **tres contadores (Adultos 18+, Menores
+  7–17, Infantes 0–6) + Total** (máx. 8). El orden en P1–P8 queda fijo: adultos, luego menores, luego infantes. Debajo,
+  "Qué sube cada viajero" resume por grupo (p. ej. "1 menor · P3 — Tarjeta de identidad (frente y reverso)"). Se quitó la
+  lista de 8 filas con selector por viajero. Si un cliente necesita otro orden (p. ej. el niño es P2), hoy no se puede:
+  avisar si hace falta.
+- **`P1…P8 - Tipo de documento`** (SINGLE_OPTIONS, 👥 Pasajeros, creado con el mismo script): opciones
+  `Cédula de ciudadanía (CC)`, `Tarjeta de identidad (TI)`, `Registro civil (RC)`, `Pasaporte (PA)`,
+  `Cédula de extranjería (CE)`, `Permiso de protección temporal (PPT)` (iguales a `OPCIONES_TIPO_DOCUMENTO_GHL`).
+  Se llena al confirmar (`tipoDocumentoGhl`): en viajes con pasaporte manda "Pasaporte (PA)" (la cédula/TI/RC no lo pisan);
+  en nacionales, CC/TI/CE/PPT según lo leído o RC. Probado: P2=CC, P3=TI, P4=RC.
+- Pruebas locales del 05-oct: varias lecturas fallaron por `SELF_SIGNED_CERT_IN_CHAIN` (la red de este PC intercepta
+  HTTPS hacia la API de Claude); en producción (Vercel) no aplica. El flujo manual (escribir los datos) funcionó.
+
+### Mostrar los campos en la tarjeta de GHL (UI, no se puede por API) — lo hace el usuario
+1. GHL → **Oportunidades** → pipeline **🗂️ Reservaciones** → ⚙️ (ajustes del pipeline / "Edit pipeline") →
+   **Personalizar tarjeta** ("Customize card" / "Card layout").
+2. Agregar `P1 - Tipo de documento` y `P1 - Documentos (panel)` (y P2… si quieren ver acompañantes). Guardar.
+3. Dentro de la oportunidad, los 16 campos ya aparecen en la carpeta **Pasajeros**. El enlace `Documentos (panel)` es
+   texto: copiarlo/abrirlo en una pestaña; pide la sesión del panel.
+
+Pendiente:
 - Probar en producción con el celular (cédula real por los dos lados) desde la opp de prueba.
-- Opcional: campo `P{n} - Tipo de documento` (CC/TI/RC/PA) en GHL; hoy el tipo solo vive en Supabase.
-- Opcional: en GHL, mostrar los `P{n} - Documentos (panel)` en la vista de la tarjeta (son enlaces clicables de texto).
 - La capacitación (sección 5) sigue pendiente; las 9 opps de capacitación ya verán el selector de tipo.
 
 ---

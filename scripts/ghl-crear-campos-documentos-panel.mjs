@@ -7,6 +7,10 @@
  * por 5 minutos y queda en la bitácora. Las imágenes NO se suben a GHL (los
  * campos de archivo de GHL dan enlaces públicos que no se pueden revocar).
  *
+ * También crea `P1 - Tipo de documento` … `P8` (lista: CC / TI / RC / Pasaporte /
+ * CE / PPT), que el servidor llena al confirmar cada documento. Las opciones
+ * deben ser idénticas a OPCIONES_TIPO_DOCUMENTO_GHL (lib/documentos/config.ts).
+ *
  * No van en ghl-campos-oportunidad.catalog.json a propósito: el Generador los
  * mostraría como campos editables. Idempotente: si ya existen, no hace nada.
  *
@@ -45,21 +49,34 @@ async function ghl(method, path, body) {
 
 const { customFields } = await ghl('GET', `/locations/${LOCATION_ID}/customFields?model=opportunity`)
 const existentes = new Set(customFields.filter(f => f.model === 'opportunity').map(f => f.name.trim()))
-const nombres = Array.from({ length: 8 }, (_, i) => `P${i + 1} - Documentos (panel)`)
-const pendientes = nombres.filter(n => !existentes.has(n))
-console.log(`Ya existen: ${nombres.length - pendientes.length} · por crear: ${pendientes.length}`)
+// Copia de OPCIONES_TIPO_DOCUMENTO_GHL (lib/documentos/config.ts): mantener iguales.
+const OPCIONES_TIPO = [
+  'Cédula de ciudadanía (CC)',
+  'Tarjeta de identidad (TI)',
+  'Registro civil (RC)',
+  'Pasaporte (PA)',
+  'Cédula de extranjería (CE)',
+  'Permiso de protección temporal (PPT)',
+]
+const campos = Array.from({ length: 8 }, (_, i) => [
+  { name: `P${i + 1} - Documentos (panel)`, dataType: 'TEXT' },
+  { name: `P${i + 1} - Tipo de documento`, dataType: 'SINGLE_OPTIONS', options: OPCIONES_TIPO },
+]).flat()
+const pendientes = campos.filter(c => !existentes.has(c.name))
+console.log(`Ya existen: ${campos.length - pendientes.length} · por crear: ${pendientes.length}`)
 
-for (const name of pendientes) {
+for (const { name, dataType, options } of pendientes) {
   if (!execute) {
-    console.log(`  [dry-run] ${name} (TEXT) → 👥 Pasajeros`)
+    console.log(`  [dry-run] ${name} (${dataType}) → 👥 Pasajeros`)
     continue
   }
   await ghl('POST', `/locations/${LOCATION_ID}/customFields`, {
     name,
-    dataType: 'TEXT',
+    dataType,
     model: 'opportunity',
     placeholder: '',
     parentId: CARPETA_PASAJEROS,
+    ...(options ? { options } : {}),
   })
   console.log(`  ✓ ${name}`)
   await new Promise(r => setTimeout(r, 200))

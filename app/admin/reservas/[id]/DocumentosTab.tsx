@@ -27,6 +27,7 @@ import {
   TIPO_VIAJERO_LABEL,
   TIPOS_DOCUMENTO,
   TIPOS_VIAJERO,
+  MAX_VIAJEROS,
   documentosDe,
   esCaraPrincipal,
   etiquetaDocumento,
@@ -95,9 +96,14 @@ type Res<T> = { ok: true; datos: T } | { ok: false; error: string }
 
 export function DocumentosTab({ opportunityId, inicial }: { opportunityId: string; inicial: EstadoDocumentos }) {
   const [estado, setEstado] = useState<EstadoDocumentos>(inicial)
-  const [viajeros, setViajeros] = useState(inicial.solicitud?.viajeros ?? inicial.viajerosSugeridos)
+  // Tres contadores (adultos, menores, infantes): el total son los viajeros y el
+  // orden en P1–P8 es fijo: primero adultos, luego menores, al final infantes.
+  const [conteo, setConteo] = useState<Conteo>(() =>
+    contar(inicial.tiposViajero.slice(0, inicial.solicitud?.viajeros ?? inicial.viajerosSugeridos))
+  )
+  const viajeros = conteo.adulto + conteo.menor + conteo.infante
+  const tiposViajero = expandir(conteo)
   const [requisitos, setRequisitos] = useState<Requisitos>(inicial.solicitud?.requisitos ?? inicial.sugerencia.requisitos)
-  const [tiposViajero, setTiposViajero] = useState<TipoViajero[]>(inicial.tiposViajero)
   const [ocupado, setOcupado] = useState<string | null>(null)
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null)
   const [copiado, setCopiado] = useState(false)
@@ -220,8 +226,8 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
 
       {/* ── Requisitos ── */}
       <section className="p-5 sm:p-6" style={tarjeta}>
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 flex-1">
             <h3 className="font-plus-jakarta text-[15px] font-bold" style={{ color: NAVY }}>
               ¿Qué documentos pide este viaje?
             </h3>
@@ -235,7 +241,7 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
               {estado.sugerencia.nota ? ` ${estado.sugerencia.nota}` : ''}
             </p>
           </div>
-          <Stepper valor={viajeros} onChange={setViajeros} disabled={s?.estado === 'revocada' && false} />
+          <Contadores conteo={conteo} onChange={setConteo} />
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
@@ -249,14 +255,7 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
           ))}
         </div>
 
-        <TiposViajero
-          viajeros={viajeros}
-          tipos={tiposViajero}
-          nombres={estado.nombres}
-          requisitos={requisitos}
-          sugeridos={estado.tiposSugeridos}
-          onChange={(n, t) => setTiposViajero(prev => prev.map((x, i) => (i === n - 1 ? t : x)))}
-        />
+        <ResumenPorTipo conteo={conteo} requisitos={requisitos} sugeridos={estado.tiposSugeridos} />
 
         <p className="mt-4 font-inter text-[11px]" style={{ color: MUTED }}>
           El cliente entra con un código de 6 dígitos que le llega por WhatsApp (o por correo) al celular
@@ -531,25 +530,6 @@ function ResumenEstado({ estado }: { estado: EstadoDocumentos }) {
   )
 }
 
-function Stepper({ valor, onChange, disabled }: { valor: number; onChange: (n: number) => void; disabled?: boolean }) {
-  const btn =
-    'flex h-7 w-7 items-center justify-center rounded-md bg-white transition-colors hover:bg-slate-50 disabled:opacity-40'
-  return (
-    <div className="flex items-center gap-2 self-start md:self-auto">
-      <span className="font-inter text-xs font-medium" style={{ color: MUTED }}>Viajeros</span>
-      <div className="inline-flex items-center rounded-lg p-0.5" style={{ background: PAGE, border: `1px solid ${BORDER}` }} role="group" aria-label="Cantidad de viajeros">
-        <button type="button" aria-label="Reducir" className={btn} style={{ border: `1px solid ${BORDER}`, color: MUTED }} disabled={disabled || valor <= 1} onClick={() => onChange(valor - 1)}>
-          <Minus size={12} strokeWidth={2.5} />
-        </button>
-        <span className="w-8 text-center font-inter text-xs font-semibold tabular-nums" style={{ color: NAVY }}>{valor}</span>
-        <button type="button" aria-label="Aumentar" className={btn} style={{ border: `1px solid ${BORDER}`, color: MUTED }} disabled={disabled || valor >= 8} onClick={() => onChange(valor + 1)}>
-          <Plus size={12} strokeWidth={2.5} />
-        </button>
-      </div>
-    </div>
-  )
-}
-
 function Seleccionable({ tipo, activo, onToggle }: { tipo: Requisito; activo: boolean; onToggle: () => void }) {
   const Icono = ICONO[tipo]
   return (
@@ -585,73 +565,122 @@ function Seleccionable({ tipo, activo, onToggle }: { tipo: Requisito; activo: bo
   )
 }
 
-/** Tipo de cada viajero (adulto / menor / infante) y los documentos que eso le pide. */
-function TiposViajero({
-  viajeros,
-  tipos,
-  nombres,
-  requisitos,
-  sugeridos,
-  onChange,
-}: {
-  viajeros: number
-  tipos: TipoViajero[]
-  nombres: (string | null)[]
-  requisitos: Requisitos
-  sugeridos: boolean
-  onChange: (n: number, t: TipoViajero) => void
-}) {
+type Conteo = Record<TipoViajero, number>
+
+function contar(tipos: TipoViajero[]): Conteo {
+  const c: Conteo = { adulto: 0, menor: 0, infante: 0 }
+  for (const t of tipos) c[t]++
+  if (c.adulto + c.menor + c.infante === 0) c.adulto = 1
+  return c
+}
+
+/** Conteo → tipo por viajero (índice 0 = P1): adultos, luego menores, luego infantes. */
+function expandir(c: Conteo): TipoViajero[] {
+  const lista: TipoViajero[] = [
+    ...Array<TipoViajero>(c.adulto).fill('adulto'),
+    ...Array<TipoViajero>(c.menor).fill('menor'),
+    ...Array<TipoViajero>(c.infante).fill('infante'),
+  ]
+  while (lista.length < MAX_VIAJEROS) lista.push('adulto')
+  return lista.slice(0, MAX_VIAJEROS)
+}
+
+const CONTADOR_LABEL: Record<TipoViajero, string> = { adulto: 'Adultos', menor: 'Menores', infante: 'Infantes' }
+
+/** Tres recuadros con − / +: adultos, menores e infantes. Total entre 1 y 8 (P1–P8). */
+function Contadores({ conteo, onChange }: { conteo: Conteo; onChange: (c: Conteo) => void }) {
+  const total = conteo.adulto + conteo.menor + conteo.infante
+  const btn =
+    'flex h-7 w-7 items-center justify-center rounded-md bg-white transition-colors hover:bg-slate-50 disabled:opacity-40'
+  return (
+    <div className="flex shrink-0 flex-wrap items-stretch gap-2 self-start sm:flex-nowrap lg:self-auto">
+      {TIPOS_VIAJERO.map(t => (
+        <div
+          key={t}
+          className="flex flex-col items-center gap-1 rounded-xl px-2.5 py-2"
+          style={{ background: PAGE, border: `1px solid ${BORDER}` }}
+          role="group"
+          aria-label={`Cantidad de ${CONTADOR_LABEL[t].toLowerCase()}`}
+        >
+          <span className="font-inter text-[11px] font-semibold leading-none" style={{ color: NAVY }}>
+            {CONTADOR_LABEL[t]}
+          </span>
+          <span className="font-inter text-[10px] leading-none" style={{ color: MUTED }}>
+            {TIPO_VIAJERO_EDADES[t]}
+          </span>
+          <div className="mt-0.5 inline-flex items-center">
+            <button
+              type="button"
+              aria-label={`Quitar ${CONTADOR_LABEL[t].toLowerCase()}`}
+              className={btn}
+              style={{ border: `1px solid ${BORDER}`, color: MUTED }}
+              disabled={conteo[t] <= 0 || total <= 1}
+              onClick={() => onChange({ ...conteo, [t]: conteo[t] - 1 })}
+            >
+              <Minus size={12} strokeWidth={2.5} />
+            </button>
+            <span className="w-7 text-center font-inter text-sm font-bold tabular-nums" style={{ color: NAVY }}>
+              {conteo[t]}
+            </span>
+            <button
+              type="button"
+              aria-label={`Agregar ${CONTADOR_LABEL[t].toLowerCase()}`}
+              className={btn}
+              style={{ border: `1px solid ${BORDER}`, color: MUTED }}
+              disabled={total >= MAX_VIAJEROS}
+              onClick={() => onChange({ ...conteo, [t]: conteo[t] + 1 })}
+            >
+              <Plus size={12} strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+      ))}
+      <div
+        className="flex flex-col items-center justify-center rounded-xl px-3 py-2"
+        style={{ background: ACCENT_LIGHT, border: '1px solid #C7D7F0' }}
+      >
+        <span className="font-inter text-[11px] font-semibold leading-none" style={{ color: ACCENT }}>
+          Total
+        </span>
+        <span className="mt-1 font-plus-jakarta text-lg font-extrabold tabular-nums leading-none" style={{ color: NAVY }}>
+          {total}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/** Qué documentos le toca a cada grupo según lo que pide el viaje. */
+function ResumenPorTipo({ conteo, requisitos, sugeridos }: { conteo: Conteo; requisitos: Requisitos; sugeridos: boolean }) {
+  const grupos = TIPOS_VIAJERO.filter(t => conteo[t] > 0)
+  // Primer P{n} de cada grupo (adultos → menores → infantes).
+  const inicio: Conteo = { adulto: 1, menor: 1 + conteo.adulto, infante: 1 + conteo.adulto + conteo.menor }
   return (
     <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h4 className="font-plus-jakarta text-[13px] font-bold" style={{ color: NAVY }}>
-          Tipo de cada viajero
+          Qué sube cada viajero
         </h4>
         <span className="font-inter text-[11px]" style={{ color: MUTED }}>
-          {sugeridos ? 'Sugerido por la liquidación (adultos, niños, infantes): revísalo. ' : ''}
-          Adulto 18+ · Menor 7–17 · Infante 0–6
+          {sugeridos ? 'Cantidades sugeridas por la liquidación: revísalas. ' : ''}
+          Orden en la tarjeta: adultos, luego menores, luego infantes.
         </span>
       </div>
-      <ul className="mt-3 flex flex-col gap-2">
-        {Array.from({ length: viajeros }, (_, i) => i + 1).map(n => {
-          const t = tipos[n - 1] ?? 'adulto'
+      <ul className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+        {grupos.map(t => {
           const docs = documentosDe(t, requisitos)
+          const n = conteo[t]
+          const desde = inicio[t]
+          const rango = n === 1 ? `P${desde}` : `P${desde}–P${desde + n - 1}`
           return (
-            <li
-              key={n}
-              className="flex flex-col gap-2 rounded-xl px-3 py-2.5 md:flex-row md:items-center md:justify-between"
-              style={{ background: PAGE, border: `1px solid ${BORDER}` }}
-            >
-              <div className="min-w-0">
-                <p className="truncate font-inter text-xs font-semibold" style={{ color: NAVY }}>
-                  Viajero {n}
-                  {nombres[n - 1] ? ` · ${nombres[n - 1]}` : ''}
-                </p>
-                <p className="font-inter text-[11px]" style={{ color: MUTED }}>
-                  {docs.length ? docs.map(d => resumenDocumento(d, t)).join(' · ') : 'Sin documentos marcados'}
-                </p>
-              </div>
-              <div
-                className="inline-flex shrink-0 self-start rounded-lg bg-white p-0.5 md:self-auto"
-                role="radiogroup"
-                aria-label={`Tipo del viajero ${n}`}
-                style={{ border: `1px solid ${BORDER}` }}
-              >
-                {TIPOS_VIAJERO.map(op => (
-                  <button
-                    key={op}
-                    type="button"
-                    role="radio"
-                    aria-checked={t === op}
-                    title={TIPO_VIAJERO_EDADES[op]}
-                    onClick={() => onChange(n, op)}
-                    className="h-7 rounded-md px-3 font-inter text-xs font-semibold transition-colors"
-                    style={t === op ? { background: ACCENT, color: 'white' } : { color: MUTED }}
-                  >
-                    {TIPO_VIAJERO_LABEL[op]}
-                  </button>
-                ))}
-              </div>
+            <li key={t} className="rounded-xl px-3 py-2.5" style={{ background: PAGE, border: `1px solid ${BORDER}` }}>
+              <p className="font-inter text-xs font-semibold" style={{ color: NAVY }}>
+                {n} {n === 1 ? TIPO_VIAJERO_LABEL[t].toLowerCase() : CONTADOR_LABEL[t].toLowerCase()}{' '}
+                <span className="font-normal" style={{ color: MUTED }}>· {rango}</span>
+              </p>
+              <p className="mt-0.5 font-inter text-[11px]" style={{ color: MUTED }}>
+                {docs.length ? docs.map(d => resumenDocumento(d, t)).join(' · ') : 'Sin documentos marcados'}
+              </p>
             </li>
           )
         })}

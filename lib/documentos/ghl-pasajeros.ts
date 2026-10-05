@@ -47,7 +47,8 @@ function lote(
   opportunityId: string,
   viajero: number,
   tipo: TipoDocumento,
-  d: DatosDocumento
+  d: DatosDocumento,
+  tipoDocumento: string | null
 ): { nombre: string; valor: string }[] {
   const p = `P${viajero} - `
   const out: { nombre: string; valor: string }[] = []
@@ -73,6 +74,7 @@ function lote(
     poner('Visa Número', d.numero)
     poner('Visa Vencimiento', d.fecha_vencimiento)
   }
+  poner('Tipo de documento', tipoDocumento ?? undefined)
   poner('Documentos (panel)', urlDocumentosPanel(opportunityId, viajero))
   return out
 }
@@ -82,10 +84,12 @@ export async function escribirViajeroEnGhl(
   opportunityId: string,
   viajero: number,
   tipo: TipoDocumento,
-  datos: DatosDocumento
+  datos: DatosDocumento,
+  /** Opción de `P{n} - Tipo de documento` (ver tipoDocumentoGhl), o null para no tocarlo. */
+  tipoDocumento: string | null = null
 ): Promise<number> {
   const ids = await idsPorNombre()
-  const campos = lote(opportunityId, viajero, tipo, datos)
+  const campos = lote(opportunityId, viajero, tipo, datos, tipoDocumento)
     .map(({ nombre, valor }) => {
       const id = ids.get(nombre)
       if (!id) {

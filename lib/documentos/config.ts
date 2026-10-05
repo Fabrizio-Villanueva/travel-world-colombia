@@ -213,3 +213,38 @@ export const MAX_VIAJEROS = 8
 export function urlPortal(baseUrl: string, token: string): string {
   return `${baseUrl.replace(/\/$/, '')}/documentos/${token}`
 }
+
+/**
+ * Opciones del campo de oportunidad `P{n} - Tipo de documento` (SINGLE_OPTIONS,
+ * creado con scripts/ghl-crear-campos-documentos-panel.mjs). El texto debe ser
+ * IDÉNTICO al de GHL: si se edita aquí, editarlo también allá.
+ */
+export const OPCIONES_TIPO_DOCUMENTO_GHL = {
+  CC: 'Cédula de ciudadanía (CC)',
+  TI: 'Tarjeta de identidad (TI)',
+  RC: 'Registro civil (RC)',
+  PA: 'Pasaporte (PA)',
+  CE: 'Cédula de extranjería (CE)',
+  PPT: 'Permiso de protección temporal (PPT)',
+} as const
+
+/**
+ * Qué tipo de documento queda en `P{n} - Tipo de documento` al confirmar uno.
+ * En viajes internacionales manda el pasaporte (es el documento de viaje): la
+ * cédula/TI/registro civil no lo pisan. null = este documento no lo define.
+ */
+export function tipoDocumentoGhl(
+  tipo: TipoDocumento,
+  subtipo: string | undefined,
+  requisitos: Requisitos
+): string | null {
+  if (tipo === 'pasaporte') return OPCIONES_TIPO_DOCUMENTO_GHL.PA
+  if (tipo === 'visa' || requisitos.pasaporte) return null
+  if (tipo === 'registro_civil') return OPCIONES_TIPO_DOCUMENTO_GHL.RC
+  const s = (subtipo ?? '').toUpperCase()
+  if (s === 'TI') return OPCIONES_TIPO_DOCUMENTO_GHL.TI
+  if (s === 'CE') return OPCIONES_TIPO_DOCUMENTO_GHL.CE
+  if (s === 'PPT') return OPCIONES_TIPO_DOCUMENTO_GHL.PPT
+  if (s === 'PASAPORTE') return OPCIONES_TIPO_DOCUMENTO_GHL.PA
+  return OPCIONES_TIPO_DOCUMENTO_GHL.CC
+}

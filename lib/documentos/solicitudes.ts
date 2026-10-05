@@ -23,6 +23,7 @@ import {
   esCaraPrincipal,
   etiquetaDocumento,
   tipoViajeroDe,
+  tipoDocumentoGhl,
   tipoViajeroPorEdad,
   urlPortal,
   type Cara,
@@ -819,7 +820,13 @@ export async function confirmarArchivo(
   let escrito: string | null = null
   let errorGhl: string | null = null
   try {
-    await escribirViajeroEnGhl(s.opportunity_id, a.viajero, a.tipo, datos)
+    await escribirViajeroEnGhl(
+      s.opportunity_id,
+      a.viajero,
+      a.tipo,
+      datos,
+      tipoDocumentoGhl(a.tipo, datos.tipo_documento, s.requisitos)
+    )
     escrito = new Date().toISOString()
   } catch (e) {
     errorGhl = (e as Error).message.slice(0, 300)
@@ -847,7 +854,13 @@ export async function confirmarArchivo(
 export async function reescribirEnGhl(s: SolicitudRow, archivoId: string): Promise<void> {
   const a = await archivoDe(s, archivoId)
   if (!a?.datos_confirmados) throw new Error('Ese documento aún no está confirmado.')
-  await escribirViajeroEnGhl(s.opportunity_id, a.viajero, a.tipo, a.datos_confirmados)
+  await escribirViajeroEnGhl(
+    s.opportunity_id,
+    a.viajero,
+    a.tipo,
+    a.datos_confirmados,
+    tipoDocumentoGhl(a.tipo, a.datos_confirmados.tipo_documento, s.requisitos)
+  )
   await admin()
     .from('doc_archivos')
     .update({ escrito_ghl_en: new Date().toISOString(), error_ghl: null })
