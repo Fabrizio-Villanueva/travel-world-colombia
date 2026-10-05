@@ -25,7 +25,7 @@
 10. Presentación "Así trabaja tu CRM" (https://claude.ai/artifact/8mNrAwVAkurCs8B6z4BoSE): compartir desde su menú.
 11. Opcional Sol de respaldo: presentarse como Sol, copiar usted/tú de la asesora, una sola nota.
 - C-04 (contrato no queda "Completado"): DESCARTADO por ahora (decisión del usuario).
-- Portal seguro de documentos de viajeros: **IMPLEMENTADO 03-oct** (Fases 1-3) → ver sección "Portal de documentos" abajo y docs/idea-portal-documentos.md. C-05 y C-06 armados y probados.
+- Portal seguro de documentos de viajeros: **IMPLEMENTADO 03-oct** (Fases 1-3) → ver sección "Portal de documentos" abajo y docs/idea-portal-documentos.md. C-05 y C-06 armados y probados. **Siguiente: v2 del portal (tipos de viajero, dos caras, imágenes en el CRM) → docs/handoff-portal-documentos-v2.md.**
 
 ## Reglas acordadas
 - Solo **2 pipelines**: 🎯 Leads (venta) → 🗂️ Reservaciones (operación, hasta el regreso).
