@@ -127,6 +127,10 @@ export interface Destino {
   precio_valor?: number | null
   precio_moneda?: 'COP' | 'USD' | null
   precio_nota?: string | null
+  /** Se publica sin precio a propósito (se arma a la medida). Sin esto, activo exige precio. */
+  a_la_medida?: boolean
+  /** Última vez que cambió el precio (lo pone la base). */
+  precio_actualizado_en?: string | null
   incluye?: string[]
   no_incluye?: string[]
   duracion?: string

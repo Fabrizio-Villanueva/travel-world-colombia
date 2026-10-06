@@ -6,16 +6,19 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Plane, Star, HelpCircle, Users, Activity, Globe, LogOut, Menu, X,
-  ClipboardList, Tags, Megaphone, Type, FileCheck,
+  ClipboardList, Tags, Megaphone, Type, FileCheck, HeartPulse, Bot, FlaskConical,
 } from 'lucide-react'
 import { signOut } from '../actions'
 import type { Role } from '@/lib/admin/allowlist'
 
-const NAV = [
+const NAV: { href: string; label: string; Icon: typeof Plane; exact?: boolean; soloAdmin?: boolean }[] = [
   { href: '/admin',             label: 'Dashboard',    Icon: LayoutDashboard, exact: true },
   { href: '/admin/viajes',      label: 'Viajes',       Icon: Plane },
+  { href: '/admin/catalogo',    label: 'Salud del catálogo', Icon: HeartPulse },
   { href: '/admin/categorias',  label: 'Categorías',   Icon: Tags },
   { href: '/admin/anuncios',    label: 'Anuncios',     Icon: Megaphone },
+  { href: '/admin/sol',         label: 'Sol: reglas comerciales', Icon: Bot, soloAdmin: true, exact: true },
+  { href: '/admin/sol/laboratorio', label: 'Laboratorio de Sol', Icon: FlaskConical, soloAdmin: true },
   { href: '/admin/reservas',    label: 'Generador de Contratos', Icon: ClipboardList },
   { href: '/admin/documentos',  label: 'Documentos de viajeros', Icon: FileCheck },
   { href: '/admin/resenas',     label: 'Reseñas',      Icon: Star },
@@ -25,14 +28,17 @@ const NAV = [
   { href: '/admin/actividad',   label: 'Actividad',    Icon: Activity },
 ]
 
-export function Sidebar({ email, rol }: { email: string; rol: Role }) {
+export function Sidebar({ email, rol, alertasCatalogo = 0 }: { email: string; rol: Role; alertasCatalogo?: number }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
   // El representante solo ve Reservas (el proxy además lo redirige ahí);
   // el lector ve el panel pero no Reservas (la sección escribe en el CRM).
+  // Las secciones de Sol (reglas comerciales y laboratorio) son solo de admin.
   const nav = NAV.filter(item =>
-    rol === 'representante'
+    item.soloAdmin && rol !== 'admin'
+      ? false
+      : rol === 'representante'
       ? item.href === '/admin/reservas'
       : rol === 'lector'
         ? item.href !== '/admin/reservas'
@@ -80,6 +86,11 @@ export function Sidebar({ email, rol }: { email: string; rol: Role }) {
                 >
                   <Icon size={17} />
                   {label}
+                  {href === '/admin/catalogo' && alertasCatalogo > 0 && (
+                    <span className="ml-auto rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: '#dc2626', color: '#fff' }}>
+                      {alertasCatalogo}
+                    </span>
+                  )}
                 </Link>
               </li>
             )

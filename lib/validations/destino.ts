@@ -19,6 +19,9 @@ export const destinoSchema = z.object({
   precio_valor: z.number().positive('El precio debe ser mayor a 0.').optional(),
   precio_moneda: z.enum(['COP', 'USD']).optional(),
   precio_nota: z.string().optional(),
+  a_la_medida: z.boolean(),
+  /** Casilla "Confirmo este precio": solo hace falta si el precio se sale de lo normal. */
+  confirmar_precio: z.boolean(),
   duracion: z.string().optional(),
   cupos_disponibles: z.number().int().min(0).optional(),
 
@@ -65,6 +68,40 @@ export const destinoSchema = z.object({
       message: 'Precio: indica valor y moneda juntos (o deja ambos vacíos).',
     })
   }
+
+  // Un viaje publicado sin precio es un olvido salvo que se marque a la medida
+  // (la base tiene el mismo candado: ver migración 030).
+  if (d.activo && !d.a_la_medida && (d.precio_valor == null || d.precio_moneda == null)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['precio_valor'],
+      message: 'Para publicar el viaje ponle precio (valor y moneda) o márcalo como "A la medida (sin precio publicado)".',
+    })
+  }
+
+  const raro = precioFueraDeRango(d.precio_valor, d.precio_moneda)
+  if (raro && !d.confirmar_precio) {
+    ctx.addIssue({ code: 'custom', path: ['precio_valor'], message: `${raro} Si es correcto, marca "Confirmo este precio".` })
+  }
 })
+
+/**
+ * Precio que casi seguro es un error de carga (moneda cruzada, ceros de más o
+ * de menos). Devuelve el aviso, o null si se ve normal. Lo usan el formulario
+ * y la página "Salud del catálogo".
+ */
+export function precioFueraDeRango(valor?: number | null, moneda?: 'COP' | 'USD' | null): string | null {
+  if (valor == null || !moneda) return null
+  if (moneda === 'USD' && valor > 20_000) {
+    return `USD ${valor.toLocaleString('es-CO')} es muy alto para un precio en dólares: ¿no será en pesos?`
+  }
+  if (moneda === 'COP' && valor < 100_000) {
+    return `$${valor.toLocaleString('es-CO')} es muy bajo para un precio en pesos: ¿no será en dólares o le faltan ceros?`
+  }
+  if (moneda === 'COP' && valor > 50_000_000) {
+    return `$${valor.toLocaleString('es-CO')} es muy alto: ¿no tiene ceros de más?`
+  }
+  return null
+}
 
 export type DestinoInput = z.infer<typeof destinoSchema>

@@ -109,6 +109,37 @@ export const CAMPOS_CALIFICACION_OPP = {
 } as const
 
 /**
+ * Seguimiento y método de venta de Sol, en la OPORTUNIDAD (carpeta "⭐
+ * Calificación (Sol)"). Creados el 05-oct-2026 con scripts/ghl-campos-sol-v2.mjs;
+ * reemplazan a los sol_* del contacto (se copiaron con
+ * scripts/ghl-migrar-sol-contacto-a-opp.mjs). sol_idioma se queda en el contacto.
+ */
+export const CAMPOS_SOL_OPP = {
+  estadoComercial: 'n6qtOOZVHPfrRkMnvJ2m', // SINGLE_OPTIONS
+  temperatura: 'AIB6Wb4WlkOH8p8MY8g9', // SINGLE_OPTIONS caliente/tibio/frio/no_interesado
+  resumen: 'oLiwj36D1LoF7yxAJzWk', // LARGE_TEXT
+  objecionPrincipal: 'mEhRXTkqkMBMR2pxfU4y', // SINGLE_OPTIONS
+  detalleObjecion: 'Ep3LHWeDeit0RnJUAW4e', // LARGE_TEXT
+  confianza: 'rD4JhweXYoo6NF9BlKaO', // SINGLE_OPTIONS alta/media/baja
+  canal: 'ASSlqf7RhIMH0lUSZPFi', // SINGLE_OPTIONS whatsapp/instagram/facebook/widget
+  ultimaInteraccion: 'VUOzlXgNaeLwF1vcpvyJ', // DATE (YYYY-MM-DD)
+  proximoSeguimiento: '7pcMC3q1VTd2YvhllaZ8', // DATE
+  intentosSeguimiento: 'j8YfrVRV0M4CU4zAfCKR', // NUMERICAL
+  motivoCierre: 'O8XevcDBHvvHkTEzsTIb', // TEXT
+  senalCompra: 'esJNNQhcUtAqAcilZy2X', // TEXT
+  respuestaCompromiso: 'vyUKD3zDmH2cWxXuz9E6', // SINGLE_OPTIONS si/todavia_no/no/no_preguntada
+  quienDecide: 'mupcqLvRQHgnRHDSvQhx', // TEXT
+  rangoDado: 'mnMwLVipy5Bjda5nGtoV', // TEXT
+  canalCierre: 'QF9aLomFAFT75XqygQrQ', // SINGLE_OPTIONS whatsapp/llamada/oficina
+  borradorCotizacion: 'lFDAzxNFOpQIJDrjVlOl', // LARGE_TEXT
+  /** Ya existía en 🗺️ Generales del Viaje. */
+  motivoViaje: 'aVw68I4wtOqlp9ljlLOL', // TEXT
+} as const
+
+/** sol_idioma: es de la persona, se queda en el CONTACTO (decidido 05-oct-2026). */
+export const CAMPO_SOL_IDIOMA = '6HTkEjejzS5pYuFseaz4'
+
+/**
  * "IA - NOMBRE" (folder IA `a3uTifBfuZDOYpqDRYzj`): el nombre REAL que el cliente
  * dice ser (el de WhatsApp no siempre lo es). Sol lo pregunta una vez y lo
  * escribe aquí; un workflow de la cuenta copia este campo al "Nombre" principal.
@@ -155,6 +186,17 @@ export const TAGS = {
    */
   nuevoLead: 'new_lead',
 } as const
+
+/**
+ * Avisos internos al equipo (salud del catálogo, "listo para reservar" sin
+ * respuesta…). Se mandan por WhatsApp a estos contactos de GHL por la misma
+ * ruta que Sol (el proveedor del último mensaje entrante). Ambos tienen el tag
+ * "mayorista / operadores", así que Sol nunca les contesta. Decidido 05-oct-2026.
+ */
+export const ALERTAS_INTERNAS = [
+  { nombre: 'Fabrizio Villanueva', contactId: 'uw120Td4Hyo4an1K4S0L' },
+  { nombre: 'Ginna Cardenas', contactId: 'J2zSGMpjGr865pH1Qx95' },
+] as const
 
 /**
  * "Sol de respaldo": ningún cliente se queda sin respuesta aunque su asesora

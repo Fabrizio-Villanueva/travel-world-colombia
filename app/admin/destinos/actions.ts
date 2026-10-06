@@ -91,6 +91,8 @@ function construirPayload(formData: FormData) {
     precio_valor,
     precio_moneda,
     precio_nota,
+    a_la_medida: formData.get('a_la_medida') === 'on',
+    confirmar_precio: formData.get('confirmar_precio') === 'on',
     // precio_desde ahora es texto derivado del estructurado: lo lee el agente
     // Sol (conocimiento.ts) y es el fallback de la web. Sin valor → null.
     precio_desde: precio_valor != null && precio_moneda
@@ -129,7 +131,10 @@ function construirPayload(formData: FormData) {
   const imagen_thumb = texto(formData.get('imagen_thumb'))
   const imagen_about = texto(formData.get('imagen_about'))
 
-  const payload = { ...parsed.data, imagen_hero, imagen_thumb, imagen_about }
+  // confirmar_precio es solo de la validación: no es una columna.
+  const datos: Omit<typeof parsed.data, 'confirmar_precio'> & { confirmar_precio?: boolean } = { ...parsed.data }
+  delete datos.confirmar_precio
+  const payload = { ...datos, imagen_hero, imagen_thumb, imagen_about }
 
   // Postgres necesita null explícito para vaciar una columna: JSON.stringify
   // omite las claves undefined, así que un campo borrado en el formulario

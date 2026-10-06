@@ -4,6 +4,7 @@
     { "path": "/api/agente/seguimiento", "schedule": "0 20 * * *" },
     { "path": "/api/agente/vigilante", "schedule": "*/10 * * * *" },
     { "path": "/api/agente/etapas", "schedule": "*/10 * * * *" },
-    { "path": "/api/documentos/purga", "schedule": "0 9 * * *" }
+    { "path": "/api/documentos/purga", "schedule": "0 9 * * *" },
+    { "path": "/api/catalogo/salud", "schedule": "0 13 * * 1" }
   ]
 }

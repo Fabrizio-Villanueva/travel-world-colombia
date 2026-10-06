@@ -432,6 +432,18 @@ export function DestinoForm({ action, destino, titulo, categorias, textosGlobale
           <p className="mt-1 font-inter text-xs" style={{ color: 'var(--text-muted)' }}>Obligatoria si hay valor. Define cómo se formatea y qué ve Google.</p>
         </div>
         <Campo label="Nota del precio" name="precio_nota" defaultValue={d?.precio_nota ?? undefined} placeholder="Acomodación triple" hint="Opcional: acomodación, temporada, condiciones." />
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
+            <input type="checkbox" name="a_la_medida" defaultChecked={d?.a_la_medida ?? false} /> A la medida (sin precio publicado)
+          </label>
+          <label className="flex items-center gap-2 font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
+            <input type="checkbox" name="confirmar_precio" /> Confirmo este precio aunque se vea fuera de lo normal
+          </label>
+          <p className="font-inter text-xs" style={{ color: 'var(--text-muted)' }}>
+            Un viaje activo necesita precio o la marca &quot;A la medida&quot;. Sol y la web dependen del precio.
+            {d?.precio_actualizado_en ? ` Precio actualizado el ${new Date(d.precio_actualizado_en).toLocaleDateString('es-CO')}.` : ''}
+          </p>
+        </div>
         <Campo label="Duración" name="duracion" defaultValue={d?.duracion} placeholder="8 días / 7 noches" />
         <Campo label="Cupos disponibles" name="cupos_disponibles" type="number" defaultValue={d?.cupos_disponibles} placeholder="10" />
         <Campo label="Orden" name="orden" type="number" defaultValue={d?.orden ?? 0} hint="Menor = aparece primero." />

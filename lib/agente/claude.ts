@@ -34,6 +34,31 @@ export interface Decision {
   objeciones?: string
   idioma?: string
   confianza?: 'alta' | 'media' | 'baja'
+  /** Método de venta (solo Sol v2). Va a la oportunidad, carpeta "⭐ Calificación (Sol)". */
+  venta?: VentaV2
+  /** Borrador "TU VIAJE SOÑADO" que arma el código (no el modelo) cuando el lead está listo. Solo v2. */
+  borrador?: string
+}
+
+export type EstadoComercial =
+  | 'explorando'
+  | 'falta_informacion'
+  | 'objecion'
+  | 'consultando_decisor'
+  | 'listo_para_reservar'
+  | 'nutrir'
+  | 'no_interesado'
+
+export interface VentaV2 {
+  estado: EstadoComercial
+  /** Frase o hecho concreto del cliente que muestra intención de compra. */
+  senal_compra?: string
+  compromiso?: 'si' | 'todavia_no' | 'no' | 'no_preguntada'
+  objecion?: 'precio' | 'fechas' | 'decisor' | 'confianza' | 'forma_de_pago' | 'comparando' | 'documentos_visa' | 'solo_mirando' | 'otra' | 'ninguna'
+  quien_decide?: string
+  rango_dado?: string
+  canal_cierre?: 'whatsapp' | 'llamada' | 'oficina' | 'sin_definir'
+  motivo_viaje?: string
 }
 
 let cliente: Anthropic | null = null
@@ -43,8 +68,20 @@ function anthropic(): Anthropic {
   return cliente
 }
 
+/**
+ * Las tarjetas con botón de WhatsApp (GoGHL) se guardan en GHL con el código
+ * crudo `#btn|título|subtítulo|media|botón`. Para Sol (v1 y v2) se resumen como
+ * "[Ficha enviada: título — subtítulo]" en vez de leer el código.
+ */
+export function legibleParaSol(texto: string): string {
+  if (!texto.startsWith('#btn|')) return texto
+  const [, titulo = '', subtitulo = ''] = texto.split('|')
+  const sub = subtitulo && subtitulo !== 'undefined' ? ` — ${subtitulo}` : ''
+  return `[Ficha enviada: ${titulo}${sub}]`
+}
+
 /** El historial de GHL viene del más reciente al más antiguo. */
-function aHistorial(mensajes: MensajeGhl[], idsSol?: Set<string>): Anthropic.MessageParam[] {
+export function aHistorial(mensajes: MensajeGhl[], idsSol?: Set<string>): Anthropic.MessageParam[] {
   const historial = [...mensajes]
     .reverse()
     // Los registros de actividad (TYPE_ACTIVITY_*: "Opportunity created",
@@ -55,6 +92,7 @@ function aHistorial(mensajes: MensajeGhl[], idsSol?: Set<string>): Anthropic.Mes
     // después del primer mensaje del lead (visto el 2026-08-26).
     .filter(m => !m.messageType?.startsWith('TYPE_ACTIVITY'))
     .filter(m => (m.body ?? '').trim() !== '')
+    .map(m => ({ ...m, body: legibleParaSol(m.body!) }))
     .map(m => ({
       role: m.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
       // En modo respaldo Sol tiene que distinguir lo que escribió la asesora
@@ -260,7 +298,7 @@ const APP_ANUNCIO: Record<string, string> = {
  * la pieza) y si corresponde a programas del catálogo (cuyo detalle ya va en
  * el contexto) o a un producto que aún no está publicado.
  */
-function lineaAnuncio(a: AnuncioContexto, nombreDe: (slug: string) => string | undefined): string {
+export function lineaAnuncio(a: AnuncioContexto, nombreDe: (slug: string) => string | undefined): string {
   const donde = a.sourceApp ? (APP_ANUNCIO[a.sourceApp.toLowerCase()] ?? '') : ''
   const textoPieza = (a.texto ?? '').replace(/\s+/g, ' ').trim()
   const recorte = textoPieza.length > 700 ? `${textoPieza.slice(0, 697).trimEnd()}…` : textoPieza

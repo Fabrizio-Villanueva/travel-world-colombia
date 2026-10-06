@@ -3,7 +3,6 @@ import {
   actualizarCamposOportunidad,
   agregarTags,
   crearNota,
-  listarCamposPersonalizados,
   moverOportunidad,
   oportunidadesDe,
   renombrarOportunidad,
@@ -11,6 +10,8 @@ import {
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   CAMPO_IA_NOMBRE,
+  CAMPO_SOL_IDIOMA,
+  CAMPOS_SOL_OPP,
   CAMPOS_CALIFICACION_OPP,
   HORARIO,
   MAX_INTENTOS_SEGUIMIENTO,
@@ -292,59 +293,68 @@ function lineaTermometro(decision: Decision): string | null {
 }
 
 /**
- * Los campos `sol_*` los crea el usuario en la UI de GHL (la propuesta está en
- * §6.2 del diseño). Aquí solo se escriben los que EXISTAN, así el código no
- * depende de que estén creados y empiezan a llenarse solos cuando aparezcan.
+ * Seguimiento y método de venta de Sol → la OPORTUNIDAD abierta de Leads
+ * (carpeta "⭐ Calificación (Sol)", desde el 05-oct-2026). Antes vivían en el
+ * contacto (sol_*); con dos viajes del mismo cliente se mezclaban. Solo el
+ * idioma se queda en el contacto: es de la persona.
  *
- * La lista de campos de la cuenta se cachea 10 minutos: es un catálogo casi
- * estático y no vale la pena pedirlo en cada mensaje.
+ * A diferencia de la calificación, estos campos se escriben aunque la tarjeta
+ * ya esté en manos de una asesora: describen la conversación de Sol, no pisan
+ * datos del viaje que ella haya corregido.
  */
-let cacheCamposSol: { porClave: Map<string, string>; expira: number } | null = null
-
-async function camposSolExistentes(): Promise<Map<string, string>> {
-  if (cacheCamposSol && cacheCamposSol.expira > Date.now()) return cacheCamposSol.porClave
-
-  const porClave = new Map<string, string>()
-  for (const campo of await listarCamposPersonalizados()) {
-    const clave = campo.fieldKey?.replace(/^contact\./, '')
-    if (clave?.startsWith('sol_')) porClave.set(clave, campo.id)
-  }
-  cacheCamposSol = { porClave, expira: Date.now() + 10 * 60_000 }
-  return porClave
-}
-
 async function escribirCamposSol(e: EntradaCrm): Promise<string | null> {
   const { contactId, canal, decision } = e
-  const existentes = await camposSolExistentes()
-  if (existentes.size === 0) return null // aún no los crean; silencio, sin error
-
+  const venta = decision.venta
   const dormido = (e.intentos ?? 0) >= MAX_INTENTOS_SEGUIMIENTO
-  const valores: Record<string, string | number | undefined> = {
-    sol_estado: derivarEstado(decision, dormido),
-    sol_temperatura: decision.temperatura === 'no_aplica' ? undefined : decision.temperatura,
-    sol_resumen: decision.resumen?.trim() || undefined,
-    sol_ultima_interaccion: fechaBogota(),
-    sol_canal: canalNormalizado(canal),
-    sol_proximo_seguimiento: proximoSeguimientoValido(decision),
-    sol_intentos_seguimiento: e.intentos,
-    sol_objeciones: decision.objeciones?.trim() || undefined,
-    sol_idioma: decision.idioma?.trim() || undefined,
-    sol_confianza: decision.confianza,
-    sol_motivo_cierre:
+  const valores: [keyof typeof CAMPOS_SOL_OPP, string | number | undefined][] = [
+    ['estadoComercial', venta?.estado && !dormido && decision.accion !== 'escalar' ? venta.estado : derivarEstado(decision, dormido)],
+    ['temperatura', decision.temperatura === 'no_aplica' ? undefined : decision.temperatura],
+    ['resumen', decision.resumen?.trim() || undefined],
+    ['ultimaInteraccion', fechaBogota()],
+    ['canal', canalNormalizado(canal)],
+    ['proximoSeguimiento', proximoSeguimientoValido(decision)],
+    ['intentosSeguimiento', e.intentos],
+    ['detalleObjecion', decision.objeciones?.trim() || undefined],
+    ['confianza', decision.confianza],
+    [
+      'motivoCierre',
       decision.temperatura === 'no_interesado'
         ? decision.motivo
         : dormido
           ? `sin respuesta tras ${MAX_INTENTOS_SEGUIMIENTO} seguimientos`
           : undefined,
+    ],
+    // Método de venta (solo Sol v2 los devuelve).
+    ['objecionPrincipal', venta?.objecion && venta.objecion !== 'ninguna' ? venta.objecion : undefined],
+    ['senalCompra', venta?.senal_compra?.trim() || undefined],
+    ['respuestaCompromiso', venta?.compromiso],
+    ['quienDecide', venta?.quien_decide?.trim() || undefined],
+    ['rangoDado', venta?.rango_dado?.trim() || undefined],
+    ['canalCierre', venta?.canal_cierre && venta.canal_cierre !== 'sin_definir' ? venta.canal_cierre : undefined],
+    ['motivoViaje', venta?.motivo_viaje?.trim() || undefined],
+    ['borradorCotizacion', decision.borrador?.trim() || undefined],
+  ]
+  const campos = valores
+    .filter((par): par is [keyof typeof CAMPOS_SOL_OPP, string | number] => par[1] !== undefined && par[1] !== '')
+    .map(([clave, valor]) => ({ id: CAMPOS_SOL_OPP[clave], field_value: valor }))
+
+  const notas: string[] = []
+  const idioma = decision.idioma?.trim()
+  if (idioma) {
+    await actualizarCampos(contactId, [{ id: CAMPO_SOL_IDIOMA, field_value: idioma }])
+    notas.push('idioma en el contacto')
   }
 
-  const campos = Object.entries(valores)
-    .filter((par): par is [string, string | number] => par[1] !== undefined && existentes.has(par[0]))
-    .map(([clave, valor]) => ({ id: existentes.get(clave)!, field_value: valor }))
-
-  if (campos.length === 0) return null
-  await actualizarCampos(contactId, campos)
-  return `sol_* actualizados (${campos.length})`
+  if (campos.length > 0) {
+    const abierta = (await oportunidadesDe(contactId)).find(o => o.pipelineId === PIPELINE.id && o.status === 'open')
+    if (abierta) {
+      await actualizarCamposOportunidad(abierta.id, campos)
+      notas.push(`campos de Sol en la oportunidad (${campos.length})`)
+    } else {
+      notas.push('campos de Sol NO guardados: sin tarjeta abierta en Leads')
+    }
+  }
+  return notas.length ? notas.join(' · ') : null
 }
 
 function derivarEstado(decision: Decision, dormido = false): string {
