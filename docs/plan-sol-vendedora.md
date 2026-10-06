@@ -406,3 +406,16 @@ modelo). Nuevo camino:
 - **Paso 4** ✓ lib/agente/v2/ (prompt por capas, decidir, ficha #btn, borrador). NO conectada al webhook (se conecta en el paso 6).
 - **Paso 5** ✓ migración 032 APLICADA + /admin/sol/laboratorio (chat de prueba, 17 escenarios base cargados, cliente simulado con Haiku 4.5, 👍/👎). Probados 9 escenarios (~US$0,03-0,15 c/u); ajustes hechos: no sub-rangos, revisar fechas vs hoy antes del anticipo, no decir que un presupuesto bajo "alcanza", borrador solo en listo_para_reservar.
 - Pendiente para salir: aplicar migración 030 + publicar (push a main).
+
+## 19. PASO 6 EN MARCHA — prueba A/B lanzada (06-oct-2026)
+
+- Migración 033 (sol_ab_config 20 % activa, sol_ab_asignaciones, sol_ab_turnos).
+- lib/agente/v2/ab.ts: asignación al azar en el PRIMER mensaje de un lead nuevo
+  (tag sol_v1 / sol_v2, fijo); conversaciones previas siguen en v1; respaldo
+  (chats de asesora) sigue en v1. Webhook (conversacion.ts) y seguimiento usan
+  v2 para el grupo v2. Tarjetas #btn solo por WhatsApp (en IG/FB/web, link en texto).
+- crm.ts: con v2 el traspaso a la asesora (sol_calificado, brief, "Calificado
+  por Bot", fin del seguimiento) ocurre SOLO en listo_para_reservar.
+- /admin/sol/ab (solo admin): porcentaje, botón de regreso (desmarcar "Prueba
+  activa"), métricas por grupo y conversaciones v2 con su razonamiento.
+- Medición de ventas por grupo: contra Reservaciones a 30 días (pendiente de script).

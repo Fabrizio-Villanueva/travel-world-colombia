@@ -84,6 +84,19 @@ function estaCalificado(d: Decision['datos']): boolean {
   return Boolean(d.destino?.trim() && d.fechas?.trim() && pax > 0)
 }
 
+/**
+ * ¿Se le pasa el lead a la asesora (tag sol_calificado, brief, etapa
+ * "Calificado por Bot", fin del seguimiento de Sol)?
+ *  - Sol v1: con los datos mínimos (destino + fechas + viajeros).
+ *  - Sol v2: SOLO cuando el cliente quedó "listo para reservar" (señal de
+ *    compra o sí al compromiso). Con datos completos pero sin intención, Sol
+ *    sigue trabajándolo: es justo lo que pidió la dueña.
+ */
+function listoParaAsesora(decision: Decision): boolean {
+  if (decision.venta) return decision.venta.estado === 'listo_para_reservar'
+  return estaCalificado(decision.datos)
+}
+
 async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
   const { contactId, decision } = e
   const d = decision.datos
@@ -219,7 +232,7 @@ function nivelDeUrgencia(
  * y solo cuando el lead ya está listo (calificado o escalado).
  */
 function componerBrief(decision: Decision): string | null {
-  const listo = decision.accion === 'escalar' || estaCalificado(decision.datos)
+  const listo = decision.accion === 'escalar' || listoParaAsesora(decision)
   if (!listo) return null
 
   const d = decision.datos
@@ -361,7 +374,7 @@ function derivarEstado(decision: Decision, dormido = false): string {
   if (decision.accion === 'escalar') return 'escalado'
   if (decision.temperatura === 'no_interesado') return 'no_interesado'
   if (dormido) return 'dormido'
-  if (estaCalificado(decision.datos)) return 'calificado'
+  if (listoParaAsesora(decision)) return 'calificado'
   return 'conversando'
 }
 
@@ -415,7 +428,7 @@ async function marcarHandoff(e: EntradaCrm): Promise<string | null> {
     return 'nota interna de escalada'
   }
 
-  if (estaCalificado(decision.datos) && !tags.includes(TAGS.calificado)) {
+  if (listoParaAsesora(decision) && !tags.includes(TAGS.calificado)) {
     await agregarTags(e.contactId, [TAGS.calificado])
     await dejarNotaDeEscalada(e) // el mismo brief sirve para quien arme la cotización
     return `handoff silencioso: ${TAGS.calificado} + nota con brief`
@@ -470,7 +483,7 @@ async function dejarNotaDeEscalada({ contactId, decision }: EntradaCrm): Promise
  * guardarCalificacion ANTES de este paso). El workflow no le escribe al cliente.
  */
 async function moverSiCalificado({ contactId, decision }: EntradaCrm): Promise<string | null> {
-  if (!estaCalificado(decision.datos)) return null
+  if (!listoParaAsesora(decision)) return null
 
   const oportunidades = await oportunidadesDe(contactId)
   const abierta = oportunidades.find(o => o.pipelineId === PIPELINE.id && o.status === 'open')
@@ -502,7 +515,7 @@ async function programarSeguimiento(e: EntradaCrm): Promise<string | null> {
   let fila: { estado: string; programado_para: string | null; nota: string | null }
   if (d.accion === 'escalar') {
     fila = { estado: 'cerrado', programado_para: null, nota: 'escalado a una asesora' }
-  } else if (estaCalificado(d.datos)) {
+  } else if (listoParaAsesora(d)) {
     // Handoff silencioso: el equipo arma la cotización. Sol no persigue por su
     // cuenta (el empujón al cliente sería la fase 2 del híbrido, aún no activa).
     fila = { estado: 'cerrado', programado_para: null, nota: 'calificado; el equipo arma la cotización' }

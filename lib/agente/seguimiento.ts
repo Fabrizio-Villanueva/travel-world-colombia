@@ -14,6 +14,8 @@ import { fechaBogota, sincronizarCrm } from '@/lib/agente/crm'
 import { extraerFotos } from '@/lib/agente/conocimiento'
 import { registrarEvento } from '@/lib/agente/eventos'
 import { esFestivo } from '@/lib/agente/festivos'
+import { costoUsd, decidirV2 } from '@/lib/agente/v2/decidir'
+import { enviarRespuestaV2, estadoPrevioV2, registrarTurnoAB, versionPara } from '@/lib/agente/v2/ab'
 import {
   CAMPO_IA_NOMBRE,
   HORARIO,
@@ -136,24 +138,60 @@ async function atenderSeguimiento(fila: FilaSeguimiento): Promise<string> {
 
   const intento = fila.intentos + 1
   const anuncio = await anuncioParaConversacion(fila.conversation_id)
-  const decision = await decidir(mensajes, {
-    nombre: [contacto.firstName, contacto.lastName].filter(Boolean).join(' ') || undefined,
-    nombreConfirmado,
-    canal: fila.canal ?? undefined,
-    enHorario: enHorario(),
-    seguimiento: { intento, maximo: MAX_INTENTOS_SEGUIMIENTO, angulo: fila.nota ?? undefined },
-    anuncio,
-  })
+  // Prueba A/B: el grupo ya quedó fijado en el primer mensaje (no se asigna aquí).
+  const version = await versionPara(fila.contact_id, tags, false)
+  const nombreWhatsapp = [contacto.firstName, contacto.lastName].filter(Boolean).join(' ') || undefined
+  const seguimiento = { intento, maximo: MAX_INTENTOS_SEGUIMIENTO, angulo: fila.nota ?? undefined }
+  let costoV2: number | undefined
+  let decision
+  if (version === 'v2') {
+    const r = await decidirV2(mensajes, {
+      nombre: nombreWhatsapp,
+      nombreConfirmado,
+      canal: fila.canal ?? undefined,
+      seguimiento,
+      anuncio,
+      estadoPrevio: await estadoPrevioV2(fila.contact_id),
+    })
+    decision = r.decision
+    costoV2 = costoUsd(r.uso)
+  } else {
+    decision = await decidir(mensajes, {
+      nombre: nombreWhatsapp,
+      nombreConfirmado,
+      canal: fila.canal ?? undefined,
+      enHorario: enHorario(),
+      seguimiento,
+      anuncio,
+    })
+  }
   marcarFuenteAnuncio(decision, anuncio)
 
   const habla = decision.accion !== 'callar' && decision.mensaje.trim() !== ''
+  let tarjetasEnviadas: { titulo: string; boton: string }[] | undefined
 
   if (habla) {
     // Por el mismo canal por el que escribió el cliente (custom provider incluido).
-    const { texto, imagenes } = await extraerFotos(decision.mensaje.trim())
-    const envio = await enviarMensaje(fila.contact_id, texto, rutaDeRespuesta(mensajes), imagenes)
-    await registrarEnvio(envio, fila.conversation_id, fila.contact_id, texto, (imagenes?.length ?? 0) > 0)
+    const ruta = rutaDeRespuesta(mensajes)
+    if (version === 'v2') {
+      tarjetasEnviadas = (await enviarRespuestaV2(decision, { contactId: fila.contact_id, conversationId: fila.conversation_id, ruta })).tarjetas
+    } else {
+      const { texto, imagenes } = await extraerFotos(decision.mensaje.trim())
+      const envio = await enviarMensaje(fila.contact_id, texto, ruta, imagenes)
+      await registrarEnvio(envio, fila.conversation_id, fila.contact_id, texto, (imagenes?.length ?? 0) > 0)
+    }
   }
+
+  await registrarTurnoAB({
+    contactId: fila.contact_id,
+    conversationId: fila.conversation_id,
+    version,
+    origen: 'seguimiento',
+    mensaje: habla ? decision.mensaje.trim() : undefined,
+    tarjetas: tarjetasEnviadas,
+    decision,
+    costoUsd: costoV2,
+  })
 
   // Escalar avisa al equipo pero no apaga a Sol (espera caliente); el stop_bot
   // lo pone la intervención humana. Consistente con el webhook.

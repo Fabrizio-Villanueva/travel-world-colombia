@@ -16,6 +16,8 @@ import { extraerFotos } from '@/lib/agente/conocimiento'
 import { anuncioParaConversacion, type AnuncioContexto } from '@/lib/agente/anuncios'
 import { ACTIVO_DESDE, AVISO_DATOS, CAMPO_IA_NOMBRE, HORARIO, RAFAGA_MS, RESPALDO, TAGS, TAG_PRUEBAS } from '@/lib/agente/config'
 import { checkRateLimit } from '@/lib/security/rateLimit'
+import { costoUsd, decidirV2 } from '@/lib/agente/v2/decidir'
+import { enviarRespuestaV2, estadoPrevioV2, registrarTurnoAB, versionPara } from '@/lib/agente/v2/ab'
 
 /**
  * Tope de turnos de Sol por contacto por hora. Generoso para una conversación
@@ -177,20 +179,39 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   // ¿Llegó desde un anuncio de Meta? Sol sabe qué vio y qué programa es.
   const anuncio = await anuncioParaConversacion(e.conversationId)
 
-  const decision = await decidir(mensajes, {
-    nombre: e.nombre,
-    nombreConfirmado: e.nombreConfirmado,
-    canal: e.canal,
-    enHorario: enHorario(),
-    primerContacto,
-    anuncio,
-  })
+  // Prueba A/B (paso 6): un lead nuevo se asigna a v1 o v2 y no cambia; las
+  // conversaciones que ya venían siguen con v1. Ver lib/agente/v2/ab.ts.
+  const version = await versionPara(e.contactId, e.tags, primerContacto, e.conversationId)
+  let costoV2: number | undefined
+  let decision: Decision
+  if (version === 'v2') {
+    const r = await decidirV2(mensajes, {
+      nombre: e.nombre,
+      nombreConfirmado: e.nombreConfirmado,
+      canal: e.canal,
+      primerContacto,
+      anuncio,
+      estadoPrevio: await estadoPrevioV2(e.contactId),
+    })
+    decision = r.decision
+    costoV2 = costoUsd(r.uso)
+  } else {
+    decision = await decidir(mensajes, {
+      nombre: e.nombre,
+      nombreConfirmado: e.nombreConfirmado,
+      canal: e.canal,
+      enHorario: enHorario(),
+      primerContacto,
+      anuncio,
+    })
+  }
   marcarFuenteAnuncio(decision, anuncio)
 
   // Primero la voz, después la mano: el mensaje al cliente sale de inmediato y
   // la escritura en el CRM va al final, donde un fallo ya no le quita respuesta
   // a nadie (sincronizarCrm nunca lanza: reporta cada tropiezo como nota).
   const habla = decision.accion !== 'callar' && decision.mensaje.trim() !== ''
+  let tarjetasEnviadas: { titulo: string; boton: string }[] | undefined
 
   if (habla) {
     // Por el mismo canal por el que escribió el cliente (custom provider incluido).
@@ -210,12 +231,31 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
       }
     }
 
-    // Si Sol puso un marcador [foto:slug], se convierte en imagen adjunta y se
-    // limpia del texto (solo destinos del catálogo; máx. una foto).
-    const { texto, imagenes } = await extraerFotos(decision.mensaje.trim())
-    const envio = await enviarMensaje(e.contactId, texto, ruta, imagenes)
-    await registrarEnvio(envio, e.conversationId, e.contactId, texto, (imagenes?.length ?? 0) > 0)
+    if (version === 'v2') {
+      // v2: texto + tarjetas con botón (#btn) de los marcadores [ficha:…] / [llamar].
+      const enviado = await enviarRespuestaV2(decision, { contactId: e.contactId, conversationId: e.conversationId, ruta })
+      tarjetasEnviadas = enviado.tarjetas
+    } else {
+      // Si Sol puso un marcador [foto:slug], se convierte en imagen adjunta y se
+      // limpia del texto (solo destinos del catálogo; máx. una foto).
+      const { texto, imagenes } = await extraerFotos(decision.mensaje.trim())
+      const envio = await enviarMensaje(e.contactId, texto, ruta, imagenes)
+      await registrarEnvio(envio, e.conversationId, e.contactId, texto, (imagenes?.length ?? 0) > 0)
+    }
   }
+
+  // Bitácora del A/B: todos los turnos (v1 y v2) para comparar grupos y revisar
+  // el razonamiento de v2 en el panel. Nunca lanza.
+  await registrarTurnoAB({
+    contactId: e.contactId,
+    conversationId: e.conversationId,
+    version,
+    origen: 'mensaje',
+    mensaje: habla ? decision.mensaje.trim() : undefined,
+    tarjetas: tarjetasEnviadas,
+    decision,
+    costoUsd: costoV2,
+  })
 
   // Escalar avisa al equipo (dispara la notificación) pero NO apaga a Sol: queda
   // en "espera caliente" acompañando al cliente hasta que una persona tome el
@@ -238,7 +278,7 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
     actuo: habla,
     decision,
     nota: [
-      `${habla ? decision.accion : 'callar'}: ${decision.motivo}`,
+      `[${version}${decision.venta ? ` · ${decision.venta.estado}` : ''}] ${habla ? decision.accion : 'callar'}: ${decision.motivo}`,
       anuncio ? `anuncio: ${anuncio.nombre}${anuncio.slugs.length ? ` → ${anuncio.slugs.join(', ')}` : ' (sin producto en el catálogo)'}` : null,
       ...notasCrm,
     ]
