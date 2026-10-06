@@ -4,21 +4,21 @@ import Link from 'next/link'
 import { DollarSign, ShieldCheck, MessageCircle, ExternalLink } from 'lucide-react'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { BotonCopiar } from '@/components/ui/BotonCopiar'
-import { NuevaPestana } from '@/components/ui/NuevaPestana'
+import { NuevaPestana, NUEVA_PESTANA } from '@/components/ui/NuevaPestana'
 import { WHATSAPP } from '@/lib/site'
 
 /**
  * Página de pagos, rescatada del WordPress viejo (snapshot Wayback 2026-06-14):
  * botón PSE (portal de pagos Davivienda del comercio Vamos Por Más SAS), pago
  * con tarjeta (datáfono virtual de Prix, +5%), consignación nacional
- * (Bancolombia / Davivienda) y pagos en dólares: en línea desde Colombia (Prix)
+ * (Bancolombia / Davivienda), Bre-B (QR + llave) y pagos en dólares: en línea desde Colombia (Prix)
  * o desde EE. UU. (Zelle / Chase).
  */
 
 export const metadata: Metadata = {
   title: 'Pagos',
   description:
-    'Paga tu viaje de forma segura: PSE sin costo, tarjeta de crédito, consignación en Bancolombia o Davivienda, y pagos en dólares desde Colombia o por Zelle y Chase desde Estados Unidos.',
+    'Paga tu viaje de forma segura: PSE sin costo, tarjeta de crédito, Bre-B con código QR, consignación en Bancolombia o Davivienda, y pagos en dólares desde Colombia o por Zelle y Chase desde Estados Unidos.',
   alternates: { canonical: '/pagos' },
 }
 
@@ -53,6 +53,12 @@ const CUENTAS_COLOMBIA = [
 const CUENTAS_USA = [
   { banco: 'Zelle', tipo: 'Referencia de pago', numero: 'vamospormasusa@gmail.com', logo: LOGOS.zelle },
   { banco: 'Chase Bank', tipo: 'Cuenta corriente', numero: '53-18-59-687', logo: LOGOS.chase },
+]
+
+/** Códigos QR de Bre-B (pagos inmediatos entre bancos) con su llave. */
+const QRS_BREB = [
+  { banco: 'Bancolombia', llave: '0090272526', src: '/img/pagos/qr-bancolombia.png', w: 576, h: 1027 },
+  { banco: 'Davivienda', llave: '@9005371997', src: '/img/pagos/qr-davivienda.png', w: 867, h: 877 },
 ]
 
 const whatsappComprobante = `https://wa.me/${WHATSAPP.principal}?text=${encodeURIComponent(
@@ -113,7 +119,7 @@ export default function PagosPage() {
             Pagos
           </h1>
           <p className="mt-5 max-w-lg font-inter text-sm leading-relaxed sm:text-base" style={{ color: 'var(--text-primary)', opacity: 0.9 }}>
-            Elige el medio que prefieras: pago en línea con PSE o tarjeta, consignación en
+            Elige el medio que prefieras: pago en línea con PSE o tarjeta, Bre-B, consignación en
             Colombia, o pagos en dólares desde Colombia y Estados Unidos.
           </p>
         </div>
@@ -206,6 +212,56 @@ export default function PagosPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             {CUENTAS_COLOMBIA.map(c => (
               <TarjetaCuenta key={c.numero} {...c} />
+            ))}
+          </div>
+        </section>
+
+        {/* ── Bre-B: QR y llave ── */}
+        <section className="mb-14">
+          <h2 className="mb-2 font-plus-jakarta text-2xl font-extrabold tracking-tight sm:text-3xl" style={{ color: 'var(--text-primary)' }}>
+            Paga con Bre-B
+          </h2>
+          <p className="mb-6 font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
+            Pago inmediato desde la app de cualquier banco en Colombia: escanea el código QR o
+            envía el pago a nuestra llave Bre-B.
+          </p>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {QRS_BREB.map(q => (
+              <div
+                key={q.llave}
+                className="flex flex-col gap-4 rounded-2xl p-5 sm:p-6"
+                style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}
+              >
+                <a
+                  href={q.src}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative mx-auto block h-80 w-full overflow-hidden rounded-xl sm:h-96"
+                  aria-label={`Ver código QR de ${q.banco} en tamaño completo${NUEVA_PESTANA}`}
+                >
+                  <Image
+                    src={q.src}
+                    alt={`Código QR Bre-B de ${q.banco} para pagar a Vamos Por Más SAS`}
+                    fill
+                    sizes="(min-width: 640px) 520px, 100vw"
+                    className="object-contain"
+                  />
+                </a>
+                <div
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4"
+                  style={{ background: '#fff', border: '1px solid var(--border)' }}
+                >
+                  <div className="min-w-0">
+                    <p className="font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
+                      Llave Bre-B · {q.banco}
+                    </p>
+                    <p className="mt-0.5 break-all font-plus-jakarta text-lg font-extrabold tracking-wide" style={{ color: 'var(--text-primary)' }}>
+                      {q.llave}
+                    </p>
+                  </div>
+                  <BotonCopiar texto={q.llave} ariaLabel={`Copiar llave Bre-B de ${q.banco}`} />
+                </div>
+              </div>
             ))}
           </div>
         </section>

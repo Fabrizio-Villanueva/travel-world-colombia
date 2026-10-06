@@ -250,9 +250,10 @@ async function guardar(
     // Valor de la venta y etapa según los abonos (Fase 4): nunca lanza.
     await automatizarReserva(opportunityId)
   }
+  let duplicado: Duplicado | null = null
   if ((loteContacto.size > 0 || nEstandar > 0) && contactId) {
-    await actualizarContacto(contactId, {
-      ...estandar,
+    const cuerpoContacto = (std: Record<string, string>) => ({
+      ...std,
       ...(loteContacto.size > 0
         ? {
             customFields: [...loteContacto.entries()].map(([id, field_value]) => ({
@@ -262,6 +263,20 @@ async function guardar(
           }
         : {}),
     })
+    try {
+      await actualizarContacto(contactId, cuerpoContacto(estandar))
+    } catch (e) {
+      // La cuenta no permite dos contactos con el mismo correo/teléfono. Pasa
+      // con duplicados viejos (importaciones): se guarda todo lo demás y se
+      // explica qué contacto tiene ya ese dato.
+      duplicado = leerDuplicado(e)
+      if (!duplicado) throw e
+      const resto = { ...estandar }
+      delete resto[duplicado.campo]
+      if (Object.keys(resto).length > 0 || loteContacto.size > 0) {
+        await actualizarContacto(contactId, cuerpoContacto(resto))
+      }
+    }
   }
 
   await registrarActividad({
@@ -271,5 +286,34 @@ async function guardar(
     detalle: { oportunidad: loteOportunidad.length, contacto: loteContacto.size + nEstandar },
   })
 
+  if (duplicado) {
+    const dato = duplicado.campo === 'phone' ? 'teléfono' : 'correo'
+    throw new Error(
+      `Se guardó todo menos el ${dato} "${estandar[duplicado.campo]}": en GHL ya lo tiene otro ` +
+        `contacto (${[duplicado.nombre, duplicado.contactId && `id ${duplicado.contactId}`].filter(Boolean).join(', ')}). ` +
+        `Es un contacto duplicado: fusiónalos en GHL (Contactos → marcar ambos → Fusionar, ` +
+        `dejando como principal el que tiene la reserva) o usa otro ${dato}.`
+    )
+  }
+
   return total
+}
+
+interface Duplicado {
+  campo: 'email' | 'phone'
+  contactId?: string
+  nombre?: string
+}
+
+/** Reconoce el 400 "This location does not allow duplicated contacts." de GHL. */
+function leerDuplicado(e: unknown): Duplicado | null {
+  const msg = e instanceof Error ? e.message : ''
+  if (!msg.includes('does not allow duplicated contacts')) return null
+  const campo = /"matchingField":"(\w+)"/.exec(msg)?.[1]
+  if (campo !== 'email' && campo !== 'phone') return null
+  return {
+    campo,
+    contactId: /"contactId":"([^"]+)"/.exec(msg)?.[1],
+    nombre: /"contactName":"([^"]+)"/.exec(msg)?.[1],
+  }
 }
