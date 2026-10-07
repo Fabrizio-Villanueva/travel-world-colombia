@@ -318,7 +318,17 @@
 }
 .medios ul {
   margin: 4px 0 0;
-  padding-left: 16px;
+  padding-left: 4px;
+  list-style: none;
+}
+.medios li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.medios li svg {
+  flex-shrink: 0;
+  color: var(--ct-barra);
 }
 
 /* ── Condiciones ── */
@@ -360,46 +370,91 @@
   margin-top: 3px;
 }
 
-/* ── Firma ── */
+/* ── Cláusulas ── */
+.clausula {
+  break-inside: auto;
+}
+.clausulaTexto {
+  padding: 8px 12px 10px;
+  border: 1px solid var(--ct-borde);
+  border-top: 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  text-align: justify;
+  hyphens: auto;
+}
+.clausulaTexto p {
+  margin: 0;
+}
+.clausulaTexto p + p {
+  margin-top: 7px;
+}
+
+/* ── Declaración y firmas ── */
 .firmaSeccion {
   margin-bottom: 24px;
+  break-inside: avoid;
 }
-.aceptacion {
-  margin: 10px 0 0;
+.declaracion {
+  margin: 0;
+  padding: 10px 16px;
+  background: #e4e6ea;
+  text-align: center;
   font-size: 11px;
-  color: var(--ct-suave);
+  font-style: italic;
+  font-weight: 600;
 }
 .firmas {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 32px;
-  margin-top: 16px;
+  gap: 16px;
+  margin-top: 12px;
 }
-.firmaCaja {
+.firmaCol {
   display: flex;
   flex-direction: column;
-  align-items: center;
+}
+.firmaCol .campos,
+.firmaCol .parAncho {
+  grid-template-columns: 1fr;
+}
+.firmaCol .par,
+.firmaCol .parAncho {
+  grid-template-columns: 30% 1fr;
+}
+.firmaCabeza {
+  margin: 0;
+  padding: 5px 10px;
+  background: var(--ct-barra);
+  color: #fff;
   text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .firmaTrazo {
-  width: 100%;
-  height: 80px;
+  height: 84px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  border-bottom: 1.5px solid var(--ct-navy);
+  border: 1px solid var(--ct-borde);
+  border-top: 0;
 }
 .firmaTrazo img {
   max-height: 76px;
-  max-width: 100%;
-}
-.firmaNombre {
-  margin-top: 6px;
-  font-weight: 700;
+  max-width: 90%;
 }
 .firmaRol {
-  font-size: 10px;
-  color: var(--ct-suave);
+  padding: 3px;
+  background: var(--ct-etiqueta-fondo);
+  border: 1px solid var(--ct-borde);
+  border-top: 0;
+  color: var(--ct-barra);
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 /* ── Celular: pares en una columna, sin márgenes laterales grandes ── */

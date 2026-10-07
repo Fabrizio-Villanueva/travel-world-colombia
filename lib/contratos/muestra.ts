@@ -19,7 +19,7 @@ export const CONTRATO_MUESTRA: ContratoDatos = {
     correo: 'ana.perez@ejemplo.com',
     telefono: '300 123 4567',
   },
-  titular: { nombre: 'Ana María Pérez Gómez', telefono: '300 123 4567' },
+  titular: { nombre: 'Ana María Pérez Gómez', documento: 'CC 1.023.456.789', telefono: '300 123 4567' },
 
   viaje: {
     fechaIda: '2026-12-12',

@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { Landmark, Monitor, Mail, QrCode } from 'lucide-react'
+import { CLAUSULA_DATOS, CLAUSULA_RESPONSABILIDAD, DECLARACION_FIRMA } from '@/lib/contratos/clausulas'
 import type { ContratoDatos, ContratoLiquidacionFila, ContratoPasajero } from '@/lib/contratos/tipos'
 import s from './ContratoDocumento.module.css'
 
@@ -24,12 +26,23 @@ const AGENCIA = {
 }
 
 const MEDIOS_DE_PAGO = [
-  'Bancolombia · Ahorros 264-133178-51 · VAMOS POR MÁS SAS',
-  'Davivienda · Corriente 406-169997292',
-  'Bre-B · Bancolombia 0090272526 · Davivienda @9005371997',
-  'PSE y tarjeta: travelworldcolombia.com/pagos',
-  'Comprobantes: contabilidad.travelworld@gmail.com',
+  { Icono: Landmark, texto: 'Bancolombia Ahorros #264-133178-51 · VAMOS POR MÁS S.A.S.' },
+  { Icono: Landmark, texto: 'Davivienda Corriente #406-169997292' },
+  { Icono: QrCode, texto: 'Bre-B: Bancolombia 0090272526 · Davivienda @9005371997' },
+  { Icono: Monitor, texto: 'PSE: zonapagos.com/basica · travelworldcolombia.com/pagos' },
+  { Icono: Mail, texto: 'contabilidad.travelworld@gmail.com' },
 ]
+
+/** Párrafo con **negrita** (único formato que usan las cláusulas). */
+function Parrafo({ texto }: { texto: string }) {
+  return (
+    <p>
+      {texto.split(/(\*\*[^*]+\*\*)/).map((t, i) =>
+        t.startsWith('**') ? <strong key={i}>{t.slice(2, -2)}</strong> : t
+      )}
+    </p>
+  )
+}
 
 const pesos = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 const numero = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 })
@@ -102,7 +115,16 @@ function TablaLiquidacion({ titulo, filas, conPlan }: { titulo: string; filas: C
   )
 }
 
-export function ContratoDocumento({ datos, firma }: { datos: ContratoDatos; firma?: ReactNode }) {
+export function ContratoDocumento({
+  datos,
+  firma,
+  firmaAgencia,
+}: {
+  datos: ContratoDatos
+  /** Trazo de la firma del titular (imagen) una vez firmado. */
+  firma?: ReactNode
+  firmaAgencia?: ReactNode
+}) {
   const { liquidacion: liq } = datos
   const columnas = COLUMNAS_PASAJERO.filter(c => datos.pasajeros.some(p => !vacio(p[c.clave])))
   const conPlan = [...liq.aereos, ...liq.terrestre].some(f => f.valorPlan != null) || liq.total.valorPlan != null
@@ -295,7 +317,11 @@ export function ContratoDocumento({ datos, firma }: { datos: ContratoDatos; firm
         <div className={s.medios}>
           <span className={s.mediosTitulo}>Medios de pago</span>
           <ul>
-            {MEDIOS_DE_PAGO.map(m => <li key={m}>{m}</li>)}
+            {MEDIOS_DE_PAGO.map(({ Icono, texto }) => (
+              <li key={texto}>
+                <Icono size={11} aria-hidden /> {texto}
+              </li>
+            ))}
           </ul>
         </div>
       </Seccion>
@@ -315,24 +341,31 @@ export function ContratoDocumento({ datos, firma }: { datos: ContratoDatos; firm
         </Seccion>
       )}
 
-      <Seccion titulo="Aceptación y firma" className={s.firmaSeccion}>
-        <p className={s.aceptacion}>
-          El titular declara que leyó y acepta este contrato, sus condiciones y los términos y
-          condiciones de Travel World Colombia, y que los datos de los pasajeros son correctos.
-        </p>
-        <div className={s.firmas}>
-          <div className={s.firmaCaja}>
-            <div className={s.firmaTrazo}>{firma}</div>
-            <span className={s.firmaNombre}>{datos.titular.nombre}</span>
-            <span className={s.firmaRol}>Titular de la reserva</span>
+      {[CLAUSULA_RESPONSABILIDAD, CLAUSULA_DATOS].map(c => (
+        <Seccion key={c.titulo} titulo={c.titulo} className={s.clausula}>
+          <div className={s.clausulaTexto}>
+            {c.parrafos.map((p, i) => <Parrafo key={i} texto={p} />)}
           </div>
-          <div className={s.firmaCaja}>
-            <div className={s.firmaTrazo} />
-            <span className={s.firmaNombre}>{AGENCIA.nombre}</span>
-            <span className={s.firmaRol}>{AGENCIA.razonSocial} · NIT {AGENCIA.nit}</span>
+        </Seccion>
+      ))}
+
+      <section className={`${s.seccion} ${s.firmaSeccion}`}>
+        <p className={s.declaracion}>{DECLARACION_FIRMA}</p>
+        <div className={s.firmas}>
+          <div className={s.firmaCol}>
+            <h3 className={s.firmaCabeza}>{AGENCIA.nombre}</h3>
+            <Campos pares={[['Nombre', datos.agente ?? AGENCIA.nombre], ['NIT', `${AGENCIA.nit} · ${AGENCIA.razonSocial}`]]} />
+            <div className={s.firmaTrazo}>{firmaAgencia}</div>
+            <span className={s.firmaRol}>Firma</span>
+          </div>
+          <div className={s.firmaCol}>
+            <h3 className={s.firmaCabeza}>Cliente - viajero</h3>
+            <Campos pares={[['Nombre', datos.titular.nombre], ['Documento', datos.titular.documento]]} />
+            <div className={s.firmaTrazo}>{firma}</div>
+            <span className={s.firmaRol}>Firma</span>
           </div>
         </div>
-      </Seccion>
+      </section>
     </article>
   )
 }

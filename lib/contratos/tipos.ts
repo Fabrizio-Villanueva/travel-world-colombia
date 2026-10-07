@@ -64,7 +64,7 @@ export interface ContratoDatos {
     correo?: string
     telefono?: string
   }
-  titular: { nombre: string; telefono?: string }
+  titular: { nombre: string; documento?: string; telefono?: string }
 
   viaje: {
     fechaIda?: string
