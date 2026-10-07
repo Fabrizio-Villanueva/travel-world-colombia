@@ -4,7 +4,7 @@ import type { DatosDocumento } from '@/lib/documentos/tipos'
 import { SITE } from '@/lib/site'
 
 /**
- * Escritura de los datos confirmados en los campos P1–P12 de la oportunidad.
+ * Escritura de los datos confirmados en los campos P1–P20 de la oportunidad.
  *
  * Los campos se resuelven por NOMBRE (igual que el Generador de Contratos):
  * se crearon desde el catálogo y el nombre es su llave natural. En GHL queda

@@ -36,7 +36,7 @@ export interface EntradaContrato {
   hoy: string
 }
 
-export const MAX_PASAJEROS = 12
+export const MAX_PASAJEROS = 20
 export const MAX_TRAYECTOS = 4
 export const MAX_PAGOS = 4
 

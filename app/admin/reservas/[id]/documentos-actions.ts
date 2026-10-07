@@ -205,7 +205,7 @@ export async function verDocumento(opportunityId: string, archivoId: string): Pr
   }
 }
 
-/** Reintenta escribir en P1–P12 un documento confirmado cuya escritura en GHL falló. */
+/** Reintenta escribir en P1–P20 un documento confirmado cuya escritura en GHL falló. */
 export async function reintentarEscrituraGhl(opportunityId: string, archivoId: string): Promise<Resultado<EstadoDocumentos>> {
   try {
     await requireReservas()

@@ -38,7 +38,7 @@ export default async function DocumentosAdminPage() {
           </h1>
           <p className="mt-1 max-w-2xl font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
             Enlaces enviados a los clientes para subir pasaportes, cédulas y visas. Los archivos viven en un
-            bucket privado y se borran 30 días después del regreso; los datos quedan en P1–P12 de la tarjeta.
+            bucket privado y se borran 30 días después del regreso; los datos quedan en P1–P20 de la tarjeta.
           </p>
         </div>
         <Link

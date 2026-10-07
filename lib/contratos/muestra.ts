@@ -74,30 +74,41 @@ export const CONTRATO_MUESTRA: ContratoDatos = {
   ],
 }
 
-const NOMBRES_MUESTRA = [
+const ADULTOS_MUESTRA = [
   ['Ana María Pérez Gómez', 'CC 1.023.456.789', '1985-03-12', 'AB123456', '2030-05-01', '300 123 4567'],
   ['Carlos Andrés Ruiz Díaz', 'CC 80.123.456', '1982-11-07', 'CD789012', '2029-08-15', '311 987 6543'],
   ['Luis Fernando Gómez Rojas', 'CC 79.654.321', '1979-04-10', 'GH456789', '2031-02-20', '315 222 3344'],
   ['Marta Lucía Rojas Peña', 'CC 52.987.654', '1981-09-03', 'IJ112233', '2030-11-30', '316 444 5566'],
   ['Jorge Iván Castro Mejía', 'CC 1.015.222.333', '1988-08-10', 'KL445566', '2032-07-12', '318 777 8899'],
   ['Paula Andrea Mejía Ríos', 'CC 1.020.333.444', '1990-09-10', 'MN778899', '2031-05-05', '320 111 2233'],
+  ['Andrés Felipe Torres Vega', 'CC 1.030.444.555', '1986-02-18', 'YZ606060', '2032-03-03', '301 222 3344'],
+  ['Natalia Vega Suárez', 'CC 1.031.555.666', '1987-12-01', 'AA707070', '2030-09-09', '302 333 4455'],
+  ['Ricardo Suárez León', 'CC 79.111.222', '1975-06-25', 'BB808080', '2029-12-12', '304 444 5566'],
+  ['Claudia León Ortiz', 'CC 52.222.333', '1978-10-14', 'CC909090', '2031-06-06', '305 555 6677'],
+] as const
+
+const NINOS_MUESTRA = [
   ['Sofía Ruiz Pérez', 'TI 1.098.765.432', '2014-06-22', 'EF345678', '2031-01-30', ''],
   ['Daniel Gómez Rojas', 'TI 1.097.111.222', '2015-06-15', 'OP101010', '2030-04-18', ''],
   ['Valentina Gómez Rojas', 'TI 1.096.222.333', '2016-07-15', 'QR202020', '2031-03-09', ''],
   ['Tomás Castro Mejía', 'RC 1.110.333.444', '2019-01-15', 'ST303030', '2034-01-15', ''],
   ['Laura Castro Mejía', 'TI 1.095.444.555', '2012-02-15', 'UV404040', '2030-10-01', ''],
   ['Emilia Castro Mejía', 'TI 1.094.555.666', '2011-03-15', 'WX505050', '2031-12-24', ''],
+  ['Mateo Torres Vega', 'TI 1.093.666.777', '2013-05-20', 'DD111111', '2032-02-02', ''],
+  ['Isabella Torres Vega', 'RC 1.112.777.888', '2018-08-08', 'EE222222', '2033-08-08', ''],
+  ['Samuel Suárez León', 'TI 1.092.888.999', '2010-11-11', 'FF333333', '2030-07-07', ''],
+  ['Martina Suárez León', 'TI 1.091.999.000', '2013-04-04', 'GG444444', '2031-04-04', ''],
 ] as const
 
 /**
- * La misma muestra con N personas (1–12): mitad adultos y mitad niños
+ * La misma muestra con N personas (1–20): mitad adultos y mitad niños
  * (redondeando hacia los adultos), con liquidación y pagos recalculados.
  */
 export function muestraConPasajeros(n: number): ContratoDatos {
-  const total = Math.min(Math.max(Math.round(n), 1), NOMBRES_MUESTRA.length)
+  const total = Math.min(Math.max(Math.round(n), 1), ADULTOS_MUESTRA.length + NINOS_MUESTRA.length)
   const adultos = Math.ceil(total / 2)
   const ninos = total - adultos
-  const elegidos = [...NOMBRES_MUESTRA.slice(0, adultos), ...NOMBRES_MUESTRA.slice(6, 6 + ninos)]
+  const elegidos = [...ADULTOS_MUESTRA.slice(0, adultos), ...NINOS_MUESTRA.slice(0, ninos)]
   const pasajeros = elegidos.map(([nombre, documento, fechaNacimiento, pasaporte, vencePasaporte, telefono]) => ({
     nombre, documento, fechaNacimiento, pasaporte, vencePasaporte, telefono: telefono || undefined,
   }))

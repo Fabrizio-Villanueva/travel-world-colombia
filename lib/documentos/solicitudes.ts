@@ -120,7 +120,7 @@ const CAMPO = {
   destino: '9x1Ui70nMDNBivYkPn8A', // Destino de interés
   fechaSalida: 'jo2GTriNmRltzHrzaAW9', // Fecha confirmada de salida
   fechaRegreso: 'Z8NdV55jbCe1WZNiZXc7', // Fecha confirmada de regreso
-  numPasajerosContrato: '9Bw35vFZANBqaAkwi5eJ', // Contrato - Numero de Pasajeros (1-12)
+  numPasajerosContrato: '9Bw35vFZANBqaAkwi5eJ', // Contrato - Numero de Pasajeros (1-20)
   totalPasajeros: 'lhhfannKntvwr27os2LE', // Total Pasajeros - Cantidad
   paxTotal: 'tw0gauUzwJhh6p2P5IHX', // Pax total
   ninosLiquidacion: 'xq4m9N2rjKpQ5LOLgm0w', // Valor Niño - Cantidad
@@ -153,7 +153,7 @@ export interface ContextoOportunidad {
    * luego los niños (menores) y al final los infantes. La asesora confirma.
    */
   tiposSugeridos: TipoViajero[]
-  /** Nombres ya escritos en P1–P12 (índice 0 = P1). */
+  /** Nombres ya escritos en P1–P20 (índice 0 = P1). */
   nombres: (string | null)[]
   /** Lo que hoy dice la tarjeta en los campos del portal. */
   linkGhl: string | null

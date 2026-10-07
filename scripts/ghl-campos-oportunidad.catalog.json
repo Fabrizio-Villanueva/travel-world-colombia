@@ -124,7 +124,15 @@
    "9",
    "10",
    "11",
-   "12"
+   "12",
+   "13",
+   "14",
+   "15",
+   "16",
+   "17",
+   "18",
+   "19",
+   "20"
   ],
   "sourceContactKey": "contact.c__numero_de_pasajeros"
  },
@@ -1320,5 +1328,389 @@
   "name": "P12 - Visa Vencimiento",
   "dataType": "DATE",
   "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P13 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P13 - Documento",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P13 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P13 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P13 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P13 - Telefono",
+  "dataType": "PHONE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P13 - Visa Número",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P13 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P14 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P14 - Documento",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P14 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P14 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P14 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P14 - Telefono",
+  "dataType": "PHONE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P14 - Visa Número",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P14 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P15 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P15 - Documento",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P15 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P15 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P15 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P15 - Telefono",
+  "dataType": "PHONE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P15 - Visa Número",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P15 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P16 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P16 - Documento",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P16 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P16 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P16 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P16 - Telefono",
+  "dataType": "PHONE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P16 - Visa Número",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P16 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P17 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P17 - Documento",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P17 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P17 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P17 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P17 - Telefono",
+  "dataType": "PHONE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P17 - Visa Número",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P17 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P18 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P18 - Documento",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P18 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P18 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P18 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P18 - Telefono",
+  "dataType": "PHONE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P18 - Visa Número",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P18 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P19 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P19 - Documento",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P19 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P19 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P19 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P19 - Telefono",
+  "dataType": "PHONE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P19 - Visa Número",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P19 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P20 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P20 - Documento",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P20 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P20 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P20 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P20 - Telefono",
+  "dataType": "PHONE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P20 - Visa Número",
+  "dataType": "TEXT",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P20 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "grupos de hasta 20 pasajeros, creado 2026-10-08"
  }
 ]

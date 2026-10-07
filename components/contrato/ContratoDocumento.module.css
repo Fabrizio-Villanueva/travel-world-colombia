@@ -442,6 +442,11 @@
   .juntos {
     break-inside: avoid;
   }
+  /* Filas un poco más bajas en papel: 20 pasajeros caben en una hoja. */
+  .tabla td {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
   .hojaLegal {
     break-before: page;
     break-inside: avoid;

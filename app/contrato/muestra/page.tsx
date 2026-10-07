@@ -4,7 +4,7 @@ import { contratoDesdeGhl } from '@/lib/contratos/desde-ghl'
 
 /**
  * Muestra del contrato con datos inventados (3 pasajeros, 2 trayectos,
- * 2 tarifas por tramo y 2 pagos). `?pax=N` la arma con N personas (1–12)
+ * 2 tarifas por tramo y 2 pagos). `?pax=N` la arma con N personas (1–20)
  * para ver cómo crece el documento.
  *
  * Solo en desarrollo local: `?opp=<id>` arma el contrato con una oportunidad
