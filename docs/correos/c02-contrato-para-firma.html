@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<title>Tu contrato está listo para firmar</title>
+<!--
+  Correo del workflow C-02 · Enviar contrato → enlace para firma (GHL).
+  Pegar en el editor de código HTML del correo. Tablas + estilos en línea
+  (compatible con Gmail, Outlook y celular). Merge tags de GHL entre {{ }}.
+-->
+<style>
+  @media only screen and (max-width: 620px) {
+    .contenedor { width: 100% !important; }
+    .pad { padding-left: 22px !important; padding-right: 22px !important; }
+    .titulo { font-size: 24px !important; }
+    .boton a { display: block !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#EEF2F7;">
+  <!-- Texto de vista previa (bandeja de entrada) -->
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
+    Revisa y firma tu contrato de la reserva TW-{{opportunity.twc}} desde tu celular. Toma 3 minutos.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#EEF2F7;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+        <table role="presentation" class="contenedor" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#FFFFFF;border-radius:16px;overflow:hidden;">
+
+          <!-- Cabecera -->
+          <tr>
+            <td align="center" style="background:#0D1E3C;padding:30px 24px 26px;">
+              <img src="https://travelworldcolombia.com/images/travel-world-colombia-logo-blanco.png" width="210" alt="Travel World Colombia" style="display:block;width:210px;max-width:70%;height:auto;border:0;">
+            </td>
+          </tr>
+          <!-- Franja de colores -->
+          <tr>
+            <td style="height:5px;line-height:5px;font-size:0;background:#FFCC29;">&nbsp;</td>
+          </tr>
+
+          <!-- Saludo -->
+          <tr>
+            <td class="pad" style="padding:34px 40px 8px;font-family:Arial,Helvetica,sans-serif;">
+              <p style="margin:0 0 6px;font-size:11px;font-weight:bold;letter-spacing:2.5px;text-transform:uppercase;color:#2957A4;">
+                Contrato de servicios turísticos
+              </p>
+              <h1 class="titulo" style="margin:0 0 16px;font-size:28px;line-height:1.2;font-weight:800;color:#0D1E3C;">
+                Tu contrato está listo para&nbsp;firmar&nbsp;✍️
+              </h1>
+              <p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#33415C;">
+                Hola {{contact.first_name}},
+              </p>
+              <p style="margin:0;font-size:16px;line-height:1.6;color:#33415C;">
+                ¡Tu viaje a <strong style="color:#0D1E3C;">{{opportunity.destino_de_inters}}</strong> está cada vez más cerca! 🌴
+                Ya puedes revisar y firmar tu contrato desde el celular o el computador, en menos de 3 minutos.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Resumen de la reserva -->
+          <tr>
+            <td class="pad" style="padding:22px 40px 6px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F6F8FB;border-radius:12px;">
+                <tr>
+                  <td style="padding:16px 20px;font-family:Arial,Helvetica,sans-serif;border-left:4px solid #FFCC29;border-radius:12px;">
+                    <p style="margin:0;font-size:10px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:#626C7E;">Reserva</p>
+                    <p style="margin:2px 0 10px;font-size:20px;font-weight:800;color:#0D1E3C;">TW-{{opportunity.twc}}</p>
+                    <p style="margin:0;font-size:10px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:#626C7E;">Destino</p>
+                    <p style="margin:2px 0 0;font-size:16px;font-weight:bold;color:#0D1E3C;">{{opportunity.destino_de_inters}}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Botón -->
+          <tr>
+            <td class="pad boton" align="center" style="padding:26px 40px 8px;">
+              <!--[if mso]>
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="{{opportunity.link_del_contrato}}" style="height:54px;v-text-anchor:middle;width:340px;" arcsize="22%" stroke="f" fillcolor="#2957A4">
+                <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:17px;font-weight:bold;">Revisar y firmar mi contrato</center>
+              </v:roundrect>
+              <![endif]-->
+              <!--[if !mso]><!-->
+              <a href="{{opportunity.link_del_contrato}}" target="_blank"
+                 style="display:inline-block;background:#2957A4;color:#FFFFFF;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:bold;text-decoration:none;padding:17px 38px;border-radius:12px;">
+                Revisar y firmar mi contrato &rarr;
+              </a>
+              <!--<![endif]-->
+            </td>
+          </tr>
+          <tr>
+            <td class="pad" align="center" style="padding:6px 40px 4px;font-family:Arial,Helvetica,sans-serif;">
+              <p style="margin:0;font-size:12px;color:#8A94A6;">Enlace personal · vence en 15 días</p>
+            </td>
+          </tr>
+
+          <!-- Pasos -->
+          <tr>
+            <td class="pad" style="padding:26px 40px 6px;font-family:Arial,Helvetica,sans-serif;">
+              <p style="margin:0 0 14px;font-size:15px;font-weight:bold;color:#0D1E3C;">Así de fácil:</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td width="38" valign="top" style="padding:0 0 14px;">
+                    <div style="width:28px;height:28px;line-height:28px;border-radius:14px;background:#0D1E3C;color:#FFCC29;font-size:13px;font-weight:bold;text-align:center;">1</div>
+                  </td>
+                  <td valign="top" style="padding:4px 0 14px;font-size:15px;line-height:1.5;color:#33415C;">
+                    Abre el enlace y pide tu <strong>código de verificación</strong> (llega por WhatsApp o a este correo).
+                  </td>
+                </tr>
+                <tr>
+                  <td width="38" valign="top" style="padding:0 0 14px;">
+                    <div style="width:28px;height:28px;line-height:28px;border-radius:14px;background:#0D1E3C;color:#FFCC29;font-size:13px;font-weight:bold;text-align:center;">2</div>
+                  </td>
+                  <td valign="top" style="padding:4px 0 14px;font-size:15px;line-height:1.5;color:#33415C;">
+                    Lee el contrato completo: pasajeros, vuelos, valores y condiciones.
+                  </td>
+                </tr>
+                <tr>
+                  <td width="38" valign="top" style="padding:0 0 14px;">
+                    <div style="width:28px;height:28px;line-height:28px;border-radius:14px;background:#0D1E3C;color:#FFCC29;font-size:13px;font-weight:bold;text-align:center;">3</div>
+                  </td>
+                  <td valign="top" style="padding:4px 0 14px;font-size:15px;line-height:1.5;color:#33415C;">
+                    Escribe tu nombre y documento, <strong>firma con tu dedo</strong> o el mouse y confirma.
+                  </td>
+                </tr>
+                <tr>
+                  <td width="38" valign="top" style="padding:0;">
+                    <div style="width:28px;height:28px;line-height:28px;border-radius:14px;background:#0D1E3C;color:#FFCC29;font-size:13px;font-weight:bold;text-align:center;">4</div>
+                  </td>
+                  <td valign="top" style="padding:4px 0 0;font-size:15px;line-height:1.5;color:#33415C;">
+                    Descarga tu copia en PDF con la evidencia de tu firma.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Aviso -->
+          <tr>
+            <td class="pad" style="padding:24px 40px 6px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFF7DC;border-radius:12px;">
+                <tr>
+                  <td style="padding:14px 18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#5C4700;">
+                    <strong>¿Ves algún dato por corregir?</strong> Avísanos antes de firmar y te enviamos una versión
+                    actualizada. Por seguridad, nunca te pediremos datos de tarjetas ni contraseñas por este medio.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Enlace de respaldo -->
+          <tr>
+            <td class="pad" style="padding:18px 40px 4px;font-family:Arial,Helvetica,sans-serif;">
+              <p style="margin:0;font-size:12px;line-height:1.5;color:#8A94A6;">
+                ¿El botón no funciona? Copia y pega este enlace en tu navegador:<br>
+                <a href="{{opportunity.link_del_contrato}}" style="color:#2957A4;word-break:break-all;">{{opportunity.link_del_contrato}}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Firma -->
+          <tr>
+            <td class="pad" style="padding:26px 40px 34px;font-family:Arial,Helvetica,sans-serif;">
+              <p style="margin:0 0 4px;font-size:15px;color:#33415C;">Un abrazo,</p>
+              <p style="margin:0;font-size:16px;font-weight:bold;color:#0D1E3C;">{{user.name}}</p>
+              <p style="margin:2px 0 0;font-size:13px;color:#626C7E;">Asesor(a) de viajes · Travel World Colombia</p>
+            </td>
+          </tr>
+
+          <!-- Pie -->
+          <tr>
+            <td align="center" style="background:#0D1E3C;padding:24px 24px 26px;font-family:Arial,Helvetica,sans-serif;">
+              <p style="margin:0 0 6px;font-size:14px;font-weight:bold;color:#FFCC29;">WhatsApp 320 489 1930</p>
+              <p style="margin:0 0 12px;font-size:13px;">
+                <a href="https://travelworldcolombia.com" style="color:#FFFFFF;text-decoration:none;">travelworldcolombia.com</a>
+              </p>
+              <p style="margin:0;font-size:11px;line-height:1.6;color:#AEB8CC;">
+                VAMOS POR MÁS S.A.S. · NIT 900537199-7 · RNT 27287<br>
+                Tv 12 #22-42 Local 126 · C.C. Manila · Fusagasugá, Cundinamarca
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
