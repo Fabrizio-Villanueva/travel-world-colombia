@@ -241,6 +241,7 @@ export async function anularContrato(id: string, motivo: string, por: string, li
     await actualizarCamposOportunidad(c.opportunity_id, [
       { id: CAMPOS_CONTRATO.link, field_value: '' },
       { id: CAMPOS_CONTRATO.estado, field_value: 'Anulado' },
+      { id: CAMPOS_CONTRATO.enviar, field_value: '' },
     ]).catch(e => console.error('[contratos] limpiar GHL al anular:', e))
   }
 }
@@ -327,10 +328,14 @@ export async function firmarContrato(c: ContratoRow, f: DatosFirma, host?: strin
     console.error('[contratos] PDF tras la firma falló (se reintenta al descargar):', e)
   }
 
-  await estadoGhl(c.opportunity_id, 'Firmado')
+  // Primero se vacía el disparador "Enviar contrato al cliente": si el
+  // workflow quedó con el operador "is", mover la tarjeta (un cambio de la
+  // oportunidad) volvería a mandarle el enlace al cliente.
   await actualizarCamposOportunidad(c.opportunity_id, [
+    { id: CAMPOS_CONTRATO.enviar, field_value: '' },
+    { id: CAMPOS_CONTRATO.estado, field_value: 'Firmado' },
     { id: CAMPOS_CONTRATO.pdf, field_value: `${SITE.url.replace(/\/$/, '')}/admin/contratos/${c.id}/pdf` },
-  ]).catch(e => console.error('[contratos] enlace del PDF en GHL:', e))
+  ]).catch(e => console.error('[contratos] estado y PDF en GHL:', e))
   const oportunidad = await obtenerOportunidad(c.opportunity_id).catch(() => null)
   if (oportunidad?.pipelineId === PIPELINE_RESERVACIONES) {
     await moverOportunidad(c.opportunity_id, PIPELINE_RESERVACIONES, ETAPA_CONTRATO_FIRMADO).catch(e =>
