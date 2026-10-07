@@ -94,7 +94,16 @@ const fmtDia = (iso: string | null | undefined) => (iso ? iso.split('-').reverse
 
 type Res<T> = { ok: true; datos: T } | { ok: false; error: string }
 
-export function DocumentosTab({ opportunityId, inicial }: { opportunityId: string; inicial: EstadoDocumentos }) {
+export function DocumentosTab({
+  opportunityId,
+  inicial,
+  sinTitulo = false,
+}: {
+  opportunityId: string
+  inicial: EstadoDocumentos
+  /** Dentro del "Paso 1" del Generador el título ya lo pone el encabezado del paso. */
+  sinTitulo?: boolean
+}) {
   const [estado, setEstado] = useState<EstadoDocumentos>(inicial)
   // Tres contadores (adultos, menores, infantes): el total son los viajeros y el
   // orden en P1–P20 es fijo: primero adultos, luego menores, al final infantes.
@@ -199,11 +208,13 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
       {/* ── Título + resumen de estado ── */}
       <section className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl">
-          <h2 className="font-plus-jakarta text-2xl font-bold tracking-tight" style={{ color: NAVY }}>
-            Documentos de los viajeros
-          </h2>
-          <p className="mt-1.5 font-inter text-[13px] leading-relaxed" style={{ color: MUTED }}>
-            El cliente sube pasaportes, cédulas o tarjetas de identidad (por los dos lados), registros civiles o visas
+          {!sinTitulo && (
+            <h2 className="font-plus-jakarta text-2xl font-bold tracking-tight" style={{ color: NAVY }}>
+              Documentos de los viajeros
+            </h2>
+          )}
+          <p className={`${sinTitulo ? '' : 'mt-1.5 '}font-inter text-[13px] leading-relaxed`} style={{ color: MUTED }}>
+            El cliente primero confirma sus datos de facturación y luego sube pasaportes, cédulas o tarjetas de identidad (por los dos lados), registros civiles o visas
             desde un enlace seguro; el sistema lee los datos, él los confirma y quedan escritos en P1–P20. Las fotos
             no pasan por WhatsApp ni se copian a GHL: en la tarjeta queda el enlace «P{'{n}'} - Documentos (panel)».
           </p>
@@ -221,6 +232,33 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
           }}
         >
           {aviso.texto}
+        </p>
+      )}
+
+      {/* ── Paso 1 del portal: facturación confirmada por el cliente ── */}
+      {s && (
+        <p
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl px-4 py-2.5 font-inter text-[12px]"
+          style={
+            s.facturacion_confirmada_en
+              ? { background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0' }
+              : { background: 'white', color: MUTED, border: `1px solid ${BORDER}` }
+          }
+        >
+          {s.facturacion_confirmada_en && s.facturacion ? (
+            <>
+              <Check size={13} />
+              <strong>Facturación confirmada por el cliente</strong>
+              <span>({fmt.format(new Date(s.facturacion_confirmada_en))}):</span>
+              <span>
+                {[s.facturacion.nombre, s.facturacion.documento, s.facturacion.direccion, s.facturacion.ciudad, s.facturacion.correo, s.facturacion.telefono]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            </>
+          ) : (
+            <span>El cliente aún no confirma sus datos de facturación (es el paso 1 del enlace, antes de los documentos).</span>
+          )}
         </p>
       )}
 

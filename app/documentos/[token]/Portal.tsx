@@ -10,6 +10,7 @@ import {
   IdCard,
   Loader2,
   PencilLine,
+  ReceiptText,
   RefreshCw,
   ScanLine,
   ScrollText,
@@ -33,18 +34,21 @@ import {
 import {
   CAMPO_LABEL,
   CAMPOS_FECHA,
+  CAMPOS_FACTURACION,
   CAMPOS_POR_TIPO,
   type ArchivoPublico,
+  type DatosFacturacion,
   type CampoDocumento,
   type DatosDocumento,
   type PortalDatos,
 } from '@/lib/documentos/tipos'
-import { aceptarConsentimiento, confirmar, prepararSubida, procesar, repetir } from './actions'
+import { aceptarConsentimiento, confirmar, guardarFacturacion, prepararSubida, procesar, repetir } from './actions'
 import { Garantias } from './Verificacion'
 import { Gracias } from './Gracias'
 
 /**
- * El portal: una tarjeta por viajero y, dentro, una casilla por documento que
+ * El portal, en dos pasos tras el consentimiento: 1) el cliente confirma sus
+ * datos de facturación (precargados del CRM); 2) una tarjeta por viajero y, dentro, una casilla por documento que
  * ese viajero necesita según su tipo (adulto / menor / infante). La cédula y la
  * tarjeta de identidad van por los dos lados (frente → reverso). Flujo por
  * casilla: foto(s) → suben directo al bucket privado →
@@ -187,8 +191,30 @@ export function Portal({ token, inicial }: { token: string; inicial: PortalDatos
 
       {!datos.consentimiento ? (
         <Consentimiento token={token} onAceptado={() => setDatos(d => ({ ...d, consentimiento: true }))} />
+      ) : !datos.facturacion_confirmada ? (
+        <>
+          <EncabezadoPaso n={1} titulo="Confirma tus datos de facturación" />
+          <Facturacion
+            token={token}
+            inicial={datos.facturacion}
+            onGuardado={f => {
+              setDatos(d => ({ ...d, facturacion: f, facturacion_confirmada: true }))
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          />
+          <p className="px-2 text-center font-inter text-[12px]" style={{ color: MUTED }}>
+            Después sigues con el paso 2: subir los documentos de los viajeros.
+          </p>
+        </>
       ) : (
-        Array.from({ length: datos.viajeros }, (_, i) => i + 1).map(n => {
+        <>
+        <ResumenFacturacion
+          token={token}
+          datos={datos.facturacion}
+          onGuardado={f => setDatos(d => ({ ...d, facturacion: f }))}
+        />
+        <EncabezadoPaso n={2} titulo="Sube los documentos de los viajeros" />
+        {Array.from({ length: datos.viajeros }, (_, i) => i + 1).map(n => {
           const nombre = datos.nombres[n - 1]
           const tipoViajero = tipoViajeroDe(datos.viajeros_tipo, n)
           const docs = documentosDe(tipoViajero, datos.requisitos)
@@ -225,10 +251,11 @@ export function Portal({ token, inicial }: { token: string; inicial: PortalDatos
               </div>
             </section>
           )
-        })
+        })}
+        </>
       )}
 
-      {datos.consentimiento && completo && (
+      {datos.consentimiento && datos.facturacion_confirmada && completo && (
         <section className="p-6 text-center" style={{ ...tarjeta, background: '#ECFDF5', borderColor: '#A7F3D0' }}>
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full" style={{ background: '#D1FAE5', color: VERDE }}>
             <CircleCheck size={26} />
@@ -246,7 +273,175 @@ export function Portal({ token, inicial }: { token: string; inicial: PortalDatos
 }
 
 /* ------------------------------------------------------------------ */
-/* Consentimiento (Ley 1581)                                           */
+/* Paso 1: datos de facturación                                        */
+/* ------------------------------------------------------------------ */
+
+function EncabezadoPaso({ n, titulo }: { n: 1 | 2; titulo: string }) {
+  return (
+    <div className="flex items-center gap-3 px-1 pt-2">
+      <span
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-plus-jakarta text-sm font-extrabold text-white"
+        style={{ background: ACCENT }}
+      >
+        {n}
+      </span>
+      <div>
+        <p className="font-inter text-[11px] font-semibold uppercase tracking-wider" style={{ color: ACCENT }}>
+          Paso {n} de 2
+        </p>
+        <h2 className="font-plus-jakarta text-[17px] font-bold leading-tight" style={{ color: NAVY }}>
+          {titulo}
+        </h2>
+      </div>
+    </div>
+  )
+}
+
+const AUTOCOMPLETAR: Record<keyof DatosFacturacion, string> = {
+  nombre: 'name',
+  documento: 'off',
+  direccion: 'street-address',
+  ciudad: 'address-level2',
+  correo: 'email',
+  telefono: 'tel',
+}
+
+function Facturacion({
+  token,
+  inicial,
+  onGuardado,
+  onCancelar,
+}: {
+  token: string
+  inicial: DatosFacturacion
+  onGuardado: (f: DatosFacturacion) => void
+  onCancelar?: () => void
+}) {
+  const [f, setF] = useState<DatosFacturacion>(inicial)
+  const [enviando, setEnviando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const completos = CAMPOS_FACTURACION.every(c => !c.obligatorio || f[c.campo].trim() !== '')
+
+  async function guardar() {
+    setEnviando(true)
+    setError(null)
+    const r = await guardarFacturacion(token, f).catch(() => ({ ok: false as const, error: 'Sin conexión. Intenta de nuevo.' }))
+    setEnviando(false)
+    if (!r.ok) return setError(r.error)
+    onGuardado(r.datos)
+  }
+
+  const estilo: React.CSSProperties = { border: `1px solid ${BORDER}`, color: NAVY, background: 'white' }
+  const clase = 'h-11 w-full rounded-xl px-3 font-inter text-[15px] outline-none focus:ring-4 focus:ring-[rgba(41,87,164,0.12)]'
+
+  return (
+    <section className="p-6" style={tarjeta}>
+      <p className="font-inter text-[14px] leading-relaxed" style={{ color: NAVY }}>
+        Con estos datos sale tu contrato y la factura electrónica. Revisa que estén bien y corrige lo que haga falta.
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {CAMPOS_FACTURACION.map(c => (
+          <label key={c.campo} className={`block${c.campo === 'nombre' || c.campo === 'direccion' ? ' sm:col-span-2' : ''}`}>
+            <span className="mb-1 block font-inter text-[11px] font-medium" style={{ color: MUTED }}>
+              {c.etiqueta}
+            </span>
+            <input
+              type={c.tipo}
+              autoComplete={AUTOCOMPLETAR[c.campo]}
+              value={f[c.campo]}
+              onChange={e => setF(x => ({ ...x, [c.campo]: e.target.value }))}
+              className={clase}
+              style={estilo}
+            />
+          </label>
+        ))}
+      </div>
+      {error && (
+        <p className="mt-3 rounded-xl px-4 py-3 font-inter text-[13px]" style={{ background: '#FFF1F2', color: '#BE123C', border: '1px solid #FECDD3' }}>
+          {error}
+        </p>
+      )}
+      <div className="mt-4 flex gap-2">
+        {onCancelar && (
+          <button
+            type="button"
+            onClick={onCancelar}
+            disabled={enviando}
+            className="h-12 rounded-2xl px-5 font-inter text-[15px] font-semibold"
+            style={{ border: `1px solid ${BORDER}`, color: NAVY }}
+          >
+            Cancelar
+          </button>
+        )}
+        <button
+          type="button"
+          disabled={!completos || enviando}
+          onClick={guardar}
+          className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl font-inter text-[15px] font-semibold text-white transition-all active:scale-[0.99] disabled:opacity-40"
+          style={{ background: ACCENT }}
+        >
+          {enviando && <Loader2 size={18} className="animate-spin" />}
+          {onCancelar ? 'Guardar cambios' : 'Confirmar y seguir'}
+        </button>
+      </div>
+    </section>
+  )
+}
+
+/** Paso 1 ya hecho: resumen corto con opción de corregir. */
+function ResumenFacturacion({
+  token,
+  datos,
+  onGuardado,
+}: {
+  token: string
+  datos: DatosFacturacion
+  onGuardado: (f: DatosFacturacion) => void
+}) {
+  const [editando, setEditando] = useState(false)
+  if (editando) {
+    return (
+      <>
+        <EncabezadoPaso n={1} titulo="Corrige tus datos de facturación" />
+        <Facturacion
+          token={token}
+          inicial={datos}
+          onCancelar={() => setEditando(false)}
+          onGuardado={f => {
+            onGuardado(f)
+            setEditando(false)
+          }}
+        />
+      </>
+    )
+  }
+  return (
+    <section className="flex items-center gap-3 p-4" style={tarjeta}>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: '#ECFDF5', color: VERDE }}>
+        <ReceiptText size={19} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 font-inter text-[12px] font-semibold" style={{ color: VERDE }}>
+          <Check size={13} /> Paso 1 · Datos de facturación confirmados
+        </p>
+        <p className="truncate font-inter text-[13px]" style={{ color: NAVY }}>
+          {datos.nombre} · {datos.documento}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => setEditando(true)}
+        className="inline-flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 font-inter text-[13px] font-semibold"
+        style={{ color: ACCENT, background: PAGE }}
+      >
+        <PencilLine size={14} /> Editar
+      </button>
+    </section>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Consentimiento (Ley 1581)                                          */
 /* ------------------------------------------------------------------ */
 
 function Consentimiento({ token, onAceptado }: { token: string; onAceptado: () => void }) {

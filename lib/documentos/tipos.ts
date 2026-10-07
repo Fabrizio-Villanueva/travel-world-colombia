@@ -91,6 +91,9 @@ export interface PortalDatos {
   consentimiento: boolean
   estado: 'activa' | 'completa' | 'revocada'
   archivos: ArchivoPublico[]
+  /** Paso 1: confirmados, o precargados del contacto en GHL si aún no. */
+  facturacion: DatosFacturacion
+  facturacion_confirmada: boolean
 }
 
 /** Resultado de la lectura automática (Fase 2). */
@@ -112,3 +115,22 @@ export interface Progreso {
   subidos: number
   completo: boolean
 }
+
+/** Datos de facturación que el cliente confirma en el paso 1 del portal. */
+export interface DatosFacturacion {
+  nombre: string
+  documento: string
+  direccion: string
+  ciudad: string
+  correo: string
+  telefono: string
+}
+
+export const CAMPOS_FACTURACION: { campo: keyof DatosFacturacion; etiqueta: string; tipo: 'text' | 'email' | 'tel'; obligatorio: boolean }[] = [
+  { campo: 'nombre', etiqueta: 'Nombre completo o razón social', tipo: 'text', obligatorio: true },
+  { campo: 'documento', etiqueta: 'Cédula o NIT', tipo: 'text', obligatorio: true },
+  { campo: 'direccion', etiqueta: 'Dirección', tipo: 'text', obligatorio: true },
+  { campo: 'ciudad', etiqueta: 'Ciudad', tipo: 'text', obligatorio: true },
+  { campo: 'correo', etiqueta: 'Correo para la factura', tipo: 'email', obligatorio: true },
+  { campo: 'telefono', etiqueta: 'Teléfono', tipo: 'tel', obligatorio: true },
+]

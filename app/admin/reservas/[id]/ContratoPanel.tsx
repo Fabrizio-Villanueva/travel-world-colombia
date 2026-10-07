@@ -87,7 +87,7 @@ export function ContratoPanel({ opportunityId, inicial }: { opportunityId: strin
   return (
     <section
       id="contrato-para-firma"
-      className="mb-6 scroll-mt-6 rounded-2xl bg-white p-5"
+      className="scroll-mt-6 rounded-2xl bg-white p-5"
       style={{ border: `1px solid ${BORDER}`, position: 'relative', zIndex: 1 }}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">

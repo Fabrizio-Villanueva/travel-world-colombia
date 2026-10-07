@@ -23,6 +23,8 @@ import {
   type SubidaPreparada,
 } from '@/lib/documentos/solicitudes'
 import type { ArchivoPublico, PortalDatos, Progreso } from '@/lib/documentos/tipos'
+import { confirmarFacturacion } from '@/lib/documentos/facturacion'
+import type { DatosFacturacion } from '@/lib/documentos/tipos'
 import { enviarCodigo, verificarCodigo, type CanalCodigo, type EnvioCodigo } from '@/lib/documentos/codigo'
 
 /**
@@ -120,6 +122,19 @@ export async function aceptarConsentimiento(token: string): Promise<Resultado<tr
   const h = await headers()
   await registrarConsentimiento(r.s.id, await ipCliente(), h.get('user-agent') ?? '')
   return { ok: true, datos: true }
+}
+
+/** Paso 1 del portal: el cliente confirma (o corrige) sus datos de facturación. */
+export async function guardarFacturacion(token: string, datos: unknown): Promise<Resultado<DatosFacturacion>> {
+  const r = await conAcceso(token)
+  if ('error' in r) return { ok: false, error: r.error }
+  const falta = exigirConsentimiento(r.s)
+  if (falta) return { ok: false, error: falta }
+  try {
+    return { ok: true, datos: await confirmarFacturacion(r.s, datos) }
+  } catch (e) {
+    return fallo(e)
+  }
 }
 
 function exigirConsentimiento(s: SolicitudRow): string | null {

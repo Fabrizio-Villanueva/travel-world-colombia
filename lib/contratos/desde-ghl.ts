@@ -13,7 +13,7 @@ import type { ContratoDatos } from './tipos'
  * vive en el contacto (por fieldKey, igual que el Generador de Contratos).
  */
 
-const FACTURACION = {
+export const FACTURACION = {
   nombre: 'contact.cliente',
   documento: 'contact.numero_de_documento',
   direccion: 'contact.direccin',

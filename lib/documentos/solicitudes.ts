@@ -42,6 +42,8 @@ import {
   type Progreso,
 } from '@/lib/documentos/tipos'
 import { hashToken, nuevoToken } from '@/lib/documentos/token'
+import { facturacionDe } from '@/lib/documentos/facturacion'
+import type { DatosFacturacion } from '@/lib/documentos/tipos'
 import { escribirViajeroEnGhl, idCampoPasajero } from '@/lib/documentos/ghl-pasajeros'
 import { leerDocumento, type ImagenDocumento } from '@/lib/documentos/lectura'
 
@@ -79,6 +81,9 @@ export interface SolicitudRow {
   consentimiento_en: string | null
   consentimiento_ip: string | null
   consentimiento_ua: string | null
+  /** Paso 1 del portal (migración 037): lo que el cliente confirmó. */
+  facturacion: DatosFacturacion | null
+  facturacion_confirmada_en: string | null
   ultimo_acceso_en: string | null
   purgada_en: string | null
   creada_por: string
@@ -454,8 +459,10 @@ export function aPublico(a: ArchivoRow): ArchivoPublico {
 }
 
 export async function portalDatos(s: SolicitudRow): Promise<PortalDatos> {
-  const archivos = await archivosDe(s.id)
+  const [archivos, facturacion] = await Promise.all([archivosDe(s.id), facturacionDe(s)])
   return {
+    facturacion,
+    facturacion_confirmada: Boolean(s.facturacion_confirmada_en),
     nombre_viaje: s.nombre_viaje,
     destino: s.destino,
     fecha_salida: s.fecha_salida,

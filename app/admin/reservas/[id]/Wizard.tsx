@@ -4,8 +4,6 @@ import { useMemo, useState } from 'react'
 import { Loader2, Check, ChevronLeft, ChevronRight, FileSignature } from 'lucide-react'
 import type { CampoReserva, ValorCampo } from '@/lib/admin/reservas'
 import { guardarReserva } from '../actions'
-import { DocumentosTab } from './DocumentosTab'
-import type { EstadoDocumentos } from './documentos-actions'
 
 /**
  * Wizard de reserva: un paso por carpeta del catálogo. Los campos numerados
@@ -19,12 +17,7 @@ interface Props {
   campos: CampoReserva[]
   valoresIniciales: Record<string, ValorCampo>
   prefill: Record<string, ValorCampo>
-  /** Estado del portal de documentos de viajeros (pestaña "Documentos"). */
-  documentos: EstadoDocumentos
 }
-
-/** Pestaña virtual (no es carpeta del catálogo): el portal seguro de documentos. */
-const PASO_DOCUMENTOS = 'Documentos'
 
 /** Prefijo de grupo: "P3 - Nombre" → "P3" · "Pago 2 - Fecha" → "Pago 2". */
 function prefijoDe(nombre: string): string | null {
@@ -61,7 +54,19 @@ const etiquetaPaso = (p: string) => ETIQUETA_PASO[p] ?? p
  * reserva, no parte del flujo de la asesora, que termina en Inclusiones y
  * sigue en el recuadro "Contrato para firma" (arriba del wizard).
  */
-const PASOS_APARTE = new Set(['Operaciones', PASO_DOCUMENTOS])
+const PASOS_APARTE = new Set(['Operaciones'])
+
+/**
+ * Pasos que no aplican según el "Tipo de Contrato": se ven atenuados y
+ * "Guardar y seguir" los salta, pero siguen abiertos con clic (por si el
+ * negocio trae algo fuera de lo común). El contrato solo imprime las filas
+ * con datos, así que dejarlos vacíos no deja huecos en el PDF.
+ */
+const PASOS_NO_APLICAN: Record<string, string[]> = {
+  'Ticketes Aéreos': ['Liquidación Porción Terrestre'],
+  'Solo Asistencia': ['Vuelos', 'Liquidación Vuelos'],
+  'Solo Excursiones': ['Vuelos', 'Liquidación Vuelos'],
+}
 
 /* ------------------------------------------------------------------ */
 /* Autosumas: la aritmética del contrato se calcula sola.              */
@@ -158,13 +163,10 @@ const card: React.CSSProperties = {
   borderRadius: 12,
 }
 
-export function Wizard({ opportunityId, campos, valoresIniciales, prefill, documentos }: Props) {
+export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Props) {
   const pasos = useMemo(() => {
     const vistos: string[] = []
     for (const c of campos) if (!vistos.includes(c.folder)) vistos.push(c.folder)
-    // La pestaña Documentos va al final, aparte (como Operaciones): es el
-    // portal seguro de documentos de viajeros, no campos del contrato.
-    vistos.push(PASO_DOCUMENTOS)
     return vistos
   }, [campos])
 
@@ -222,8 +224,13 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill, docum
     return Math.min(Math.max(base, 1), tope)
   }
 
+  // Sin "Numero de Pasajeros" escrito, los pasajeros visibles salen de la
+  // liquidación (total de pasajeros) o del Pax total, si ya están.
+  const paxLiquidacion = [idDe('Total Pasajeros - Cantidad'), idDe('Pax total')]
+    .map(id => (id ? Number(valores[id]) : NaN))
+    .find(n => Number.isInteger(n) && n >= 1)
   const cuenta: Record<'P' | 'T' | 'Pago', number> = {
-    P: leerCuenta(idNumPasajeros, SERIE_MAX.P, conDatos.P),
+    P: leerCuenta(idNumPasajeros, SERIE_MAX.P, Math.max(conDatos.P, paxLiquidacion ?? 1)),
     T: leerCuenta(idNumTrayectos, SERIE_MAX.T, conDatos.T),
     Pago: cuentaPago,
   }
@@ -234,12 +241,17 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill, docum
     if (id) poner(id, String(n))
   }
 
+  const idTipoContrato = idDe('Tipo de Contrato')
+  const tipoContrato = idTipoContrato ? valores[idTipoContrato] : undefined
+  const noAplican = new Set(typeof tipoContrato === 'string' ? (PASOS_NO_APLICAN[tipoContrato] ?? []) : [])
+  const enFlujo = (p: string) => !PASOS_APARTE.has(p) && !noAplican.has(p)
+
   const carpetaActual = pasos[paso]
   const camposDelPaso = campos.filter(c => c.folder === carpetaActual)
 
   // Último paso del flujo de la asesora (sin las pestañas aparte): ahí se le
   // indica que el contrato se envía desde el recuadro "Contrato para firma".
-  const ultimoDelFlujo = [...pasos].reverse().find(p => !PASOS_APARTE.has(p))
+  const ultimoDelFlujo = [...pasos].reverse().find(enFlujo)
 
   // Grupos del paso: los repetibles visibles según el contador + los sueltos.
   const { grupos, sueltos, series } = useMemo(() => {
@@ -309,7 +321,10 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill, docum
         return s
       })
       setAviso({ ok: true, texto: r.guardados ? `${r.guardados} campos guardados en GHL.` : 'Nada nuevo que guardar.' })
-      if (avanzar && paso < pasos.length - 1 && !PASOS_APARTE.has(pasos[paso + 1])) setPaso(paso + 1)
+      if (avanzar) {
+        const siguiente = pasos.findIndex((p, i) => i > paso && enFlujo(p))
+        if (siguiente !== -1 && pasos.slice(paso + 1, siguiente).every(p => !PASOS_APARTE.has(p))) setPaso(siguiente)
+      }
     } catch (e) {
       // Un throw aquí ya no viene de la lógica de guardado (eso vuelve como
       // dato): casi siempre es que el navegador tiene una versión vieja del
@@ -347,11 +362,13 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill, docum
           const activo = i === paso
           const llenos = llenosEn(p)
           const total = campos.filter(c => c.folder === p && c.enContrato).length
+          const noAplica = noAplican.has(p)
           return (
             <button
               key={p}
               type="button"
               onClick={() => setPaso(i)}
+              title={noAplica ? `No aplica para "${tipoContrato}"` : undefined}
               className={`rounded-full px-3 py-1.5 font-inter text-xs transition-colors${PASOS_APARTE.has(p) ? ' ml-3' : ''}`}
               style={{
                 background: activo ? 'var(--orange)' : 'white',
@@ -359,24 +376,32 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill, docum
                 border: '1px solid ' + (activo ? 'var(--orange)' : 'var(--border)'),
                 borderStyle: PASOS_APARTE.has(p) ? 'dashed' : 'solid',
                 fontWeight: activo ? 600 : 400,
+                opacity: noAplica && !activo ? 0.45 : 1,
+                textDecoration: noAplica && !activo ? 'line-through' : undefined,
               }}
             >
               {i + 1}. {etiquetaPaso(p)}
-              {llenos > 0 && <span className="ml-1 opacity-70">({llenos}/{total})</span>}
+              {noAplica ? (
+                <span className="ml-1 opacity-70">(no aplica)</span>
+              ) : (
+                llenos > 0 && <span className="ml-1 opacity-70">({llenos}/{total})</span>
+              )}
             </button>
           )
         })}
       </div>
 
-      {carpetaActual === PASO_DOCUMENTOS ? (
-        // La pestaña trae su propio layout (título, resumen y tarjetas).
-        <DocumentosTab opportunityId={opportunityId} inicial={documentos} />
-      ) : (
       <div className="p-5" style={card}>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-inter text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
             {etiquetaPaso(carpetaActual)}
           </h2>
+
+          {noAplican.has(carpetaActual) && (
+            <span className="rounded-full px-3 py-1 font-inter text-xs" style={{ background: 'var(--bg-alt)', color: 'var(--text-dim)' }}>
+              No aplica para «{String(tipoContrato)}»: puedes dejarlo vacío
+            </span>
+          )}
 
           {/* Contadores de grupos repetibles del paso */}
           <div className="flex gap-3">
@@ -510,7 +535,6 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill, docum
           )}
         </div>
       </div>
-      )}
 
       {carpetaActual === ultimoDelFlujo && (
         <a
