@@ -97,7 +97,7 @@ type Res<T> = { ok: true; datos: T } | { ok: false; error: string }
 export function DocumentosTab({ opportunityId, inicial }: { opportunityId: string; inicial: EstadoDocumentos }) {
   const [estado, setEstado] = useState<EstadoDocumentos>(inicial)
   // Tres contadores (adultos, menores, infantes): el total son los viajeros y el
-  // orden en P1–P8 es fijo: primero adultos, luego menores, al final infantes.
+  // orden en P1–P12 es fijo: primero adultos, luego menores, al final infantes.
   const [conteo, setConteo] = useState<Conteo>(() =>
     contar(inicial.tiposViajero.slice(0, inicial.solicitud?.viajeros ?? inicial.viajerosSugeridos))
   )
@@ -204,7 +204,7 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
           </h2>
           <p className="mt-1.5 font-inter text-[13px] leading-relaxed" style={{ color: MUTED }}>
             El cliente sube pasaportes, cédulas o tarjetas de identidad (por los dos lados), registros civiles o visas
-            desde un enlace seguro; el sistema lee los datos, él los confirma y quedan escritos en P1–P8. Las fotos
+            desde un enlace seguro; el sistema lee los datos, él los confirma y quedan escritos en P1–P12. Las fotos
             no pasan por WhatsApp ni se copian a GHL: en la tarjeta queda el enlace «P{'{n}'} - Documentos (panel)».
           </p>
         </div>
@@ -268,7 +268,7 @@ export function DocumentosTab({ opportunityId, inicial }: { opportunityId: strin
               {' '}· <span className="font-semibold" style={{ color: '#BE123C' }}>el contacto no tiene celular: agrégalo en el paso Contacto</span>
             </>
           )}
-          . Máximo 8 viajeros (campos P1–P8).
+          . Máximo 12 viajeros (campos P1–P12).
         </p>
 
         {(!vigente || cambios) && (
@@ -587,7 +587,7 @@ function expandir(c: Conteo): TipoViajero[] {
 
 const CONTADOR_LABEL: Record<TipoViajero, string> = { adulto: 'Adultos', menor: 'Menores', infante: 'Infantes' }
 
-/** Tres recuadros con − / +: adultos, menores e infantes. Total entre 1 y 8 (P1–P8). */
+/** Tres recuadros con − / +: adultos, menores e infantes. Total entre 1 y 12 (P1–P12). */
 function Contadores({ conteo, onChange }: { conteo: Conteo; onChange: (c: Conteo) => void }) {
   const total = conteo.adulto + conteo.menor + conteo.infante
   const btn =

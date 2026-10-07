@@ -12,7 +12,7 @@ export const BUCKET_DOCUMENTOS_VIAJEROS = 'documentos-viajeros'
  * Campos de OPORTUNIDAD creados el 2026-10-03 en la carpeta 👥 Pasajeros
  * (subcuenta RMFUo0i4KOVl7eZHEn7s). Los P{n} - Visa Número / Visa Vencimiento
  * se resuelven por NOMBRE (ver lib/documentos/ghl-pasajeros.ts), igual que el
- * resto de campos P1–P8 del Generador.
+ * resto de campos P1–P12 del Generador.
  */
 export const CAMPOS_PORTAL = {
   /** opportunity.link_de_documentos (TEXT): el enlace que C-05 manda al cliente. */
@@ -206,8 +206,8 @@ export const MIMES_PERMITIDOS = [
 /** Aviso de vigencia: muchos países exigen el pasaporte vigente 6 meses tras el regreso. */
 export const MESES_VIGENCIA_PASAPORTE = 6
 
-/** Máximo de viajeros (campos P1–P8 de la oportunidad). */
-export const MAX_VIAJEROS = 8
+/** Máximo de viajeros (campos P1–P12 de la oportunidad). */
+export const MAX_VIAJEROS = 12
 
 /** URL pública del portal para un token. */
 export function urlPortal(baseUrl: string, token: string): string {

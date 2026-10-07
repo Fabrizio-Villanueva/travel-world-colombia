@@ -120,7 +120,11 @@
    "5",
    "6",
    "7",
-   "8"
+   "8",
+   "9",
+   "10",
+   "11",
+   "12"
   ],
   "sourceContactKey": "contact.c__numero_de_pasajeros"
  },
@@ -1124,5 +1128,197 @@
   "name": "P8 - Visa Vencimiento",
   "dataType": "DATE",
   "note": "portal de documentos (visa), creado 2026-10-03"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P9 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P9 - Documento",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P9 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P9 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P9 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P9 - Telefono",
+  "dataType": "PHONE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P9 - Visa Número",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P9 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P10 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P10 - Documento",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P10 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P10 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P10 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P10 - Telefono",
+  "dataType": "PHONE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P10 - Visa Número",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P10 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P11 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P11 - Documento",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P11 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P11 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P11 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P11 - Telefono",
+  "dataType": "PHONE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P11 - Visa Número",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P11 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P12 - Nombre y Apellido",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P12 - Documento",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P12 - Fecha de Nacimiento",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P12 - Pasaporte",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P12 - Vencimiento Pasaporte",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P12 - Telefono",
+  "dataType": "PHONE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P12 - Visa Número",
+  "dataType": "TEXT",
+  "note": "contrato para 12 personas, creado 2026-10-07"
+ },
+ {
+  "folder": "Pasajeros",
+  "name": "P12 - Visa Vencimiento",
+  "dataType": "DATE",
+  "note": "contrato para 12 personas, creado 2026-10-07"
  }
 ]

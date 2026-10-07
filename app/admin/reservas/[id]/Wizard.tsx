@@ -9,7 +9,7 @@ import type { EstadoDocumentos } from './documentos-actions'
 
 /**
  * Wizard de reserva: un paso por carpeta del catálogo. Los campos numerados
- * (P1–P8 pasajeros, T1–T4 trayectos, Pago 1–4) se muestran como grupos
+ * (P1–P12 pasajeros, T1–T4 trayectos, Pago 1–4) se muestran como grupos
  * repetibles controlados por un contador — el representante nunca ve 48
  * campos planos.
  */
@@ -34,7 +34,7 @@ function prefijoDe(nombre: string): string | null {
 
 /** Número del grupo repetible, si lo es: P3→3, T2→2, Pago 4→4. */
 function numeroRepetible(prefijo: string): { serie: 'P' | 'T' | 'Pago'; n: number } | null {
-  let m = prefijo.match(/^P(\d)$/)
+  let m = prefijo.match(/^P(\d{1,2})$/)
   if (m) return { serie: 'P', n: Number(m[1]) }
   m = prefijo.match(/^T(\d)$/)
   if (m) return { serie: 'T', n: Number(m[1]) }
@@ -44,7 +44,7 @@ function numeroRepetible(prefijo: string): { serie: 'P' | 'T' | 'Pago'; n: numbe
 }
 
 const SERIE_LABEL = { P: 'Pasajero', T: 'Trayecto', Pago: 'Pago' } as const
-const SERIE_MAX = { P: 8, T: 4, Pago: 4 } as const
+const SERIE_MAX = { P: 12, T: 4, Pago: 4 } as const
 
 /** Nombre visible de cada paso (la llave interna viene del catálogo). */
 const ETIQUETA_PASO: Record<string, string> = {
