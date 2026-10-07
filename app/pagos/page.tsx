@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { DollarSign, ShieldCheck, MessageCircle, ExternalLink } from 'lucide-react'
+import { DollarSign, ShieldCheck, MessageCircle, ExternalLink, TriangleAlert } from 'lucide-react'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { BotonCopiar } from '@/components/ui/BotonCopiar'
 import { NuevaPestana, NUEVA_PESTANA } from '@/components/ui/NuevaPestana'
@@ -263,6 +263,25 @@ export default function PagosPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Aviso antisuplantación: ya han circulado QR falsos a nombre de la agencia. */}
+          <div
+            role="note"
+            className="mt-6 flex items-start gap-4 rounded-2xl p-5 sm:items-center sm:p-6"
+            style={{ background: '#FFF4D6', border: '2px solid #E0A800' }}
+          >
+            <span
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+              style={{ background: '#E0A800', color: '#1A1A1A' }}
+            >
+              <TriangleAlert size={22} aria-hidden />
+            </span>
+            <p className="font-plus-jakarta text-sm font-extrabold uppercase leading-snug tracking-wide sm:text-base" style={{ color: '#3D2E00' }}>
+              Antes de efectuar tu pago, verifica que el destinatario final sea{' '}
+              <span style={{ color: '#B42318' }}>Vamos Por Más SAS</span> o{' '}
+              <span style={{ color: '#B42318' }}>Travel World Colombia Agencia de Viajes</span>.
+            </p>
           </div>
         </section>
 
