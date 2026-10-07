@@ -2,14 +2,21 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowDown, Eraser, Loader2, PenLine, ShieldCheck } from 'lucide-react'
+import { ArrowDown, Download, Eraser, Loader2, PenLine, ShieldCheck } from 'lucide-react'
+import { Gracias } from '@/app/documentos/[token]/Gracias'
 import { firmar } from './actions'
+import { PantallaFirmando } from './PantallaFirmando'
 
 /**
  * Recuadro de firma al final del contrato: nombre, documento, trazo con el
  * dedo (o el mouse), casilla de aceptación y botón. Mientras el cliente lee,
  * un botón flotante lo lleva a firmar; se oculta al llegar al recuadro.
+ * Al firmar: pantalla animada mientras se sella y se genera el PDF, y luego
+ * el agradecimiento (mismo lenguaje visual que el portal de documentos).
  */
+
+/** Tiempo mínimo de la animación de firma, para que se vea completa. */
+const MIN_ANIMACION_MS = 2800
 
 const NAVY = '#0D1E3C'
 const MUTED = '#6B7A90'
@@ -37,6 +44,7 @@ export function Firmar({
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [verTarjeta, setVerTarjeta] = useState(false)
+  const [firmado, setFirmado] = useState(false)
 
   // El botón flotante desaparece cuando el recuadro de firma está a la vista.
   useEffect(() => {
@@ -125,17 +133,15 @@ export function Firmar({
     setEnviando(true)
     setError(null)
     try {
-      const r = await firmar(token, {
-        firmaPng: lienzo.current.toDataURL('image/png'),
-        nombre,
-        documento,
-        acepto,
-      })
+      const [r] = await Promise.all([
+        firmar(token, { firmaPng: lienzo.current.toDataURL('image/png'), nombre, documento, acepto }),
+        new Promise(res => window.setTimeout(res, MIN_ANIMACION_MS)),
+      ])
       if (!r.ok) {
         setError(r.error)
         return
       }
-      router.refresh()
+      setFirmado(true)
     } catch {
       setError('No pudimos registrar tu firma. Revisa tu conexión e intenta de nuevo.')
     } finally {
@@ -257,7 +263,24 @@ export function Firmar({
         </p>
       </section>
 
-      {!verTarjeta && (
+      {enviando && <PantallaFirmando />}
+
+      {firmado && (
+        <Gracias
+          nombre={nombre}
+          etiqueta="Contrato firmado"
+          mensaje="Tu contrato quedó firmado y guardado de forma segura. Tu asesora ya fue notificada y te acompañará en los siguientes pasos."
+          principal={
+            <a href={`/contrato/${token}/pdf`}>
+              <Download size={18} /> Descargar mi copia en PDF
+            </a>
+          }
+          textoBoton="Ver mi contrato firmado"
+          onCerrar={() => router.refresh()}
+        />
+      )}
+
+      {!verTarjeta && !firmado && (
         <a
           href="#firmar"
           className="fixed bottom-5 left-1/2 z-50 inline-flex -translate-x-1/2 items-center gap-2 rounded-full px-5 py-3 font-inter text-[14px] font-semibold text-white shadow-xl"

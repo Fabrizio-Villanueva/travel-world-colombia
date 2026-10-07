@@ -11,18 +11,35 @@ import Image from 'next/image'
  * `prefers-reduced-motion` se reduce a un fundido corto.
  *
  * La página real se renderiza debajo desde el principio: cuando la cortina
- * sube no hay nada que cargar.
+ * sube no hay nada que cargar. También lo usa la firma de contratos
+ * (/contrato/<token>) con sus propios textos.
  */
 
 type Fase = 'splash' | 'candado' | 'salida' | 'oculto'
 
-function marcarVista(clave: string) {
+function marcarVista(llave: string) {
   try {
-    localStorage.setItem(`twc_doc_intro_${clave}`, '1')
+    localStorage.setItem(llave, '1')
   } catch {}
 }
 
-export function IntroSeguro({ clave, children }: { clave: string; children: React.ReactNode }) {
+export function IntroSeguro({
+  clave,
+  children,
+  etiqueta = 'Portal seguro de documentos',
+  detalle = 'Cifrado de extremo a extremo · Solo lo ve tu asesora',
+  prefijo = 'twc_doc_intro_',
+}: {
+  clave: string
+  children: React.ReactNode
+  /** Texto dorado bajo el logo. */
+  etiqueta?: string
+  /** Línea bajo "Conexión segura". */
+  detalle?: string
+  /** Prefijo de la marca en localStorage (una vez por dispositivo y enlace). */
+  prefijo?: string
+}) {
+  const llave = `${prefijo}${clave}`
   const [fase, setFase] = useState<Fase>('splash')
   const timers = useRef<number[]>([])
 
@@ -31,7 +48,7 @@ export function IntroSeguro({ clave, children }: { clave: string; children: Reac
     const programar = (ms: number, f: Fase) => lista.push(window.setTimeout(() => setFase(f), ms))
     let visto = false
     try {
-      visto = localStorage.getItem(`twc_doc_intro_${clave}`) === '1'
+      visto = localStorage.getItem(llave) === '1'
     } catch {}
     if (visto) {
       programar(0, 'oculto')
@@ -41,7 +58,7 @@ export function IntroSeguro({ clave, children }: { clave: string; children: Reac
     // React monta dos veces y, si se marcara al montar, la segunda pasada la
     // ocultaría antes de verse.
     const salir = () => {
-      marcarVista(clave)
+      marcarVista(llave)
       setFase('salida')
     }
     const reducido = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
@@ -54,12 +71,12 @@ export function IntroSeguro({ clave, children }: { clave: string; children: Reac
       programar(5400, 'oculto')
     }
     return () => lista.forEach(clearTimeout)
-  }, [clave])
+  }, [llave])
 
   function saltar() {
     if (fase === 'oculto' || fase === 'salida') return
     timers.current.forEach(clearTimeout)
-    marcarVista(clave)
+    marcarVista(llave)
     setFase('salida')
     timers.current.push(window.setTimeout(() => setFase('oculto'), 700))
   }
@@ -81,7 +98,7 @@ export function IntroSeguro({ clave, children }: { clave: string; children: Reac
             <span className="intro-logo-caja">
               <Image src="/images/travel-world-colombia-logo.png" alt="Travel World Colombia" width={200} height={50} priority className="h-10 w-auto" />
             </span>
-            <span className="intro-eyebrow">Portal seguro de documentos</span>
+            <span className="intro-eyebrow">{etiqueta}</span>
           </div>
 
           {/* Candado */}
@@ -95,7 +112,7 @@ export function IntroSeguro({ clave, children }: { clave: string; children: Reac
               <path className="intro-check" d="M64 100l11 11 22-24" stroke="#0D1E3C" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="60" strokeDashoffset="60" />
             </svg>
             <p className="intro-titulo">Conexión segura</p>
-            <p className="intro-sub">Cifrado de extremo a extremo · Solo lo ve tu asesora</p>
+            <p className="intro-sub">{detalle}</p>
           </div>
 
           <span className="intro-saltar">Toca para continuar</span>

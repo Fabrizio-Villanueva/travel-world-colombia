@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import Image from 'next/image'
 import { Plane } from 'lucide-react'
 
@@ -8,19 +9,36 @@ import { Plane } from 'lucide-react'
  * confirma el último documento. Un avión recorre una ruta (con estela dorada)
  * y aterriza donde aparece el logo; luego "¡Gracias!" y un botón para volver
  * al resumen. Mismo lenguaje visual que la intro y la pantalla de análisis.
+ * También la usa la firma de contratos, con su mensaje y la descarga del PDF.
  */
 
 /** Ruta del avión en el escenario de 320×220 px; termina en el centro del logo. */
 const RUTA = 'M 18 196 C 40 70, 150 10, 250 52 C 312 80, 250 150, 160 112'
 
-export function Gracias({ nombre, onCerrar }: { nombre: string | null; onCerrar: () => void }) {
+export function Gracias({
+  nombre,
+  onCerrar,
+  mensaje = 'Tus documentos fueron enviados de forma segura a tu asesora. Ella los revisa y te confirma por WhatsApp.',
+  textoBoton = 'Ver mis documentos',
+  etiqueta = 'Documentos enviados',
+  principal,
+}: {
+  nombre: string | null
+  onCerrar: () => void
+  mensaje?: string
+  textoBoton?: string
+  /** Nombre accesible del diálogo. */
+  etiqueta?: string
+  /** Acción principal opcional sobre el botón de cierre (p. ej. descargar el PDF). */
+  principal?: ReactNode
+}) {
   const primerNombre = (nombre ?? '').trim().split(/\s+/)[0]
   const saludo = primerNombre
     ? `¡Gracias, ${primerNombre.charAt(0).toUpperCase()}${primerNombre.slice(1).toLowerCase()}!`
     : '¡Gracias!'
 
   return (
-    <div className="gracias-twc" role="dialog" aria-modal="true" aria-label="Documentos enviados">
+    <div className="gracias-twc" role="dialog" aria-modal="true" aria-label={etiqueta}>
       <div className="gracias-glow" />
 
       <div className="gracias-escena" aria-hidden>
@@ -41,12 +59,11 @@ export function Gracias({ nombre, onCerrar }: { nombre: string | null; onCerrar:
       </div>
 
       <h2 className="gracias-titulo">{saludo}</h2>
-      <p className="gracias-sub">
-        Tus documentos fueron enviados de forma segura a tu asesora. Ella los revisa y te confirma por WhatsApp.
-      </p>
+      <p className="gracias-sub">{mensaje}</p>
       <p className="gracias-buen">¡Buen viaje! ✈️</p>
-      <button type="button" onClick={onCerrar} className="gracias-boton">
-        Ver mis documentos
+      {principal && <div className="gracias-principal">{principal}</div>}
+      <button type="button" onClick={onCerrar} className={principal ? 'gracias-boton gracias-boton-sec' : 'gracias-boton'}>
+        {textoBoton}
       </button>
       <style>{CSS}</style>
     </div>
@@ -75,6 +92,9 @@ const CSS = `
 .gracias-boton{margin-top:28px;height:48px;padding:0 28px;border-radius:16px;background:#fff;color:#0D1E3C;font-family:var(--font-inter),sans-serif;font-weight:600;font-size:15px;
   opacity:0;transform:translateY(8px);animation:gr-sube .5s ease 3.6s forwards;transition:transform .15s}
 .gracias-boton:active{transform:scale(.98)}
+.gracias-principal{margin-top:28px;opacity:0;transform:translateY(8px);animation:gr-sube .5s ease 3.5s forwards}
+.gracias-principal a{display:inline-flex;align-items:center;gap:8px;height:50px;padding:0 26px;border-radius:16px;background:#FFCC29;color:#0D1E3C;font-family:var(--font-inter),sans-serif;font-weight:700;font-size:15px;text-decoration:none}
+.gracias-boton-sec{margin-top:12px;background:transparent;color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.25);height:44px;font-size:14px}
 @keyframes gr-fade{from{opacity:0}to{opacity:1}}
 @keyframes gr-tenue{to{opacity:.3}}
 @keyframes gr-respira{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.12);opacity:1}}

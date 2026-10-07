@@ -5,6 +5,7 @@ import { ContratoDocumento } from '@/components/contrato/ContratoDocumento'
 import { tokenValido } from '@/lib/documentos/token'
 import { accesoContratoValido, nombreCookieContrato } from '@/lib/contratos/acceso'
 import { contratoPorToken, estadoEnlaceContrato, marcarVisto } from '@/lib/contratos/registro'
+import { IntroSeguro } from '@/app/documentos/[token]/IntroSeguro'
 import { Verificacion, Garantias } from './Verificacion'
 import { Firmar } from './Firmar'
 
@@ -30,10 +31,22 @@ export default async function ContratoPage({ params }: { params: Promise<{ token
   if (estado === 'anulado') return <Aviso texto="Este contrato fue reemplazado o anulado. Pídele a tu asesora el enlace vigente." />
   if (estado === 'vencido') return <Aviso texto="Este enlace venció. Pídele a tu asesora uno nuevo." />
 
+  // Splash + candado (una vez por dispositivo), con la página ya debajo.
+  const conIntro = (contenido: React.ReactNode) => (
+    <IntroSeguro
+      clave={c.token_hash.slice(0, 12)}
+      prefijo="twc_ct_intro_"
+      etiqueta="Firma segura de contratos"
+      detalle="Verificación por código · Firma con validez legal"
+    >
+      {contenido}
+    </IntroSeguro>
+  )
+
   const subtitulo = [c.reserva ? `Reserva TW-${c.reserva}` : null, c.datos.destino].filter(Boolean).join(' · ') || null
   const cookie = (await cookies()).get(nombreCookieContrato(c.token_hash))?.value
   if (!accesoContratoValido(cookie, c.id)) {
-    return (
+    return conIntro(
       <div className="mx-auto max-w-md px-4 py-8">
         <Verificacion token={token} subtitulo={subtitulo} telefonoFinal={c.telefono_ultimos4} firmado={estado === 'firmado'} />
       </div>
@@ -45,8 +58,8 @@ export default async function ContratoPage({ params }: { params: Promise<{ token
       timeZone: 'America/Bogota',
       dateStyle: 'long',
       timeStyle: 'short',
-    })
-    return (
+    }).replace(/\.$/, '') // "2:19 p. m." ya trae punto: evita el ".." al cerrar la frase
+    return conIntro(
       <div className="mx-auto flex max-w-md flex-col gap-4 px-4 py-8">
         <section className="rounded-[24px] bg-white p-6 text-center sm:p-8" style={{ border: '1px solid rgba(13,30,60,0.08)' }}>
           <CheckCircle2 size={44} strokeWidth={1.6} className="mx-auto" style={{ color: '#2e7d32' }} />
@@ -81,7 +94,7 @@ export default async function ContratoPage({ params }: { params: Promise<{ token
     (h.get('user-agent') ?? 'desconocido').slice(0, 400)
   )
 
-  return (
+  return conIntro(
     <div className="pb-24">
       <p className="mx-auto mb-3 max-w-[816px] px-4 font-inter text-[13px] sm:px-0" style={{ color: '#6B7A90' }}>
         Lee tu contrato con calma. Al final encontrarás el recuadro para firmar.
