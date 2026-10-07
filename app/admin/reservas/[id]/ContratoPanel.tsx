@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, Ban, CheckCircle2, Eye, FileSignature, Loader2, RefreshCw, Send } from 'lucide-react'
-import { anularContratoPanel, enviarContrato, reenviarContrato, type EstadoContratoPanel } from './contrato-actions'
+import { anularContratoPanel, enviarContrato, estadoContrato, reenviarContrato, type EstadoContratoPanel } from './contrato-actions'
 
 /**
  * Recuadro "Contrato" del Generador: estado del contrato propio (enviado →
@@ -33,7 +33,23 @@ export function ContratoPanel({ opportunityId, inicial }: { opportunityId: strin
   const router = useRouter()
   const [ocupado, setOcupado] = useState<null | 'enviar' | 'reenviar' | 'anular'>(null)
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
+  // Los faltantes se calculan al abrir la página; la asesora los va llenando en
+  // el wizard de abajo, así que se pueden volver a revisar sin recargar (y el
+  // servidor los revisa de nuevo al enviar).
+  const [problemas, setProblemas] = useState(inicial.problemas)
+  const [revisando, setRevisando] = useState(false)
   const u = inicial.ultimo
+
+  async function revisar() {
+    setRevisando(true)
+    try {
+      setProblemas((await estadoContrato(opportunityId)).problemas)
+    } catch {
+      setMensaje({ tipo: 'error', texto: 'No se pudo revisar. Intenta de nuevo.' })
+    } finally {
+      setRevisando(false)
+    }
+  }
   const vigente = u && (u.estado === 'enviado' || u.estado === 'visto')
 
   async function correr(accion: 'enviar' | 'reenviar' | 'anular') {
@@ -69,7 +85,11 @@ export function ContratoPanel({ opportunityId, inicial }: { opportunityId: strin
   const boton = 'inline-flex h-9 items-center gap-1.5 rounded-[10px] px-3 font-inter text-xs font-semibold disabled:opacity-50'
 
   return (
-    <section className="mb-6 rounded-2xl bg-white p-5" style={{ border: `1px solid ${BORDER}`, position: 'relative', zIndex: 1 }}>
+    <section
+      id="contrato-para-firma"
+      className="mb-6 scroll-mt-6 rounded-2xl bg-white p-5"
+      style={{ border: `1px solid ${BORDER}`, position: 'relative', zIndex: 1 }}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: '#EDF3FC', color: ACCENT }}>
@@ -103,13 +123,18 @@ export function ContratoPanel({ opportunityId, inicial }: { opportunityId: strin
         </p>
       )}
 
-      {inicial.problemas.length > 0 && !(u?.estado === 'firmado') && (
+      {problemas.length > 0 && !(u?.estado === 'firmado') && (
         <div className="mt-4 rounded-xl p-3 font-inter text-xs" style={{ background: '#FFFBEB', color: '#78350F', border: '1px solid #FDE68A' }}>
-          <p className="flex items-center gap-1.5 font-semibold">
-            <AlertTriangle size={14} /> Falta completar antes de enviar:
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 font-semibold">
+              <AlertTriangle size={14} /> Falta completar antes de enviar:
+            </p>
+            <button type="button" onClick={revisar} disabled={revisando} className="inline-flex items-center gap-1 font-semibold underline disabled:opacity-50">
+              {revisando ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Volver a revisar
+            </button>
+          </div>
           <ul className="mt-1 list-disc pl-5">
-            {inicial.problemas.map(p => <li key={p}>{p}</li>)}
+            {problemas.map(p => <li key={p}>{p}</li>)}
           </ul>
         </div>
       )}
@@ -131,7 +156,7 @@ export function ContratoPanel({ opportunityId, inicial }: { opportunityId: strin
           <button
             type="button"
             onClick={() => correr('enviar')}
-            disabled={ocupado !== null || inicial.problemas.length > 0}
+            disabled={ocupado !== null}
             className={boton}
             style={{ background: ACCENT, color: '#fff' }}
           >

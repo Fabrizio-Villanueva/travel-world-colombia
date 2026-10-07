@@ -82,10 +82,10 @@ const FACTURACION_CONTACTO_KEYS = [
 
 /**
  * Orden de pasos del wizard, pedido por el usuario (2026-08-27) calcando el
- * orden de las carpetas de contacto que el equipo ya conoce. Dos ajustes
- * sobre las carpetas del catálogo: Liquidación se parte en Vuelos y Porción
- * Terrestre, y "ENVIAR CONTRATO?" se va a un paso final propio — disparar el
- * contrato es lo último, cuando ya todo está lleno.
+ * orden de las carpetas de contacto que el equipo ya conoce. Liquidación se
+ * parte en Vuelos y Porción Terrestre. El contrato ya no se dispara desde un
+ * paso del wizard: desde el 08-oct-2026 se envía con el recuadro "Contrato
+ * para firma" (contrato propio con firma electrónica, lib/contratos).
  */
 const ORDEN_PASOS = [
   'Contacto',
@@ -98,15 +98,13 @@ const ORDEN_PASOS = [
   'Liquidación Porción Terrestre',
   'Plan de Pagos',
   'Inclusiones',
-  'Enviar Contrato',
   // Pestaña aparte para operaciones (Luisa): va al final y "Guardar y seguir"
-  // nunca salta a ella — el flujo de la asesora termina en Enviar Contrato.
+  // nunca salta a ella — el flujo de la asesora termina en Inclusiones.
   'Operaciones',
 ]
 
 /** Reubica un campo del catálogo en su paso del wizard. */
 function pasoDe(c: CampoCatalogo): string {
-  if (c.name === 'ENVIAR CONTRATO?') return 'Enviar Contrato'
   // El contrato imprime estos dos en el recuadro "Generales del Viaje",
   // aunque el catálogo los dejó en la carpeta Contrato.
   if (c.name === 'Acomodacion' || c.name === 'Cantidad de Habitaciones') {
@@ -127,11 +125,16 @@ function pasoDe(c: CampoCatalogo): string {
  * exactamente los 3 que la plantilla imprime (T/C, Valor Plan, Valor Total —
  * decisión del usuario 2026-08-27); tarifa/cantidad/tiquetes no aplican a una
  * tasa de cambio y el contrato no los imprime.
+ *
+ * "ENVIAR CONTRATO?" (Preview / Enviar / Reenviar) disparaba las plantillas de
+ * GHL Documents (C-02/C-03 viejos, archivados el 08-oct-2026): se oculta para
+ * que no haya dos formas de enviar el contrato.
  */
 const CAMPOS_OCULTOS = new Set<string>([
   'TRM - Tarifa por pax',
   'TRM - Cantidad',
   'TRM - Tiquetes Aereos',
+  'ENVIAR CONTRATO?',
 ])
 
 /**
