@@ -180,10 +180,14 @@ function filasLiquidacion(grupo: string, filas: ContratoLiquidacionFila[], conPl
 export function ContratoDocumento({
   datos,
   firma,
+  firmaPie,
   firmaAgencia,
 }: {
   datos: ContratoDatos
+  /** Trazo de la firma del titular (imagen) una vez firmado. */
   firma?: ReactNode
+  /** Línea bajo la firma del titular ("Firmado electrónicamente el …"). */
+  firmaPie?: string
   firmaAgencia?: ReactNode
 }) {
   const liq = datos.liquidacion
@@ -452,6 +456,7 @@ export function ContratoDocumento({
                 <span className={s.firmaRol}>
                   Cliente - viajero{datos.titular.documento ? ` · ${datos.titular.documento}` : ''}
                 </span>
+                {firmaPie && <span className={s.firmaPie}>{firmaPie}</span>}
               </div>
               <div className={s.firma}>
                 <div className={s.firmaTrazo}>{firmaAgencia}</div>

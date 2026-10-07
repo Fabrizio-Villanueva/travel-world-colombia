@@ -412,6 +412,11 @@
   margin-top: 6px;
   font-weight: 700;
 }
+.firmaPie {
+  margin-top: 2px;
+  font-size: 9px;
+  color: #2e7d32;
+}
 .firmaRol {
   font-size: 10px;
   color: var(--suave);

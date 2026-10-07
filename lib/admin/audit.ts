@@ -20,6 +20,10 @@ export type AccionAudit =
   | 'revocar-enlace-documentos'
   | 'ver-documento'
   | 'editar-regla-visa'
+  // Contrato propio con firma electrónica.
+  | 'enviar-contrato'
+  | 'anular-contrato'
+  | 'ver-contrato'
 
 interface RegistroActividad {
   email: string

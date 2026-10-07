@@ -1,6 +1,12 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  // Contrato propio: las funciones que imprimen el PDF con Chromium necesitan
+  // el binario de @sparticuz/chromium (lo lee del disco, el trazado no lo ve).
+  outputFileTracingIncludes: {
+    '/contrato/**': ['./node_modules/@sparticuz/chromium/bin/**/*'],
+    '/admin/contratos/**': ['./node_modules/@sparticuz/chromium/bin/**/*'],
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '*.supabase.co' },

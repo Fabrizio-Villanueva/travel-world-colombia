@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import {
   PlusCircle, Pencil, Trash2, Eye, EyeOff, Star, StarOff, Activity, UserCheck, UserX, UserCog,
-  ClipboardList, Send, Link2, Ban, FileSearch, Globe,
+  ClipboardList, Send, Link2, Ban, FileSearch, Globe, FileSignature,
 } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getAdminUser } from '@/lib/admin/guard'
@@ -38,6 +38,9 @@ const ACCIONES: Record<AccionAudit, { label: string; color: string; Icon: typeof
   'revocar-enlace-documentos': { label: 'Desactivó enlace de documentos', color: '#ef4444', Icon: Ban },
   'ver-documento':             { label: 'Vio un documento de viajero', color: 'var(--orange)', Icon: FileSearch },
   'editar-regla-visa':         { label: 'Editó regla de visa', color: 'var(--orange)', Icon: Globe },
+  'enviar-contrato':           { label: 'Envió contrato para firma', color: '#4ade80', Icon: FileSignature },
+  'anular-contrato':           { label: 'Anuló un contrato', color: '#ef4444', Icon: Ban },
+  'ver-contrato':              { label: 'Abrió un contrato firmado', color: 'var(--orange)', Icon: FileSearch },
 }
 
 // timeZone explícita: en Vercel el proceso corre en UTC, así que sin esto la

@@ -1,0 +1,72 @@
+/* Hoja de evidencia de la firma electrónica (última página del PDF). */
+.hoja {
+  max-width: 816px;
+  margin: 0 auto;
+  padding: 26px 36px 30px;
+  background: #fff;
+  color: #17202f;
+  font-family: var(--font-inter), Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.45;
+  break-before: page;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.eyebrow {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #2957a4;
+}
+.titulo {
+  margin: 2px 0 4px;
+  font-family: var(--font-plus-jakarta), Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0d1e3c;
+}
+.intro {
+  margin: 0 0 16px;
+  color: #626c7e;
+}
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+.tabla th,
+.tabla td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e3e7ee;
+  text-align: left;
+  vertical-align: top;
+}
+.tabla th {
+  width: 30%;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #626c7e;
+}
+.mono {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.subtitulo {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0d1e3c;
+}
+.legal {
+  margin-top: 18px;
+  padding: 10px 14px;
+  background: #f6f8fb;
+  border-radius: 8px;
+  font-size: 9.5px;
+  color: #333c4d;
+}

@@ -6,6 +6,8 @@ import { getAdminSession } from '@/lib/admin/guard'
 import { cargarReserva } from '../actions'
 import { cargarEstadoDocumentos } from './documentos-actions'
 import { Wizard } from './Wizard'
+import { ContratoPanel } from './ContratoPanel'
+import { estadoContrato } from './contrato-actions'
 
 export const metadata: Metadata = { title: 'Generador de Contratos · Panel' }
 export const dynamic = 'force-dynamic'
@@ -16,7 +18,11 @@ export default async function ReservaPage({ params }: { params: Promise<{ id: st
   if (session.rol === 'lector') redirect('/admin')
 
   const { id } = await params
-  const [reserva, documentos] = await Promise.all([cargarReserva(id), cargarEstadoDocumentos(id)])
+  const [reserva, documentos, contrato] = await Promise.all([
+    cargarReserva(id),
+    cargarEstadoDocumentos(id),
+    estadoContrato(id),
+  ])
 
   return (
     <div>
@@ -46,6 +52,8 @@ export default async function ReservaPage({ params }: { params: Promise<{ id: st
           {reserva.sinResolver.join(', ')}
         </p>
       )}
+
+      <ContratoPanel opportunityId={reserva.oportunidad.id} inicial={contrato} />
 
       <Wizard
         opportunityId={reserva.oportunidad.id}
