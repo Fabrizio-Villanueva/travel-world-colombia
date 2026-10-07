@@ -1,373 +1,355 @@
 /*
- * Contrato TWC: calca la plantilla de GHL. Paleta fija (no depende del tema
- * del sitio) para que la pantalla y el PDF se vean idénticos.
+ * Contrato TWC: azul marino + un solo acento dorado, líneas finas en vez
+ * de celdas con borde, jerarquía por tamaño y peso (no por color).
  */
 .contrato {
-  --ct-navy: #0d1e3c;
-  --ct-barra: #1b3360;
-  --ct-etiqueta-fondo: #eef2f8;
-  --ct-celeste: #c9d8ef;
-  --ct-naranja: #f2a93b;
-  --ct-borde: #d5dce8;
-  --ct-texto: #1a2233;
-  --ct-suave: #5b6578;
+  --navy: #0d1e3c;
+  --azul: #2957a4;
+  --oro: #ffcc29;
+  --oro-suave: #fff7dc;
+  --linea: #e3e7ee;
+  --fondo: #f6f8fb;
+  --texto: #17202f;
+  --suave: #626c7e;
 
   width: 100%;
-  max-width: 816px; /* carta a 96 ppp */
+  max-width: 816px;
   margin: 0 auto;
   background: #fff;
-  color: var(--ct-texto);
+  color: var(--texto);
   font-family: var(--font-inter), Arial, sans-serif;
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.45;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 
 /* ── Cabecera ── */
 .cabecera {
-  background: var(--ct-navy);
-  color: #fff;
-  padding: 18px 24px 20px;
-}
-.titulo {
-  margin: 0 0 14px;
-  text-align: center;
-  font-family: var(--font-plus-jakarta), Arial, sans-serif;
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.cabeceraFila {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-}
-.marca {
-  flex: 1 1 260px;
-  text-align: center;
+  padding: 26px 36px 18px;
 }
 .logo {
-  display: block;
-  width: 220px;
-  max-width: 100%;
+  width: 190px;
   height: auto;
-  margin: 0 auto 8px;
 }
-.direccion {
+.cabeceraTexto {
+  text-align: right;
+}
+.eyebrow {
   margin: 0;
   font-size: 10px;
-  opacity: 0.85;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--azul);
 }
-.web {
-  margin: 4px 0 0;
+.reserva {
+  margin: 2px 0 0;
+  font-family: var(--font-plus-jakarta), Arial, sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--navy);
+}
+.cabeceraMeta {
+  margin: 2px 0 0;
   font-size: 11px;
-  font-weight: 600;
-  color: #ffcc29;
-}
-.ficha {
-  flex: 0 1 300px;
-  margin: 0;
-  display: grid;
-  gap: 4px;
-}
-.ficha > div {
-  display: grid;
-  grid-template-columns: 74px 1fr;
-  align-items: center;
-  background: #fff;
-  color: var(--ct-texto);
-  border-radius: 3px;
-  overflow: hidden;
-}
-.ficha dt {
-  padding: 5px 8px;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--ct-barra);
-  background: var(--ct-etiqueta-fondo);
-}
-.ficha dd {
-  margin: 0;
-  padding: 5px 8px;
-  font-weight: 600;
-}
-.franja {
-  height: 5px;
-  background: linear-gradient(to bottom, #ffcc29 0 40%, #2957a4 40% 70%, #d62d37 70% 100%);
+  color: var(--suave);
 }
 
-/* ── Secciones ── */
-.seccion {
-  margin: 14px 24px 0;
-  break-inside: avoid-page;
-}
-.barra {
-  margin: 0;
-  padding: 5px 10px;
-  background: var(--ct-barra);
+/* ── Resumen ── */
+.resumen {
+  display: grid;
+  grid-template-columns: 1.7fr 1.3fr 0.8fr 1.1fr 1.1fr;
+  background: var(--navy);
   color: #fff;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  border-bottom: 4px solid var(--oro);
 }
-
-/* Pares etiqueta/valor: 4 columnas (2 pares por fila) */
-.campos {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-left: 1px solid var(--ct-borde);
-  border-top: 1px solid var(--ct-borde);
-}
-.par {
-  display: grid;
-  grid-template-columns: 38% 1fr;
-  border-right: 1px solid var(--ct-borde);
-  border-bottom: 1px solid var(--ct-borde);
-}
-.parAncho {
-  grid-column: 1 / -1;
-  grid-template-columns: 19% 1fr;
-}
-.etiqueta {
-  padding: 6px 8px;
-  background: var(--ct-etiqueta-fondo);
-  color: var(--ct-barra);
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  display: flex;
-  align-items: center;
-}
-.etiquetaDestacada {
-  background: var(--ct-celeste);
-}
-.valor {
-  padding: 6px 8px;
-  font-weight: 500;
-  overflow-wrap: anywhere;
-  display: flex;
-  align-items: center;
-}
-
-/* Bloques con borde naranja (trayectos, pasajeros, notas) */
-.bloque {
-  margin-top: 6px;
-  border: 2px solid var(--ct-naranja);
-  break-inside: avoid;
-}
-.bloque .campos {
-  border-left: 0;
-  border-top: 0;
-}
-.bloque .par:nth-child(2n),
-.bloque .parAncho {
-  border-right: 0;
-}
-.recuadro {
-  margin: 0;
-  padding: 10px 12px;
-  border: 2px solid var(--ct-naranja);
-  border-top: 0;
-  white-space: pre-line;
-}
-.notas {
-  display: grid;
-  grid-template-columns: 19% 1fr;
-}
-.notasEtiqueta {
-  padding: 8px;
-  background: #b9dca7;
-  color: #24481a;
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-}
-.notas p {
-  margin: 0;
-  padding: 8px 10px;
-  white-space: pre-line;
-}
-.pasajeroTitulo {
-  margin: 0;
-  padding: 3px 10px;
-  background: var(--ct-barra);
-  color: #fff;
-  text-align: center;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.tablaPasajero {
-  display: grid;
-  grid-template-columns: repeat(var(--cols), 1fr);
-}
-.celdaPasajero {
+.resumen > div {
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--ct-borde);
+  gap: 2px;
 }
-.celdaPasajero:last-child {
-  border-right: 0;
+.resumen > div + div {
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
 }
-.subtitulo {
-  padding: 3px 6px;
-  background: var(--ct-celeste);
-  color: var(--ct-barra);
-  text-align: center;
-  font-size: 8.5px;
-  font-weight: 700;
+.resumenDestino {
+  flex-direction: row !important;
+  align-items: flex-start;
+  gap: 10px !important;
+  padding-left: 36px !important;
+}
+.resumenDestino svg {
+  margin-top: 2px;
+  color: var(--oro);
+  flex-shrink: 0;
+}
+.resumenDestino > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.resumenEtiqueta {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.62);
 }
-.celdaPasajero .valor {
-  justify-content: center;
-  min-height: 26px;
+.resumenValor {
+  font-family: var(--font-plus-jakarta), Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.resumenNota {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.resumenSaldo {
+  background: var(--oro);
+  color: var(--navy);
+}
+.resumenSaldo .resumenEtiqueta {
+  color: rgba(13, 30, 60, 0.7);
 }
 
-/* ── Tablas (liquidación y pagos) ── */
-.tablaScroll {
-  overflow-x: auto;
+/* ── Cuerpo y secciones ── */
+.cuerpo {
+  padding: 8px 36px 0;
 }
+.seccion {
+  margin-top: 22px;
+  break-inside: avoid-page;
+}
+.seccionTitulo {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--linea);
+  font-family: var(--font-plus-jakarta), Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--navy);
+}
+.seccionNumero {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--azul);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Datos: etiqueta arriba, valor abajo */
+.datos {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: 10px 18px;
+}
+.datos dt {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--suave);
+}
+.datoAncho {
+  grid-column: span 2;
+}
+.datos dd {
+  margin: 1px 0 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.partes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.parte {
+  padding: 12px 14px;
+  background: var(--fondo);
+  border-radius: 8px;
+}
+.parte h3 {
+  margin: 0 0 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--azul);
+}
+.nota {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--oro-suave);
+  border-left: 3px solid var(--oro);
+  border-radius: 0 6px 6px 0;
+}
+.nota span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a6a00;
+}
+.nota p {
+  margin: 2px 0 0;
+  white-space: pre-line;
+}
+
+/* ── Tablas ── */
 .tabla {
   width: 100%;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
 }
-.tabla th,
+.tabla th {
+  padding: 6px 8px;
+  background: var(--fondo);
+  color: var(--suave);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  border-bottom: 1px solid var(--linea);
+}
 .tabla td {
-  padding: 5px 8px;
-  border: 1px solid var(--ct-borde);
-  text-align: right;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--linea);
+  vertical-align: top;
+}
+.tabla tbody tr {
+  break-inside: avoid;
+}
+.num {
+  text-align: right !important;
   white-space: nowrap;
 }
-.tabla thead th {
-  background: var(--ct-celeste);
-  color: var(--ct-barra);
+.dosLineas {
+  display: inline-flex;
+  flex-direction: column;
+}
+.segunda {
+  margin-top: 1px;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--suave);
+}
+.concepto {
+  font-weight: 600;
+}
+.grupo {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: #e8eef9;
+  color: var(--azul);
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
-  text-align: center;
-}
-.tabla .subbarra {
-  background: var(--ct-barra);
-  color: #fff;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-align: center;
-}
-.concepto {
-  text-align: left !important;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--ct-barra);
-  background: var(--ct-etiqueta-fondo);
-}
-.centro {
-  text-align: center !important;
-}
-.izquierda {
-  text-align: left !important;
-}
-.fuerte {
-  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 .total td {
-  background: var(--ct-naranja);
-  color: var(--ct-navy);
+  background: var(--navy);
+  color: #fff;
   font-weight: 800;
+  font-size: 13px;
+  border-bottom: 0;
 }
 .total td:first-child {
-  text-align: left;
-  text-transform: uppercase;
-  font-size: 10px;
+  border-radius: 6px 0 0 6px;
+}
+.total td:last-child {
+  border-radius: 0 6px 6px 0;
+  color: var(--oro);
 }
 .dolares td {
-  background: var(--ct-celeste);
-  color: var(--ct-barra);
-  font-weight: 700;
-}
-.dolares td:first-child {
-  text-align: left;
-  text-transform: uppercase;
-  font-size: 10px;
+  color: var(--suave);
+  font-weight: 600;
 }
 .medios {
-  padding: 8px 12px;
-  background: #e4e6ea;
-  font-size: 10px;
-  color: var(--ct-suave);
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--fondo);
+  border-radius: 8px;
+  font-size: 10.5px;
+  color: var(--suave);
 }
 .mediosTitulo {
+  font-size: 9px;
   font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ct-texto);
+  color: var(--texto);
 }
 .medios ul {
-  margin: 4px 0 0;
-  padding-left: 4px;
+  margin: 6px 0 0;
+  padding: 0;
   list-style: none;
+  columns: 2;
+  column-gap: 18px;
 }
 .medios li {
   display: flex;
   align-items: center;
   gap: 6px;
+  break-inside: avoid;
+  margin-bottom: 3px;
 }
 .medios li svg {
   flex-shrink: 0;
-  color: var(--ct-barra);
+  color: var(--azul);
 }
 
 /* ── Condiciones ── */
 .condiciones {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 18px;
 }
-.incluye,
-.noIncluye {
-  padding: 0 0 12px;
-}
-.incluye {
-  background: #dfeedd;
-}
-.noIncluye {
-  background: #fbe5d3;
-}
-.condiciones h3 {
-  margin: 0;
-  padding: 4px;
-  text-align: center;
-  font-size: 11px;
+.incluyeTitulo,
+.noIncluyeTitulo {
+  margin: 0 0 6px;
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.incluye h3 {
-  color: #3c7a2a;
-  background: #cfe5c9;
+.incluyeTitulo {
+  color: #2e7d32;
 }
-.noIncluye h3 {
-  color: #c0392b;
-  background: #f8d6bd;
+.noIncluyeTitulo {
+  color: #c62828;
 }
-.condiciones ul {
-  margin: 8px 0 0;
-  padding: 0 14px 0 28px;
+.lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
-.condiciones li + li {
-  margin-top: 3px;
+.lista li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 3px 0;
+}
+.lista li svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.si {
+  color: #2e7d32;
+}
+.no {
+  color: #c62828;
 }
 
 /* ── Cláusulas ── */
@@ -375,132 +357,175 @@
   break-inside: auto;
 }
 .clausulaTexto {
-  padding: 8px 12px 10px;
-  border: 1px solid var(--ct-borde);
-  border-top: 0;
-  font-size: 10.5px;
+  font-size: 9.5px;
   line-height: 1.5;
-  text-align: justify;
+  color: #333c4d;
   hyphens: auto;
+  columns: 2;
+  column-gap: 22px;
 }
 .clausulaTexto p {
-  margin: 0;
-}
-.clausulaTexto p + p {
-  margin-top: 7px;
+  margin: 0 0 6px;
 }
 
-/* ── Declaración y firmas ── */
+/* ── Firmas ── */
 .firmaSeccion {
-  margin-bottom: 24px;
+  margin-top: 24px;
   break-inside: avoid;
 }
 .declaracion {
   margin: 0;
-  padding: 10px 16px;
-  background: #e4e6ea;
+  padding: 12px 18px;
+  background: var(--fondo);
+  border-radius: 8px;
   text-align: center;
   font-size: 11px;
   font-style: italic;
   font-weight: 600;
+  color: var(--navy);
 }
 .firmas {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 12px;
+  gap: 40px;
+  margin-top: 18px;
 }
-.firmaCol {
+.firma {
   display: flex;
   flex-direction: column;
-}
-.firmaCol .campos,
-.firmaCol .parAncho {
-  grid-template-columns: 1fr;
-}
-.firmaCol .par,
-.firmaCol .parAncho {
-  grid-template-columns: 30% 1fr;
-}
-.firmaCabeza {
-  margin: 0;
-  padding: 5px 10px;
-  background: var(--ct-barra);
-  color: #fff;
+  align-items: center;
   text-align: center;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 .firmaTrazo {
-  height: 84px;
+  width: 100%;
+  height: 78px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  border: 1px solid var(--ct-borde);
-  border-top: 0;
+  border-bottom: 1.5px solid var(--navy);
 }
 .firmaTrazo img {
-  max-height: 76px;
+  max-height: 74px;
   max-width: 90%;
 }
-.firmaRol {
-  padding: 3px;
-  background: var(--ct-etiqueta-fondo);
-  border: 1px solid var(--ct-borde);
-  border-top: 0;
-  color: var(--ct-barra);
-  text-align: center;
-  font-size: 9.5px;
+.firmaNombre {
+  margin-top: 6px;
   font-weight: 700;
-  text-transform: uppercase;
+}
+.firmaRol {
+  font-size: 10px;
+  color: var(--suave);
+}
+.pie {
+  margin-top: 28px;
+  padding: 12px 36px 18px;
+  border-top: 1px solid var(--linea);
+  text-align: center;
+  font-size: 9px;
+  color: var(--suave);
 }
 
-/* ── Celular: pares en una columna, sin márgenes laterales grandes ── */
+/* El pie va en cada página del PDF (plantilla de Playwright), no al final. */
+@media print {
+  .pie {
+    display: none;
+  }
+}
+
+/* ── Celular ── */
 @media (max-width: 640px) {
   .contrato {
     font-size: 13px;
   }
   .cabecera {
-    padding: 16px;
+    padding: 18px 16px 14px;
   }
-  .ficha {
-    flex-basis: 100%;
+  .logo {
+    width: 140px;
   }
-  .seccion {
-    margin: 12px 0 0;
+  .reserva {
+    font-size: 18px;
   }
-  .campos {
-    grid-template-columns: 1fr;
-  }
-  .par,
-  .parAncho {
-    grid-template-columns: 40% 1fr;
-  }
-  .bloque .par {
-    border-right: 0;
-  }
-  .tablaPasajero {
+  .resumen {
     grid-template-columns: 1fr 1fr;
   }
-  .celdaPasajero {
-    border-bottom: 1px solid var(--ct-borde);
+  .resumen > div + div {
+    border-left: 0;
   }
-  .notas {
-    grid-template-columns: 1fr;
+  .resumen > div {
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
   }
+  .resumenDestino {
+    grid-column: 1 / -1;
+    padding-left: 16px !important;
+  }
+  .cuerpo {
+    padding: 0 16px;
+  }
+  .partes,
   .condiciones,
   .firmas {
     grid-template-columns: 1fr;
   }
-}
-
-@media print {
-  .contrato {
-    max-width: none;
+  .datos {
+    grid-template-columns: 1fr 1fr;
   }
-  .tablaScroll {
-    overflow: visible;
+  .medios ul,
+  .clausulaTexto {
+    columns: 1;
+  }
+  .clausulaTexto {
+    font-size: 11px;
+  }
+  /* Tablas → tarjetas: cada celda con su etiqueta */
+  .tabla thead {
+    display: none;
+  }
+  .tabla,
+  .tabla tbody,
+  .tabla tfoot,
+  .tabla tr,
+  .tabla td {
+    display: block;
+    width: 100%;
+  }
+  .tabla tbody tr {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background: var(--fondo);
+    border-radius: 8px;
+  }
+  .tabla td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 0;
+    border: 0;
+    text-align: right;
+  }
+  .tabla td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--suave);
+    text-align: left;
+  }
+  .tabla td:empty {
+    display: none;
+  }
+  .dosLineas {
+    align-items: flex-end;
+  }
+  .total td,
+  .dolares td {
+    padding: 6px 12px;
+    border-radius: 0 !important;
+  }
+  .total td:empty,
+  .dolares td:empty {
+    display: none;
   }
 }

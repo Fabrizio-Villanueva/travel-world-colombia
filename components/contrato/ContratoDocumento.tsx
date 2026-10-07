@@ -1,28 +1,31 @@
 import type { ReactNode } from 'react'
-import { Landmark, Monitor, Mail, QrCode } from 'lucide-react'
+import { Check, X, Landmark, Monitor, Mail, QrCode, Plane } from 'lucide-react'
 import { CLAUSULA_DATOS, CLAUSULA_RESPONSABILIDAD, DECLARACION_FIRMA } from '@/lib/contratos/clausulas'
 import type { ContratoDatos, ContratoLiquidacionFila, ContratoPasajero } from '@/lib/contratos/tipos'
 import s from './ContratoDocumento.module.css'
 
 /**
- * Contrato de servicios turísticos de Travel World Colombia. Calca el diseño
- * de la plantilla de GHL (cabecera azul marino, barras de sección, etiquetas
- * en celeste, recuadros con borde naranja) pero imprime SOLO lo que existe:
- * N trayectos, N pasajeros, las tarifas usadas y los pagos pactados.
+ * Contrato de servicios turísticos de Travel World Colombia (diseño aprobado
+ * 07-oct-2026). Imprime SOLO lo que existe: N trayectos, N pasajeros, las
+ * tarifas usadas y los pagos pactados, así que no quedan espacios vacíos.
+ * Arriba, un resumen con lo que más le importa al cliente (destino, fechas,
+ * pasajeros, total y saldo); tablas compactas (12 pasajeros caben en media
+ * página) que en celular se vuelven tarjetas; cláusulas a dos columnas en
+ * el PDF.
  *
  * Es HTML puro (sin estado ni JS): la misma salida sirve para leerlo en el
  * celular y para generar el PDF.
  */
 
 const AGENCIA = {
-  razonSocial: 'VAMOS POR MÁS SAS',
-  nombre: 'TRAVEL WORLD COLOMBIA',
+  razonSocial: 'VAMOS POR MÁS S.A.S.',
+  nombre: 'Travel World Colombia',
   nit: '900537199-7',
   rnt: '27287',
   contacto: '320 489 1930',
   correo: 'agenciatravelworldcolombia@gmail.com',
   direccion: 'Tv 12 #22-42 Local 126 · C.C. Manila · Fusagasugá',
-  web: 'www.travelworldcolombia.com',
+  web: 'travelworldcolombia.com',
 }
 
 const MEDIOS_DE_PAGO = [
@@ -30,10 +33,38 @@ const MEDIOS_DE_PAGO = [
   { Icono: Landmark, texto: 'Davivienda Corriente #406-169997292' },
   { Icono: QrCode, texto: 'Bre-B: Bancolombia 0090272526 · Davivienda @9005371997' },
   { Icono: Monitor, texto: 'PSE: zonapagos.com/basica · travelworldcolombia.com/pagos' },
-  { Icono: Mail, texto: 'contabilidad.travelworld@gmail.com' },
+  { Icono: Mail, texto: 'Comprobantes: contabilidad.travelworld@gmail.com' },
 ]
 
-/** Párrafo con **negrita** (único formato que usan las cláusulas). */
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+const pesos = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
+const numero = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 })
+
+const dinero = (v?: number) => (v == null ? '' : pesos.format(v))
+const vacio = (v: unknown) => v == null || (typeof v === 'string' && v.trim() === '')
+
+/** AAAA-MM-DD → DD/MM/AAAA. */
+function fecha(iso?: string): string {
+  const m = iso ? /^(\d{4})-(\d{2})-(\d{2})/.exec(iso) : null
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso ?? '')
+}
+
+/** Rango compacto: "12 – 17 dic 2026", "28 dic 2026 – 3 ene 2027". */
+function rango(ida?: string, regreso?: string): string {
+  const a = ida ? /^(\d{4})-(\d{2})-(\d{2})/.exec(ida) : null
+  const b = regreso ? /^(\d{4})-(\d{2})-(\d{2})/.exec(regreso) : null
+  if (!a || !b) return [fechaCorta(ida), fechaCorta(regreso)].filter(Boolean).join(' – ')
+  if (a[1] === b[1] && a[2] === b[2]) return `${Number(a[3])} – ${Number(b[3])} ${MESES[Number(b[2]) - 1]} ${b[1]}`
+  if (a[1] === b[1]) return `${Number(a[3])} ${MESES[Number(a[2]) - 1]} – ${Number(b[3])} ${MESES[Number(b[2]) - 1]} ${b[1]}`
+  return `${fechaCorta(ida)} – ${fechaCorta(regreso)}`
+}
+
+/** AAAA-MM-DD → "12 dic 2026". */
+function fechaCorta(iso?: string): string {
+  const m = iso ? /^(\d{4})-(\d{2})-(\d{2})/.exec(iso) : null
+  return m ? `${Number(m[3])} ${MESES[Number(m[2]) - 1]} ${m[1]}` : (iso ?? '')
+}
+
 function Parrafo({ texto }: { texto: string }) {
   return (
     <p>
@@ -44,75 +75,106 @@ function Parrafo({ texto }: { texto: string }) {
   )
 }
 
-const pesos = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
-const numero = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 })
-
-function dinero(v?: number): string {
-  return v == null ? '' : pesos.format(v)
-}
-
-/** AAAA-MM-DD → DD/MM/AAAA (sin pasar por Date: evita corrimientos de zona). */
-function fecha(iso?: string): string {
-  if (!iso) return ''
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso
-}
-
-const vacio = (v: unknown) => v == null || (typeof v === 'string' && v.trim() === '')
-
-/** Pares etiqueta/valor en rejilla de 4 columnas (2 en celular); omite vacíos. */
-function Campos({ pares, destacar }: { pares: [string, ReactNode][]; destacar?: boolean }) {
-  const llenos = pares.filter(([, v]) => !vacio(v))
-  if (llenos.length === 0) return null
-  return (
-    <div className={s.campos}>
-      {llenos.map(([etiqueta, valor], i) => (
-        <div key={etiqueta} className={`${s.par} ${i === llenos.length - 1 && llenos.length % 2 === 1 ? s.parAncho : ''}`}>
-          <span className={`${s.etiqueta} ${destacar && i === 0 ? s.etiquetaDestacada : ''}`}>{etiqueta}</span>
-          <span className={s.valor}>{valor}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function Seccion({ titulo, children, className }: { titulo: string; children: ReactNode; className?: string }) {
+function Seccion({ n, titulo, children, className }: { n: number; titulo: string; children: ReactNode; className?: string }) {
   return (
     <section className={`${s.seccion} ${className ?? ''}`}>
-      <h2 className={s.barra}>{titulo}</h2>
+      <h2 className={s.seccionTitulo}>
+        <span className={s.seccionNumero}>{String(n).padStart(2, '0')}</span>
+        {titulo}
+      </h2>
       {children}
     </section>
   )
 }
 
-/** Columnas de pasajero que tiene AL MENOS uno: así todos los bloques calzan. */
-const COLUMNAS_PASAJERO: { clave: keyof ContratoPasajero; titulo: string; formato?: (v: string) => string }[] = [
-  { clave: 'fechaNacimiento', titulo: 'Fecha de nacimiento', formato: fecha },
-  { clave: 'pasaporte', titulo: 'No. pasaporte' },
-  { clave: 'vencePasaporte', titulo: 'Vigencia pasaporte', formato: fecha },
-  { clave: 'telefono', titulo: 'Teléfono' },
-  { clave: 'visa', titulo: 'No. visa' },
-  { clave: 'venceVisa', titulo: 'Vigencia visa', formato: fecha },
-]
-
-function TablaLiquidacion({ titulo, filas, conPlan }: { titulo: string; filas: ContratoLiquidacionFila[]; conPlan: boolean }) {
-  if (filas.length === 0) return null
+/** Lista de datos (etiqueta arriba, valor abajo) que omite los vacíos. */
+function Datos({ pares, columnas = 3 }: { pares: [string, ReactNode][]; columnas?: number }) {
+  const llenos = pares.filter(([, v]) => !vacio(v))
+  if (llenos.length === 0) return null
   return (
-    <>
-      <tr>
-        <th colSpan={conPlan ? 5 : 4} className={s.subbarra}>{titulo}</th>
-      </tr>
-      {filas.map(f => (
-        <tr key={f.concepto}>
-          <td className={s.concepto}>{f.concepto}</td>
-          <td>{dinero(f.tarifaPorPax)}</td>
-          <td className={s.centro}>{f.cantidad ?? ''}</td>
-          {conPlan && <td>{dinero(f.valorPlan)}</td>}
-          <td className={s.fuerte}>{dinero(f.valorTotal)}</td>
-        </tr>
+    <dl className={s.datos} style={{ ['--cols' as string]: columnas }}>
+      {llenos.map(([etiqueta, valor]) => (
+        // Valores largos (correos) ocupan dos columnas para no partirse.
+        <div key={etiqueta} className={typeof valor === 'string' && valor.length > 26 ? s.datoAncho : undefined}>
+          <dt>{etiqueta}</dt>
+          <dd>{valor}</dd>
+        </div>
       ))}
-    </>
+    </dl>
   )
+}
+
+/** Tabla que en celular se vuelve tarjetas (cada celda lleva su etiqueta). */
+function Tabla({ columnas, filas, pie }: { columnas: { titulo: string; num?: boolean }[]; filas: ReactNode[][]; pie?: ReactNode }) {
+  return (
+    <table className={s.tabla}>
+      <thead>
+        <tr>
+          {columnas.map(c => (
+            <th key={c.titulo} className={c.num ? s.num : undefined}>{c.titulo}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {filas.map((celdas, i) => (
+          <tr key={i}>
+            {celdas.map((v, j) => (
+              <td key={j} data-label={columnas[j].titulo} className={columnas[j].num ? s.num : undefined}>
+                {v}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+      {pie}
+    </table>
+  )
+}
+
+/** Dato principal con una segunda línea discreta (documento, vencimiento). */
+function DosLineas({ arriba, abajo, fuerte }: { arriba?: ReactNode; abajo?: ReactNode; fuerte?: boolean }) {
+  return (
+    <span className={s.dosLineas}>
+      {fuerte ? <strong>{arriba}</strong> : arriba}
+      {abajo && <span className={s.segunda}>{abajo}</span>}
+    </span>
+  )
+}
+
+/** "+573001234567" / "3001234567" → "+57 300 123 4567"; lo demás queda igual. */
+function telefono(t?: string): string {
+  if (!t) return ''
+  const d = t.replace(/\D/g, '')
+  const m = /^(?:57)?(3\d{2})(\d{3})(\d{4})$/.exec(d)
+  return m ? `+57 ${m[1]} ${m[2]} ${m[3]}` : t
+}
+
+/** Columnas de la tabla de pasajeros; las opcionales solo si alguien las tiene. */
+function columnasPasajeros(pasajeros: ContratoPasajero[]) {
+  const hay = (c: keyof ContratoPasajero) => pasajeros.some(p => !vacio(p[c]))
+  const cols: { titulo: string; celda: (p: ContratoPasajero) => ReactNode }[] = [
+    { titulo: 'Pasajero', celda: p => <DosLineas fuerte arriba={p.nombre} abajo={p.documento} /> },
+  ]
+  if (hay('fechaNacimiento')) cols.push({ titulo: 'Nacimiento', celda: p => fecha(p.fechaNacimiento) })
+  if (hay('pasaporte'))
+    cols.push({
+      titulo: 'Pasaporte',
+      celda: p => <DosLineas arriba={p.pasaporte} abajo={p.vencePasaporte && `Vence ${fecha(p.vencePasaporte)}`} />,
+    })
+  if (hay('visa'))
+    cols.push({ titulo: 'Visa', celda: p => <DosLineas arriba={p.visa} abajo={p.venceVisa && `Vence ${fecha(p.venceVisa)}`} /> })
+  if (hay('telefono')) cols.push({ titulo: 'Teléfono', celda: p => telefono(p.telefono) })
+  return cols
+}
+
+function filasLiquidacion(grupo: string, filas: ContratoLiquidacionFila[], conPlan: boolean): ReactNode[][] {
+  return filas.map(f => [
+    <span key="c" className={s.concepto}><span className={s.grupo}>{grupo}</span> {f.concepto}</span>,
+    dinero(f.tarifaPorPax),
+    f.cantidad ?? '',
+    ...(conPlan ? [dinero(f.valorPlan)] : []),
+    <strong key="t">{dinero(f.valorTotal)}</strong>,
+  ])
 }
 
 export function ContratoDocumento({
@@ -121,251 +183,277 @@ export function ContratoDocumento({
   firmaAgencia,
 }: {
   datos: ContratoDatos
-  /** Trazo de la firma del titular (imagen) una vez firmado. */
   firma?: ReactNode
   firmaAgencia?: ReactNode
 }) {
-  const { liquidacion: liq } = datos
-  const columnas = COLUMNAS_PASAJERO.filter(c => datos.pasajeros.some(p => !vacio(p[c.clave])))
-  const conPlan = [...liq.aereos, ...liq.terrestre].some(f => f.valorPlan != null) || liq.total.valorPlan != null
+  const liq = datos.liquidacion
+  const columnas = columnasPasajeros(datos.pasajeros)
+  const conPlan = [...liq.aereos, ...liq.terrestre].some(f => f.valorPlan != null)
   const conTrm = datos.pagos.some(p => p.trm != null)
+  const ultimoPago = datos.pagos.at(-1)
+  const abonado = datos.pagos.reduce((t, p) => t + (p.abono ?? 0), 0)
+  const saldo = ultimoPago?.saldo ?? liq.total.valorTotal - abonado
+  const v = datos.viaje
+
+  let n = 0
+  const sig = () => ++n
 
   return (
     <article className={s.contrato} lang="es">
       {/* ── Cabecera ── */}
       <header className={s.cabecera}>
-        <h1 className={s.titulo}>Contrato de servicios turísticos</h1>
-        <div className={s.cabeceraFila}>
-          <div className={s.marca}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- también se imprime a PDF; <img> plano es lo más fiel */}
-            <img src="/images/travel-world-colombia-logo-blanco.png" alt="Travel World Colombia" className={s.logo} />
-            <p className={s.direccion}>{AGENCIA.direccion}</p>
-            <p className={s.web}>{AGENCIA.web}</p>
-          </div>
-          <dl className={s.ficha}>
-            <div><dt>Fecha</dt><dd>{fecha(datos.fechaContrato)}</dd></div>
-            <div><dt>Reserva</dt><dd>TW-{datos.reserva}</dd></div>
-            {datos.producto && <div><dt>Producto</dt><dd>{datos.producto}</dd></div>}
-            {datos.destino && <div><dt>Destino</dt><dd>{datos.destino}</dd></div>}
-          </dl>
+        {/* eslint-disable-next-line @next/next/no-img-element -- también se imprime a PDF */}
+        <img src="/images/travel-world-colombia-logo.png" alt="Travel World Colombia" className={s.logo} />
+        <div className={s.cabeceraTexto}>
+          <p className={s.eyebrow}>Contrato de servicios turísticos</p>
+          <p className={s.reserva}>Reserva TW-{datos.reserva}</p>
+          <p className={s.cabeceraMeta}>
+            {fechaCorta(datos.fechaContrato)}
+            {datos.producto ? ` · ${datos.producto}` : ''}
+          </p>
         </div>
       </header>
-      <div className={s.franja} aria-hidden />
 
-      <Seccion titulo="Datos de la agencia">
-        <Campos
-          pares={[
-            ['Razón social', AGENCIA.razonSocial],
-            ['Agencia', AGENCIA.nombre],
-            ['NIT', AGENCIA.nit],
-            ['RNT', AGENCIA.rnt],
-            ['Agente', datos.agente],
-            ['Contacto', AGENCIA.contacto],
-            ['Email agente', AGENCIA.correo],
-          ]}
-        />
-      </Seccion>
+      {/* ── Resumen: lo esencial de un vistazo ── */}
+      <div className={s.resumen}>
+        <div className={s.resumenDestino}>
+          <Plane size={16} aria-hidden />
+          <div>
+            <span className={s.resumenEtiqueta}>Destino</span>
+            <span className={s.resumenValor}>{datos.destino ?? '—'}</span>
+          </div>
+        </div>
+        <div>
+          <span className={s.resumenEtiqueta}>Viaje</span>
+          <span className={s.resumenValor}>{rango(v.fechaIda, v.fechaRegreso)}</span>
+          {v.noches != null && <span className={s.resumenNota}>{v.noches} noches</span>}
+        </div>
+        <div>
+          <span className={s.resumenEtiqueta}>Pasajeros</span>
+          <span className={s.resumenValor}>{datos.pasajeros.length || v.totalPersonas}</span>
+        </div>
+        <div>
+          <span className={s.resumenEtiqueta}>Valor total</span>
+          <span className={s.resumenValor}>{dinero(liq.total.valorTotal)}</span>
+        </div>
+        <div className={s.resumenSaldo}>
+          <span className={s.resumenEtiqueta}>Saldo pendiente</span>
+          <span className={s.resumenValor}>{dinero(saldo)}</span>
+        </div>
+      </div>
 
-      <Seccion titulo="Datos para su factura electrónica">
-        <Campos
-          pares={[
-            ['Nombre', datos.facturacion.nombre],
-            ['Documento / NIT', datos.facturacion.documento],
-            ['Dirección', datos.facturacion.direccion],
-            ['Ciudad', datos.facturacion.ciudad],
-            ['Email', datos.facturacion.correo],
-            ['Teléfono', datos.facturacion.telefono],
-            ['Titular de la reserva', datos.titular.nombre],
-            ['Teléfono del titular', datos.titular.telefono],
-          ]}
-        />
-      </Seccion>
-
-      <Seccion titulo="Generales del viaje">
-        <Campos
-          pares={[
-            ['Fecha de ida', fecha(datos.viaje.fechaIda)],
-            ['No. de noches', datos.viaje.noches],
-            ['Fecha de regreso', fecha(datos.viaje.fechaRegreso)],
-            ['Plan', datos.viaje.plan],
-            ['Habitaciones', datos.viaje.habitaciones],
-            ['Acomodación', datos.viaje.acomodacion],
-            ['Total de personas', datos.viaje.totalPersonas],
-          ]}
-        />
-      </Seccion>
-
-      {datos.observaciones && (
-        <Seccion titulo="Observaciones">
-          <p className={s.recuadro}>{datos.observaciones}</p>
-        </Seccion>
-      )}
-
-      {(datos.trayectos.length > 0 || datos.notas) && (
-        <Seccion titulo="Información de su itinerario">
-          {datos.trayectos.map((t, i) => (
-            <div key={i} className={s.bloque}>
-              <Campos
-                destacar
+      <div className={s.cuerpo}>
+        <Seccion n={sig()} titulo="Las partes">
+          <div className={s.partes}>
+            <div className={s.parte}>
+              <h3>La agencia</h3>
+              <Datos
+                columnas={2}
                 pares={[
-                  [`Trayecto ${i + 1}`, t.ruta],
-                  ['Fecha de salida', fecha(t.fechaSalida)],
-                  ['Hora de salida', t.horaSalida],
-                  ['Hora de llegada', t.horaLlegada],
-                  ['No. de vuelo', t.vuelo],
-                  ['Aerolínea', t.aerolinea],
+                  ['Razón social', AGENCIA.razonSocial],
+                  ['NIT', AGENCIA.nit],
+                  ['Agencia', AGENCIA.nombre],
+                  ['RNT', AGENCIA.rnt],
+                  ['Asesor(a)', datos.agente],
+                  ['Contacto', AGENCIA.contacto],
+                  ['Correo', AGENCIA.correo],
                 ]}
               />
             </div>
-          ))}
-          {datos.notas && (
-            <div className={`${s.bloque} ${s.notas}`}>
-              <span className={s.notasEtiqueta}>Notas</span>
-              <p>{datos.notas}</p>
+            <div className={s.parte}>
+              <h3>El cliente · datos de facturación</h3>
+              <Datos
+                columnas={2}
+                pares={[
+                  ['Titular de la reserva', datos.titular.nombre],
+                  ['Teléfono del titular', telefono(datos.titular.telefono)],
+                  ['Facturar a', datos.facturacion.nombre],
+                  ['Documento / NIT', datos.facturacion.documento],
+                  ['Dirección', datos.facturacion.direccion],
+                  ['Ciudad', datos.facturacion.ciudad],
+                  ['Correo', datos.facturacion.correo],
+                  ['Teléfono', telefono(datos.facturacion.telefono)],
+                ]}
+              />
+            </div>
+          </div>
+        </Seccion>
+
+        <Seccion n={sig()} titulo="Su viaje">
+          <Datos
+            columnas={4}
+            pares={[
+              ['Fecha de ida', fecha(v.fechaIda)],
+              ['Fecha de regreso', fecha(v.fechaRegreso)],
+              ['Noches', v.noches],
+              ['Plan', v.plan],
+              ['Habitaciones', v.habitaciones],
+              ['Acomodación', v.acomodacion],
+              ['Total de personas', v.totalPersonas],
+            ]}
+          />
+          {datos.observaciones && (
+            <div className={s.nota}>
+              <span>Observaciones</span>
+              <p>{datos.observaciones}</p>
             </div>
           )}
         </Seccion>
-      )}
 
-      {datos.pasajeros.length > 0 && (
-        <Seccion titulo={`Pasajeros (${datos.pasajeros.length})`}>
-          {datos.pasajeros.map((p, i) => (
-            <div key={i} className={s.bloque}>
-              <h3 className={s.pasajeroTitulo}>Pasajero {i + 1}</h3>
-              <Campos pares={[['Nombre completo', p.nombre], ['Documento', p.documento]]} />
-              {columnas.length > 0 && (
-                <div className={s.tablaPasajero} style={{ ['--cols' as string]: columnas.length }}>
-                  {columnas.map(c => (
-                    <div key={c.clave} className={s.celdaPasajero}>
-                      <span className={s.subtitulo}>{c.titulo}</span>
-                      <span className={s.valor}>{c.formato ? c.formato(p[c.clave] ?? '') : (p[c.clave] ?? '')}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </Seccion>
-      )}
-
-      <Seccion titulo="Liquidación">
-        <div className={s.tablaScroll}>
-          <table className={s.tabla}>
-            <thead>
-              <tr>
-                <th />
-                <th>Tarifa por pax</th>
-                <th>Cantidad</th>
-                {conPlan && <th>Valor plan</th>}
-                <th>Valor total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <TablaLiquidacion titulo="Liquidación aéreos" filas={liq.aereos} conPlan={conPlan} />
-              <TablaLiquidacion titulo="Liquidación porción terrestre" filas={liq.terrestre} conPlan={conPlan} />
-              <tr className={s.total}>
-                <td>Total pasajeros</td>
-                <td />
-                <td className={s.centro}>{liq.total.cantidad ?? ''}</td>
-                {conPlan && <td>{dinero(liq.total.valorPlan)}</td>}
-                <td>{dinero(liq.total.valorTotal)}</td>
-              </tr>
-              {liq.dolares && (
-                <tr className={s.dolares}>
-                  <td>Valor en dólares</td>
-                  <td colSpan={2}>TRM vigente: {dinero(liq.dolares.trm)}</td>
-                  {conPlan && <td>{liq.dolares.valorPlan != null ? `USD ${numero.format(liq.dolares.valorPlan)}` : ''}</td>}
-                  <td>{liq.dolares.valorTotal != null ? `USD ${numero.format(liq.dolares.valorTotal)}` : ''}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Seccion>
-
-      <Seccion titulo="Registro de pagos">
-        {datos.pagos.length > 0 && (
-          <div className={s.tablaScroll}>
-            <table className={s.tabla}>
-              <thead>
-                <tr>
-                  <th>No.</th>
-                  <th>Fecha</th>
-                  <th>Medio de pago</th>
-                  {conTrm && <th>TRM</th>}
-                  <th>Total plan</th>
-                  <th>Abono</th>
-                  <th>Saldo en pesos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {datos.pagos.map((p, i) => (
-                  <tr key={i}>
-                    <td className={s.centro}>{i + 1}</td>
-                    <td className={s.centro}>{fecha(p.fecha)}</td>
-                    <td className={s.izquierda}>{p.medio ?? ''}</td>
-                    {conTrm && <td>{dinero(p.trm)}</td>}
-                    <td>{dinero(p.totalPlan)}</td>
-                    <td className={s.fuerte}>{dinero(p.abono)}</td>
-                    <td>{dinero(p.saldo)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {datos.trayectos.length > 0 && (
+          <Seccion n={sig()} titulo="Itinerario de vuelos">
+            <Tabla
+              columnas={[{ titulo: '#' }, { titulo: 'Fecha' }, { titulo: 'Ruta' }, { titulo: 'Vuelo' }, { titulo: 'Aerolínea' }, { titulo: 'Sale' }, { titulo: 'Llega' }]}
+              filas={datos.trayectos.map((t, i) => [
+                i + 1,
+                fecha(t.fechaSalida),
+                <strong key="r">{t.ruta}</strong>,
+                t.vuelo ?? '',
+                t.aerolinea ?? '',
+                t.horaSalida ?? '',
+                t.horaLlegada ?? '',
+              ])}
+            />
+            {datos.notas && (
+              <div className={s.nota}>
+                <span>Notas importantes</span>
+                <p>{datos.notas}</p>
+              </div>
+            )}
+          </Seccion>
         )}
-        <div className={s.medios}>
-          <span className={s.mediosTitulo}>Medios de pago</span>
-          <ul>
-            {MEDIOS_DE_PAGO.map(({ Icono, texto }) => (
-              <li key={texto}>
-                <Icono size={11} aria-hidden /> {texto}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </Seccion>
 
-      {(datos.incluye.length > 0 || datos.noIncluye.length > 0) && (
-        <Seccion titulo="Condiciones de su plan">
-          <div className={s.condiciones}>
-            <div className={s.incluye}>
-              <h3>Incluye</h3>
-              <ul>{datos.incluye.map(x => <li key={x}>{x}</li>)}</ul>
-            </div>
-            <div className={s.noIncluye}>
-              <h3>No incluye</h3>
-              <ul>{datos.noIncluye.map(x => <li key={x}>{x}</li>)}</ul>
-            </div>
+        {datos.pasajeros.length > 0 && (
+          <Seccion n={sig()} titulo={`Pasajeros (${datos.pasajeros.length})`}>
+            <Tabla
+              columnas={[{ titulo: '#' }, ...columnas.map(c => ({ titulo: c.titulo }))]}
+              filas={datos.pasajeros.map((p, i) => [i + 1, ...columnas.map(c => c.celda(p))])}
+            />
+          </Seccion>
+        )}
+
+        <Seccion n={sig()} titulo="Liquidación">
+          <Tabla
+            columnas={[
+              { titulo: 'Concepto' },
+              { titulo: 'Tarifa por pax', num: true },
+              { titulo: 'Cant.', num: true },
+              ...(conPlan ? [{ titulo: 'Valor plan', num: true }] : []),
+              { titulo: 'Valor total', num: true },
+            ]}
+            filas={[
+              ...filasLiquidacion('Aéreo', liq.aereos, conPlan),
+              ...filasLiquidacion('Terrestre', liq.terrestre, conPlan),
+            ]}
+            pie={
+              <tfoot>
+                <tr className={s.total}>
+                  <td>Total del viaje</td>
+                  <td />
+                  <td className={s.num}>{liq.total.cantidad ?? ''}</td>
+                  {conPlan && <td className={s.num}>{dinero(liq.total.valorPlan)}</td>}
+                  <td className={s.num}>{dinero(liq.total.valorTotal)}</td>
+                </tr>
+                {liq.dolares && (
+                  <tr className={s.dolares}>
+                    <td>Valor en dólares · TRM {dinero(liq.dolares.trm)}</td>
+                    <td />
+                    <td />
+                    {conPlan && <td className={s.num}>{liq.dolares.valorPlan != null ? `USD ${numero.format(liq.dolares.valorPlan)}` : ''}</td>}
+                    <td className={s.num}>{liq.dolares.valorTotal != null ? `USD ${numero.format(liq.dolares.valorTotal)}` : ''}</td>
+                  </tr>
+                )}
+              </tfoot>
+            }
+          />
+        </Seccion>
+
+        <Seccion n={sig()} titulo="Plan de pagos">
+          {datos.pagos.length > 0 && (
+            <Tabla
+              columnas={[
+                { titulo: '#' },
+                { titulo: 'Fecha' },
+                { titulo: 'Medio de pago' },
+                ...(conTrm ? [{ titulo: 'TRM', num: true }] : []),
+                { titulo: 'Abono', num: true },
+                { titulo: 'Saldo', num: true },
+              ]}
+              filas={datos.pagos.map((p, i) => [
+                i + 1,
+                fecha(p.fecha),
+                p.medio ?? '',
+                ...(conTrm ? [dinero(p.trm)] : []),
+                <strong key="a">{dinero(p.abono)}</strong>,
+                dinero(p.saldo),
+              ])}
+            />
+          )}
+          <div className={s.medios}>
+            <span className={s.mediosTitulo}>Medios de pago autorizados</span>
+            <ul>
+              {MEDIOS_DE_PAGO.map(({ Icono, texto }) => (
+                <li key={texto}>
+                  <Icono size={12} aria-hidden /> {texto}
+                </li>
+              ))}
+            </ul>
           </div>
         </Seccion>
-      )}
 
-      {[CLAUSULA_RESPONSABILIDAD, CLAUSULA_DATOS].map(c => (
-        <Seccion key={c.titulo} titulo={c.titulo} className={s.clausula}>
-          <div className={s.clausulaTexto}>
-            {c.parrafos.map((p, i) => <Parrafo key={i} texto={p} />)}
-          </div>
-        </Seccion>
-      ))}
+        {(datos.incluye.length > 0 || datos.noIncluye.length > 0) && (
+          <Seccion n={sig()} titulo="Condiciones de su plan">
+            <div className={s.condiciones}>
+              <div>
+                <h3 className={s.incluyeTitulo}>Incluye</h3>
+                <ul className={s.lista}>
+                  {datos.incluye.map(x => (
+                    <li key={x}><Check size={13} className={s.si} aria-hidden /> {x}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className={s.noIncluyeTitulo}>No incluye</h3>
+                <ul className={s.lista}>
+                  {datos.noIncluye.map(x => (
+                    <li key={x}><X size={13} className={s.no} aria-hidden /> {x}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </Seccion>
+        )}
 
-      <section className={`${s.seccion} ${s.firmaSeccion}`}>
-        <p className={s.declaracion}>{DECLARACION_FIRMA}</p>
-        <div className={s.firmas}>
-          <div className={s.firmaCol}>
-            <h3 className={s.firmaCabeza}>{AGENCIA.nombre}</h3>
-            <Campos pares={[['Nombre', datos.agente ?? AGENCIA.nombre], ['NIT', `${AGENCIA.nit} · ${AGENCIA.razonSocial}`]]} />
-            <div className={s.firmaTrazo}>{firmaAgencia}</div>
-            <span className={s.firmaRol}>Firma</span>
+        {[CLAUSULA_RESPONSABILIDAD, CLAUSULA_DATOS].map(c => (
+          <Seccion key={c.titulo} n={sig()} titulo={c.titulo} className={s.clausula}>
+            <div className={s.clausulaTexto}>
+              {c.parrafos.map((p, i) => <Parrafo key={i} texto={p} />)}
+            </div>
+          </Seccion>
+        ))}
+
+        <section className={s.firmaSeccion}>
+          <p className={s.declaracion}>{DECLARACION_FIRMA}</p>
+          <div className={s.firmas}>
+            <div className={s.firma}>
+              <div className={s.firmaTrazo}>{firma}</div>
+              <span className={s.firmaNombre}>{datos.titular.nombre}</span>
+              <span className={s.firmaRol}>
+                Cliente - viajero{datos.titular.documento ? ` · ${datos.titular.documento}` : ''}
+              </span>
+            </div>
+            <div className={s.firma}>
+              <div className={s.firmaTrazo}>{firmaAgencia}</div>
+              <span className={s.firmaNombre}>{datos.agente ?? AGENCIA.nombre}</span>
+              <span className={s.firmaRol}>Travel World Colombia · NIT {AGENCIA.nit}</span>
+            </div>
           </div>
-          <div className={s.firmaCol}>
-            <h3 className={s.firmaCabeza}>Cliente - viajero</h3>
-            <Campos pares={[['Nombre', datos.titular.nombre], ['Documento', datos.titular.documento]]} />
-            <div className={s.firmaTrazo}>{firma}</div>
-            <span className={s.firmaRol}>Firma</span>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
+
+      <footer className={s.pie}>
+        {AGENCIA.razonSocial} · NIT {AGENCIA.nit} · RNT {AGENCIA.rnt} · {AGENCIA.direccion} · {AGENCIA.web}
+      </footer>
     </article>
   )
 }
