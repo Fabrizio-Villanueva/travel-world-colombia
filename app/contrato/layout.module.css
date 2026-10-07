@@ -1,0 +1,24 @@
+.marco {
+  min-height: 100vh;
+  background: #e9edf3;
+}
+@media (min-width: 640px) {
+  .marco {
+    padding: 32px 16px;
+  }
+}
+/* Al imprimir / generar el PDF: solo el documento, en blanco. */
+@media print {
+  :global(html),
+  :global(body) {
+    background: #fff !important;
+  }
+  .marco {
+    min-height: 0;
+    padding: 0;
+    background: #fff;
+  }
+  .marco :global(.shadow-xl) {
+    box-shadow: none;
+  }
+}

@@ -1,0 +1,451 @@
+/*
+ * Contrato TWC: calca la plantilla de GHL. Paleta fija (no depende del tema
+ * del sitio) para que la pantalla y el PDF se vean idénticos.
+ */
+.contrato {
+  --ct-navy: #0d1e3c;
+  --ct-barra: #1b3360;
+  --ct-etiqueta-fondo: #eef2f8;
+  --ct-celeste: #c9d8ef;
+  --ct-naranja: #f2a93b;
+  --ct-borde: #d5dce8;
+  --ct-texto: #1a2233;
+  --ct-suave: #5b6578;
+
+  width: 100%;
+  max-width: 816px; /* carta a 96 ppp */
+  margin: 0 auto;
+  background: #fff;
+  color: var(--ct-texto);
+  font-family: var(--font-inter), Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ── Cabecera ── */
+.cabecera {
+  background: var(--ct-navy);
+  color: #fff;
+  padding: 18px 24px 20px;
+}
+.titulo {
+  margin: 0 0 14px;
+  text-align: center;
+  font-family: var(--font-plus-jakarta), Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cabeceraFila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.marca {
+  flex: 1 1 260px;
+  text-align: center;
+}
+.logo {
+  display: block;
+  width: 220px;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 8px;
+}
+.direccion {
+  margin: 0;
+  font-size: 10px;
+  opacity: 0.85;
+}
+.web {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffcc29;
+}
+.ficha {
+  flex: 0 1 300px;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.ficha > div {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  align-items: center;
+  background: #fff;
+  color: var(--ct-texto);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.ficha dt {
+  padding: 5px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ct-barra);
+  background: var(--ct-etiqueta-fondo);
+}
+.ficha dd {
+  margin: 0;
+  padding: 5px 8px;
+  font-weight: 600;
+}
+.franja {
+  height: 5px;
+  background: linear-gradient(to bottom, #ffcc29 0 40%, #2957a4 40% 70%, #d62d37 70% 100%);
+}
+
+/* ── Secciones ── */
+.seccion {
+  margin: 14px 24px 0;
+  break-inside: avoid-page;
+}
+.barra {
+  margin: 0;
+  padding: 5px 10px;
+  background: var(--ct-barra);
+  color: #fff;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Pares etiqueta/valor: 4 columnas (2 pares por fila) */
+.campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-left: 1px solid var(--ct-borde);
+  border-top: 1px solid var(--ct-borde);
+}
+.par {
+  display: grid;
+  grid-template-columns: 38% 1fr;
+  border-right: 1px solid var(--ct-borde);
+  border-bottom: 1px solid var(--ct-borde);
+}
+.parAncho {
+  grid-column: 1 / -1;
+  grid-template-columns: 19% 1fr;
+}
+.etiqueta {
+  padding: 6px 8px;
+  background: var(--ct-etiqueta-fondo);
+  color: var(--ct-barra);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+}
+.etiquetaDestacada {
+  background: var(--ct-celeste);
+}
+.valor {
+  padding: 6px 8px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  display: flex;
+  align-items: center;
+}
+
+/* Bloques con borde naranja (trayectos, pasajeros, notas) */
+.bloque {
+  margin-top: 6px;
+  border: 2px solid var(--ct-naranja);
+  break-inside: avoid;
+}
+.bloque .campos {
+  border-left: 0;
+  border-top: 0;
+}
+.bloque .par:nth-child(2n),
+.bloque .parAncho {
+  border-right: 0;
+}
+.recuadro {
+  margin: 0;
+  padding: 10px 12px;
+  border: 2px solid var(--ct-naranja);
+  border-top: 0;
+  white-space: pre-line;
+}
+.notas {
+  display: grid;
+  grid-template-columns: 19% 1fr;
+}
+.notasEtiqueta {
+  padding: 8px;
+  background: #b9dca7;
+  color: #24481a;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+}
+.notas p {
+  margin: 0;
+  padding: 8px 10px;
+  white-space: pre-line;
+}
+.pasajeroTitulo {
+  margin: 0;
+  padding: 3px 10px;
+  background: var(--ct-barra);
+  color: #fff;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tablaPasajero {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+}
+.celdaPasajero {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--ct-borde);
+}
+.celdaPasajero:last-child {
+  border-right: 0;
+}
+.subtitulo {
+  padding: 3px 6px;
+  background: var(--ct-celeste);
+  color: var(--ct-barra);
+  text-align: center;
+  font-size: 8.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.celdaPasajero .valor {
+  justify-content: center;
+  min-height: 26px;
+}
+
+/* ── Tablas (liquidación y pagos) ── */
+.tablaScroll {
+  overflow-x: auto;
+}
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.tabla th,
+.tabla td {
+  padding: 5px 8px;
+  border: 1px solid var(--ct-borde);
+  text-align: right;
+  white-space: nowrap;
+}
+.tabla thead th {
+  background: var(--ct-celeste);
+  color: var(--ct-barra);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: center;
+}
+.tabla .subbarra {
+  background: var(--ct-barra);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.concepto {
+  text-align: left !important;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ct-barra);
+  background: var(--ct-etiqueta-fondo);
+}
+.centro {
+  text-align: center !important;
+}
+.izquierda {
+  text-align: left !important;
+}
+.fuerte {
+  font-weight: 700;
+}
+.total td {
+  background: var(--ct-naranja);
+  color: var(--ct-navy);
+  font-weight: 800;
+}
+.total td:first-child {
+  text-align: left;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+.dolares td {
+  background: var(--ct-celeste);
+  color: var(--ct-barra);
+  font-weight: 700;
+}
+.dolares td:first-child {
+  text-align: left;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+.medios {
+  padding: 8px 12px;
+  background: #e4e6ea;
+  font-size: 10px;
+  color: var(--ct-suave);
+}
+.mediosTitulo {
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ct-texto);
+}
+.medios ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+
+/* ── Condiciones ── */
+.condiciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.incluye,
+.noIncluye {
+  padding: 0 0 12px;
+}
+.incluye {
+  background: #dfeedd;
+}
+.noIncluye {
+  background: #fbe5d3;
+}
+.condiciones h3 {
+  margin: 0;
+  padding: 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.incluye h3 {
+  color: #3c7a2a;
+  background: #cfe5c9;
+}
+.noIncluye h3 {
+  color: #c0392b;
+  background: #f8d6bd;
+}
+.condiciones ul {
+  margin: 8px 0 0;
+  padding: 0 14px 0 28px;
+}
+.condiciones li + li {
+  margin-top: 3px;
+}
+
+/* ── Firma ── */
+.firmaSeccion {
+  margin-bottom: 24px;
+}
+.aceptacion {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--ct-suave);
+}
+.firmas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 16px;
+}
+.firmaCaja {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.firmaTrazo {
+  width: 100%;
+  height: 80px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-bottom: 1.5px solid var(--ct-navy);
+}
+.firmaTrazo img {
+  max-height: 76px;
+  max-width: 100%;
+}
+.firmaNombre {
+  margin-top: 6px;
+  font-weight: 700;
+}
+.firmaRol {
+  font-size: 10px;
+  color: var(--ct-suave);
+}
+
+/* ── Celular: pares en una columna, sin márgenes laterales grandes ── */
+@media (max-width: 640px) {
+  .contrato {
+    font-size: 13px;
+  }
+  .cabecera {
+    padding: 16px;
+  }
+  .ficha {
+    flex-basis: 100%;
+  }
+  .seccion {
+    margin: 12px 0 0;
+  }
+  .campos {
+    grid-template-columns: 1fr;
+  }
+  .par,
+  .parAncho {
+    grid-template-columns: 40% 1fr;
+  }
+  .bloque .par {
+    border-right: 0;
+  }
+  .tablaPasajero {
+    grid-template-columns: 1fr 1fr;
+  }
+  .celdaPasajero {
+    border-bottom: 1px solid var(--ct-borde);
+  }
+  .notas {
+    grid-template-columns: 1fr;
+  }
+  .condiciones,
+  .firmas {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .contrato {
+    max-width: none;
+  }
+  .tablaScroll {
+    overflow: visible;
+  }
+}
