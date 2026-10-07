@@ -1,9 +1,18 @@
 # HANDOFF — Travel World Colombia
 
-> Punto de entrada para una **sesión nueva**. Actualizado **2026-09-03**.
+> Punto de entrada para una **sesión nueva**. Actualizado **2026-10-08**.
 > Lee también `AGENTS.md` (esta versión de Next tiene cambios de API: consulta
 > `node_modules/next/dist/docs/` antes de escribir código nuevo) y la memoria
 > persistente del proyecto (se carga sola; `MEMORY.md` es el índice).
+
+---
+
+## ✅ CONTRATO PROPIO CON FIRMA ELECTRÓNICA (2026-10-08) — en producción
+
+Reemplaza las plantillas de GHL Documents (4/8/12 pasajeros): contrato dinámico de 1 a 20
+pasajeros, firma desde el celular con código, PDF con hoja de evidencia y GHL actualizado solo.
+Traspaso completo: **`docs/handoff-contrato-propio.md`**. Pendiente del usuario: archivar C-02
+viejo y C-03, borrar la oportunidad de prueba `wggaTPrYrtMImBbqnAz9`.
 
 ---
 
