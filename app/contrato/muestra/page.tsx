@@ -11,8 +11,8 @@ import { contratoDesdeGhl } from '@/lib/contratos/desde-ghl'
  * real de GHL, para probar el traductor sin iniciar sesión en el panel. En
  * producción (y en las vistas previas de Vercel) el parámetro se ignora.
  */
-export default async function ContratoMuestraPage({ searchParams }: { searchParams: Promise<{ opp?: string; pax?: string; compacto?: string }> }) {
-  const { opp, pax, compacto } = await searchParams
+export default async function ContratoMuestraPage({ searchParams }: { searchParams: Promise<{ opp?: string; pax?: string }> }) {
+  const { opp, pax } = await searchParams
   const datos =
     process.env.NODE_ENV === 'development' && opp && /^[A-Za-z0-9]{10,40}$/.test(opp)
       ? await contratoDesdeGhl(opp)
@@ -22,7 +22,7 @@ export default async function ContratoMuestraPage({ searchParams }: { searchPara
 
   return (
     <div className="shadow-xl sm:mx-auto sm:max-w-[816px]">
-      <ContratoDocumento datos={datos} compacto={compacto === '1'} />
+      <ContratoDocumento datos={datos} />
     </div>
   )
 }

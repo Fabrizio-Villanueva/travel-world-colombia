@@ -181,13 +181,10 @@ export function ContratoDocumento({
   datos,
   firma,
   firmaAgencia,
-  compacto,
 }: {
   datos: ContratoDatos
   firma?: ReactNode
   firmaAgencia?: ReactNode
-  /** Variante apretada para que el PDF no deje una página casi vacía. */
-  compacto?: boolean
 }) {
   const liq = datos.liquidacion
   const columnas = columnasPasajeros(datos.pasajeros)
@@ -202,7 +199,7 @@ export function ContratoDocumento({
   const sig = () => ++n
 
   return (
-    <article className={`${s.contrato} ${compacto ? s.compacto : ''}`} lang="es">
+    <article className={s.contrato} lang="es">
       {/* ── Cabecera ── */}
       <header className={s.cabecera}>
         {/* eslint-disable-next-line @next/next/no-img-element -- también se imprime a PDF */}
@@ -371,71 +368,75 @@ export function ContratoDocumento({
           />
         </Seccion>
 
-        <Seccion n={sig()} titulo="Plan de pagos">
-          {datos.pagos.length > 0 && (
-            <Tabla
-              columnas={[
-                { titulo: '#' },
-                { titulo: 'Fecha' },
-                { titulo: 'Medio de pago' },
-                ...(conTrm ? [{ titulo: 'TRM', num: true }] : []),
-                { titulo: 'Abono', num: true },
-                { titulo: 'Saldo', num: true },
-              ]}
-              filas={datos.pagos.map((p, i) => [
-                i + 1,
-                fecha(p.fecha),
-                p.medio ?? '',
-                ...(conTrm ? [dinero(p.trm)] : []),
-                <strong key="a">{dinero(p.abono)}</strong>,
-                dinero(p.saldo),
-              ])}
-            />
-          )}
-          <div className={s.medios}>
-            <span className={s.mediosTitulo}>Medios de pago autorizados</span>
-            <ul>
-              {MEDIOS_DE_PAGO.map(({ Icono, texto }) => (
-                <li key={texto}>
-                  <Icono size={12} aria-hidden /> {texto}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Seccion>
-
-        {(datos.incluye.length > 0 || datos.noIncluye.length > 0) && (
-          <Seccion n={sig()} titulo="Condiciones de su plan">
-            <div className={s.condiciones}>
-              <div>
-                <h3 className={s.incluyeTitulo}>Incluye</h3>
-                <ul className={s.lista}>
-                  {datos.incluye.map(x => (
-                    <li key={x}><Check size={13} className={s.si} aria-hidden /> {x}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className={s.noIncluyeTitulo}>No incluye</h3>
-                <ul className={s.lista}>
-                  {datos.noIncluye.map(x => (
-                    <li key={x}><X size={13} className={s.no} aria-hidden /> {x}</li>
-                  ))}
-                </ul>
-              </div>
+        {/* Pagos y condiciones viajan juntos al imprimir: así ninguno queda
+            solo en una hoja casi vacía. */}
+        <div className={s.juntos}>
+          <Seccion n={sig()} titulo="Plan de pagos">
+            {datos.pagos.length > 0 && (
+              <Tabla
+                columnas={[
+                  { titulo: '#' },
+                  { titulo: 'Fecha' },
+                  { titulo: 'Medio de pago' },
+                  ...(conTrm ? [{ titulo: 'TRM', num: true }] : []),
+                  { titulo: 'Abono', num: true },
+                  { titulo: 'Saldo', num: true },
+                ]}
+                filas={datos.pagos.map((p, i) => [
+                  i + 1,
+                  fecha(p.fecha),
+                  p.medio ?? '',
+                  ...(conTrm ? [dinero(p.trm)] : []),
+                  <strong key="a">{dinero(p.abono)}</strong>,
+                  dinero(p.saldo),
+                ])}
+              />
+            )}
+            <div className={s.medios}>
+              <span className={s.mediosTitulo}>Medios de pago autorizados</span>
+              <ul>
+                {MEDIOS_DE_PAGO.map(({ Icono, texto }) => (
+                  <li key={texto}>
+                    <Icono size={12} aria-hidden /> {texto}
+                  </li>
+                ))}
+              </ul>
             </div>
           </Seccion>
-        )}
 
-        <Seccion n={sig()} titulo={CLAUSULA_RESPONSABILIDAD.titulo} className={s.clausula}>
-          <div className={s.clausulaTexto}>
-            {CLAUSULA_RESPONSABILIDAD.parrafos.map((p, i) => <Parrafo key={i} texto={p} />)}
-          </div>
-        </Seccion>
+          {(datos.incluye.length > 0 || datos.noIncluye.length > 0) && (
+            <Seccion n={sig()} titulo="Condiciones de su plan">
+              <div className={s.condiciones}>
+                <div>
+                  <h3 className={s.incluyeTitulo}>Incluye</h3>
+                  <ul className={s.lista}>
+                    {datos.incluye.map(x => (
+                      <li key={x}><Check size={13} className={s.si} aria-hidden /> {x}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className={s.noIncluyeTitulo}>No incluye</h3>
+                  <ul className={s.lista}>
+                    {datos.noIncluye.map(x => (
+                      <li key={x}><X size={13} className={s.no} aria-hidden /> {x}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </Seccion>
+          )}
+        </div>
 
-        {/* Cierre: la última cláusula, la declaración y las firmas no se
-            separan, para que la página de firmas nunca quede sola. */}
-        <div className={s.cierre}>
+        {/* Hoja legal: las dos cláusulas, la declaración y las firmas van
+            SIEMPRE juntas en una hoja propia (nunca se cortan). */}
+        <div className={s.hojaLegal}>
+          <Seccion n={sig()} titulo={CLAUSULA_RESPONSABILIDAD.titulo} className={s.clausula}>
+            <div className={s.clausulaTexto}>
+              {CLAUSULA_RESPONSABILIDAD.parrafos.map((p, i) => <Parrafo key={i} texto={p} />)}
+            </div>
+          </Seccion>
+
           <Seccion n={sig()} titulo={CLAUSULA_DATOS.titulo} className={s.clausula}>
             <div className={s.clausulaTexto}>
               {CLAUSULA_DATOS.parrafos.map((p, i) => <Parrafo key={i} texto={p} />)}

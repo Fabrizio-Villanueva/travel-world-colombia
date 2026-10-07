@@ -368,11 +368,6 @@
   margin: 0 0 6px;
 }
 
-/* ── Cierre (última cláusula + firmas, inseparables) ── */
-.cierre {
-  break-inside: avoid;
-}
-
 /* ── Firmas ── */
 .firmaSeccion {
   margin-top: 24px;
@@ -430,29 +425,44 @@
   color: var(--suave);
 }
 
-/*
- * Variante compacta: la usa el generador de PDF cuando la versión normal
- * deja una última página casi vacía (p. ej. solo las firmas).
- */
-.compacto .seccion {
-  margin-top: 16px;
-}
-.compacto .tabla td {
-  padding-top: 5px;
-  padding-bottom: 5px;
-}
-.compacto .clausulaTexto {
-  font-size: 8.8px;
-  line-height: 1.42;
-}
-.compacto .firmaTrazo {
-  height: 64px;
-}
-
 /* El pie va en cada página del PDF (plantilla de Playwright), no al final. */
 @media print {
   .pie {
     display: none;
+  }
+  /*
+   * Hoja legal: cláusulas 08 y 09 + declaración + firmas, siempre en una
+   * hoja propia y completa. Tipografía ajustada para que quepa en carta.
+   */
+  .juntos {
+    break-inside: avoid;
+  }
+  .hojaLegal {
+    break-before: page;
+    break-inside: avoid;
+  }
+  .hojaLegal > .seccion:first-child {
+    margin-top: 0;
+  }
+  .hojaLegal .seccion {
+    margin-top: 14px;
+  }
+  .hojaLegal .seccionTitulo {
+    margin-bottom: 7px;
+    font-size: 12px;
+  }
+  .hojaLegal .clausulaTexto {
+    font-size: 8.6px;
+    line-height: 1.42;
+  }
+  .hojaLegal .clausulaTexto p {
+    margin-bottom: 4px;
+  }
+  .hojaLegal .firmaSeccion {
+    margin-top: 14px;
+  }
+  .hojaLegal .firmaTrazo {
+    height: 64px;
   }
 }
 
