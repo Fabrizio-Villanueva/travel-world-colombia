@@ -181,10 +181,13 @@ export function ContratoDocumento({
   datos,
   firma,
   firmaAgencia,
+  compacto,
 }: {
   datos: ContratoDatos
   firma?: ReactNode
   firmaAgencia?: ReactNode
+  /** Variante apretada para que el PDF no deje una página casi vacía. */
+  compacto?: boolean
 }) {
   const liq = datos.liquidacion
   const columnas = columnasPasajeros(datos.pasajeros)
@@ -199,7 +202,7 @@ export function ContratoDocumento({
   const sig = () => ++n
 
   return (
-    <article className={s.contrato} lang="es">
+    <article className={`${s.contrato} ${compacto ? s.compacto : ''}`} lang="es">
       {/* ── Cabecera ── */}
       <header className={s.cabecera}>
         {/* eslint-disable-next-line @next/next/no-img-element -- también se imprime a PDF */}
@@ -424,31 +427,39 @@ export function ContratoDocumento({
           </Seccion>
         )}
 
-        {[CLAUSULA_RESPONSABILIDAD, CLAUSULA_DATOS].map(c => (
-          <Seccion key={c.titulo} n={sig()} titulo={c.titulo} className={s.clausula}>
+        <Seccion n={sig()} titulo={CLAUSULA_RESPONSABILIDAD.titulo} className={s.clausula}>
+          <div className={s.clausulaTexto}>
+            {CLAUSULA_RESPONSABILIDAD.parrafos.map((p, i) => <Parrafo key={i} texto={p} />)}
+          </div>
+        </Seccion>
+
+        {/* Cierre: la última cláusula, la declaración y las firmas no se
+            separan, para que la página de firmas nunca quede sola. */}
+        <div className={s.cierre}>
+          <Seccion n={sig()} titulo={CLAUSULA_DATOS.titulo} className={s.clausula}>
             <div className={s.clausulaTexto}>
-              {c.parrafos.map((p, i) => <Parrafo key={i} texto={p} />)}
+              {CLAUSULA_DATOS.parrafos.map((p, i) => <Parrafo key={i} texto={p} />)}
             </div>
           </Seccion>
-        ))}
 
-        <section className={s.firmaSeccion}>
-          <p className={s.declaracion}>{DECLARACION_FIRMA}</p>
-          <div className={s.firmas}>
-            <div className={s.firma}>
-              <div className={s.firmaTrazo}>{firma}</div>
-              <span className={s.firmaNombre}>{datos.titular.nombre}</span>
-              <span className={s.firmaRol}>
-                Cliente - viajero{datos.titular.documento ? ` · ${datos.titular.documento}` : ''}
-              </span>
+          <section className={s.firmaSeccion}>
+            <p className={s.declaracion}>{DECLARACION_FIRMA}</p>
+            <div className={s.firmas}>
+              <div className={s.firma}>
+                <div className={s.firmaTrazo}>{firma}</div>
+                <span className={s.firmaNombre}>{datos.titular.nombre}</span>
+                <span className={s.firmaRol}>
+                  Cliente - viajero{datos.titular.documento ? ` · ${datos.titular.documento}` : ''}
+                </span>
+              </div>
+              <div className={s.firma}>
+                <div className={s.firmaTrazo}>{firmaAgencia}</div>
+                <span className={s.firmaNombre}>{datos.agente ?? AGENCIA.nombre}</span>
+                <span className={s.firmaRol}>Travel World Colombia · NIT {AGENCIA.nit}</span>
+              </div>
             </div>
-            <div className={s.firma}>
-              <div className={s.firmaTrazo}>{firmaAgencia}</div>
-              <span className={s.firmaNombre}>{datos.agente ?? AGENCIA.nombre}</span>
-              <span className={s.firmaRol}>Travel World Colombia · NIT {AGENCIA.nit}</span>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
 
       <footer className={s.pie}>

@@ -73,3 +73,59 @@ export const CONTRATO_MUESTRA: ContratoDatos = {
     'Equipaje adicional',
   ],
 }
+
+const NOMBRES_MUESTRA = [
+  ['Ana María Pérez Gómez', 'CC 1.023.456.789', '1985-03-12', 'AB123456', '2030-05-01', '300 123 4567'],
+  ['Carlos Andrés Ruiz Díaz', 'CC 80.123.456', '1982-11-07', 'CD789012', '2029-08-15', '311 987 6543'],
+  ['Luis Fernando Gómez Rojas', 'CC 79.654.321', '1979-04-10', 'GH456789', '2031-02-20', '315 222 3344'],
+  ['Marta Lucía Rojas Peña', 'CC 52.987.654', '1981-09-03', 'IJ112233', '2030-11-30', '316 444 5566'],
+  ['Jorge Iván Castro Mejía', 'CC 1.015.222.333', '1988-08-10', 'KL445566', '2032-07-12', '318 777 8899'],
+  ['Paula Andrea Mejía Ríos', 'CC 1.020.333.444', '1990-09-10', 'MN778899', '2031-05-05', '320 111 2233'],
+  ['Sofía Ruiz Pérez', 'TI 1.098.765.432', '2014-06-22', 'EF345678', '2031-01-30', ''],
+  ['Daniel Gómez Rojas', 'TI 1.097.111.222', '2015-06-15', 'OP101010', '2030-04-18', ''],
+  ['Valentina Gómez Rojas', 'TI 1.096.222.333', '2016-07-15', 'QR202020', '2031-03-09', ''],
+  ['Tomás Castro Mejía', 'RC 1.110.333.444', '2019-01-15', 'ST303030', '2034-01-15', ''],
+  ['Laura Castro Mejía', 'TI 1.095.444.555', '2012-02-15', 'UV404040', '2030-10-01', ''],
+  ['Emilia Castro Mejía', 'TI 1.094.555.666', '2011-03-15', 'WX505050', '2031-12-24', ''],
+] as const
+
+/**
+ * La misma muestra con N personas (1–12): mitad adultos y mitad niños
+ * (redondeando hacia los adultos), con liquidación y pagos recalculados.
+ */
+export function muestraConPasajeros(n: number): ContratoDatos {
+  const total = Math.min(Math.max(Math.round(n), 1), NOMBRES_MUESTRA.length)
+  const adultos = Math.ceil(total / 2)
+  const ninos = total - adultos
+  const elegidos = [...NOMBRES_MUESTRA.slice(0, adultos), ...NOMBRES_MUESTRA.slice(6, 6 + ninos)]
+  const pasajeros = elegidos.map(([nombre, documento, fechaNacimiento, pasaporte, vencePasaporte, telefono]) => ({
+    nombre, documento, fechaNacimiento, pasaporte, vencePasaporte, telefono: telefono || undefined,
+  }))
+
+  const fila = (concepto: string, tarifa: number, cantidad: number, conPlan: boolean) =>
+    cantidad > 0
+      ? [{ concepto, tarifaPorPax: tarifa, cantidad, valorPlan: conPlan ? tarifa * cantidad : undefined, valorTotal: tarifa * cantidad }]
+      : []
+  const aereos = [...fila('Aéreos adulto', 1_450_000, adultos, false), ...fila('Aéreos niño', 1_320_000, ninos, false)]
+  const terrestre = [...fila('Adulto doble', 2_380_000, adultos, true), ...fila('Niño', 1_150_000, ninos, true)]
+  const valorTotal = [...aereos, ...terrestre].reduce((t, f) => t + f.valorTotal, 0)
+  const valorPlan = terrestre.reduce((t, f) => t + f.valorTotal, 0)
+  const abono1 = Math.round((valorTotal * 0.3) / 1000) * 1000
+  const abono2 = Math.round((valorTotal * 0.35) / 1000) * 1000
+
+  return {
+    ...CONTRATO_MUESTRA,
+    viaje: {
+      ...CONTRATO_MUESTRA.viaje,
+      habitaciones: String(Math.ceil(total / 3)),
+      acomodacion: ninos > 0 ? 'Doble + niños' : 'Doble',
+      totalPersonas: total,
+    },
+    pasajeros,
+    liquidacion: { aereos, terrestre, total: { cantidad: total, valorPlan, valorTotal } },
+    pagos: [
+      { fecha: '2026-10-07', medio: 'Transferencia Bancolombia', totalPlan: valorTotal, abono: abono1, saldo: valorTotal - abono1 },
+      { fecha: '2026-11-07', medio: 'PSE', totalPlan: valorTotal, abono: abono2, saldo: valorTotal - abono1 - abono2 },
+    ],
+  }
+}
