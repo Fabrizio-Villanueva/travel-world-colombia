@@ -52,6 +52,11 @@ export const ESCENARIOS_BASE: { nombre: string; persona: string; esperado: strin
     esperado: 'Escala de inmediato (acción escalar), sin hablar de horarios, con empatía; no intenta vender.',
   },
   {
+    nombre: 'Busca a su asesor por el nombre',
+    persona: 'Te llamas Angie. Ya hablaste antes con el asesor Juan Camilo y le escribes a él. Tu primer mensaje es solo "Juan Camilo buenas tardes". Si no te entienden, preguntas "¿Está Juan Camilo disponible?". Si te preguntan tu nombre, lo das.',
+    esperado: 'Desde el primer mensaje entiende que Juan Camilo es del equipo (nunca llama "Juan Camilo" a la clienta), escala con asesor_pedido = Juan Camilo, le dice que ya le avisa a él y le pregunta su nombre; no le ofrece destinos.',
+  },
+  {
     nombre: 'Me ofrecieron más barato',
     persona: 'Quieres Cancún en noviembre, 2 adultos desde Bogotá, 5 noches. Otra agencia te ofreció 2.400.000 por persona y lo dices.',
     esperado: 'Valida, sugiere comparar qué incluye y ofrece que la asesora revise la otra cotización; objecion = comparando.',

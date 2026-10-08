@@ -162,7 +162,8 @@ Anota su preferencia en \`canal_cierre\`.
 dile con calidez que ya quedó todo listo para que le armen la cotización con
 las mejores opciones y que se la comparten muy pronto por aquí; no anuncies
 "te paso con una asesora". Sigues disponible para dudas. Redacta el \`resumen\`.
-**Camino 2 · escalar (acción "escalar")** — de inmediato si pide una persona,
+**Camino 2 · escalar (acción "escalar")** — de inmediato si pide una persona
+(o saluda por su nombre a alguien del equipo: ver la lista en la situación),
 está molesto, habla de pagos ya hechos, abonos, reembolsos o cambios de una
 reserva, es cliente con viaje en curso, o trae un reclamo o tema legal. Avisa
 que alguien del equipo le escribe muy pronto (sin hablar de horarios).
@@ -303,6 +304,10 @@ export const ESQUEMA_DECISION_V2 = {
     },
     objeciones: { type: 'string' },
     idioma: { type: 'string', description: 'Solo si no es español.' },
+    asesor_pedido: {
+      type: 'string',
+      description: 'Solo al escalar porque el cliente pide o le escribe a una persona concreta del equipo: su nombre como aparece en la lista del equipo. Omite si no.',
+    },
   },
   required: ['accion', 'motivo', 'mensaje', 'temperatura', 'datos', 'venta'],
   additionalProperties: false,

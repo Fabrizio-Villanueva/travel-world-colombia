@@ -3,6 +3,7 @@ import { INSTRUCCIONES, ESQUEMA_DECISION } from '@/lib/agente/prompt'
 import { construirConocimiento } from '@/lib/agente/conocimiento'
 import { resolverAudios } from '@/lib/agente/transcribir'
 import { HORARIO } from '@/lib/agente/config'
+import { equipo, lineaEquipo } from '@/lib/agente/equipo'
 import type { MensajeGhl } from '@/lib/agente/ghl'
 import type { AnuncioContexto } from '@/lib/agente/anuncios'
 
@@ -34,6 +35,8 @@ export interface Decision {
   objeciones?: string
   idioma?: string
   confianza?: 'alta' | 'media' | 'baja'
+  /** Persona del equipo por la que pregunta el cliente (al escalar): se le asigna el contacto. */
+  asesor_pedido?: string
   /** Método de venta (solo Sol v2). Va a la oportunidad, carpeta "⭐ Calificación (Sol)". */
   venta?: VentaV2
   /** Borrador "TU VIAJE SOÑADO" que arma el código (no el modelo) cuando el lead está listo. Solo v2. */
@@ -172,7 +175,7 @@ export async function decidir(
     }
   }
 
-  const { base, detallesPara, nombreDe } = await construirConocimiento()
+  const [{ base, detallesPara, nombreDe }, miembros] = await Promise.all([construirConocimiento(), equipo()])
 
   // Detalle completo SOLO de los destinos que el cliente ya mencionó (el índice
   // ligero va siempre en el bloque cacheado; esto es la capa "bajo demanda"),
@@ -209,6 +212,7 @@ export async function decidir(
     contexto.enHorario
       ? 'Estás dentro del horario de atención: si escalas, una asesora puede responder hoy.'
       : 'Estás FUERA del horario de atención: si escalas, avísale que una asesora le escribe cuando abran, sin prometer una hora exacta.',
+    lineaEquipo(miembros, Boolean(contexto.respaldo)),
     anuncio ? lineaAnuncio(anuncio, nombreDe) : null,
     contexto.respaldo ? lineaRespaldo(contexto.respaldo.asesora, contexto.enHorario) : null,
   ]

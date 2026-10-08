@@ -11,7 +11,7 @@ import {
   ultimosMensajes,
   type MensajeGhl,
 } from '@/lib/agente/ghl'
-import { sincronizarCrm } from '@/lib/agente/crm'
+import { asignarAsesorPedido, sincronizarCrm } from '@/lib/agente/crm'
 import { extraerFotos } from '@/lib/agente/conocimiento'
 import { anuncioParaConversacion, type AnuncioContexto } from '@/lib/agente/anuncios'
 import { ACTIVO_DESDE, AVISO_DATOS, CAMPO_IA_NOMBRE, HORARIO, RAFAGA_MS, RESPALDO, TAGS, TAG_PRUEBAS } from '@/lib/agente/config'
@@ -260,7 +260,13 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   // Escalar avisa al equipo (dispara la notificación) pero NO apaga a Sol: queda
   // en "espera caliente" acompañando al cliente hasta que una persona tome el
   // chat. El stop_bot lo pone la detección de intervención humana (compuerta 4).
+  // Si pidió a alguien del equipo por su nombre, se le asigna ANTES del tag:
+  // así la notificación y la tarea de la escalada le llegan a esa persona.
+  let notaAsesor: string | null = null
   if (decision.accion === 'escalar') {
+    notaAsesor = await asignarAsesorPedido(e.contactId, decision).catch(
+      err => `asignar al asesor pedido falló: ${(err as Error).message}`
+    )
     await agregarTags(e.contactId, [TAGS.transferenciaHumano])
   }
 
@@ -280,6 +286,7 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
     nota: [
       `[${version}${decision.venta ? ` · ${decision.venta.estado}` : ''}] ${habla ? decision.accion : 'callar'}: ${decision.motivo}`,
       anuncio ? `anuncio: ${anuncio.nombre}${anuncio.slugs.length ? ` → ${anuncio.slugs.join(', ')}` : ' (sin producto en el catálogo)'}` : null,
+      notaAsesor,
       ...notasCrm,
     ]
       .filter(Boolean)

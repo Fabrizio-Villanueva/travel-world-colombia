@@ -474,6 +474,11 @@ export const ESQUEMA_DECISION = {
       description:
         'Qué tan seguro estás de los datos capturados: alta = el cliente los dijo explícitos; media = varios son inferidos; baja = casi todo es inferencia.',
     },
+    asesor_pedido: {
+      type: 'string',
+      description:
+        'Solo al escalar porque el cliente pide o le escribe a una persona concreta del equipo: su nombre tal como aparece en la lista del equipo. Omite si no.',
+    },
   },
   required: ['accion', 'motivo', 'mensaje', 'temperatura', 'datos'],
   additionalProperties: false,

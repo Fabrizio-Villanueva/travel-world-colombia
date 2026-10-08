@@ -4,6 +4,7 @@ import { construirConocimiento } from '@/lib/agente/conocimiento'
 import { resolverAudios } from '@/lib/agente/transcribir'
 import { cargarReglas, reglasParaPrompt, type ReglasComerciales } from '@/lib/agente/reglas'
 import { HORARIO } from '@/lib/agente/config'
+import { equipo, lineaEquipo } from '@/lib/agente/equipo'
 import { armarBorrador } from '@/lib/agente/v2/borrador'
 import { EJEMPLOS, ESQUEMA_DECISION_V2, FOCO, METODO, NUCLEO } from '@/lib/agente/v2/prompt'
 import type { MensajeGhl } from '@/lib/agente/ghl'
@@ -67,9 +68,10 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
     }
   }
 
-  const [{ base, detallesPara, nombreDe }, reglas] = await Promise.all([
+  const [{ base, detallesPara, nombreDe }, reglas, miembros] = await Promise.all([
     construirConocimiento(),
     ctx.reglas ? Promise.resolve(ctx.reglas) : cargarReglas(),
+    equipo(),
   ])
 
   const textoConversacion = historial.map(m => (typeof m.content === 'string' ? m.content : '')).join(' ')
@@ -94,6 +96,7 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
     ctx.seguimiento
       ? `Este turno es un SEGUIMIENTO programado (intento ${ctx.seguimiento.intento} de ${ctx.seguimiento.maximo}): el cliente no contestó tu último mensaje.${ctx.seguimiento.angulo ? ` Ángulo anotado: ${ctx.seguimiento.angulo}` : ''} Decide si vale la pena escribir ("callar" es válido); si escribes, aporta algo nuevo y corto.`
       : null,
+    lineaEquipo(miembros, Boolean(ctx.respaldo)),
     anuncio ? lineaAnuncio(anuncio, nombreDe) : null,
     ctx.respaldo
       ? `MODO RESPALDO: esta conversación la lleva ${ctx.respaldo.asesora ? `la asesora ${ctx.respaldo.asesora}` : 'una asesora'}; los mensajes "[Escrito por la asesora]" son suyos. La cubres porque el cliente lleva rato sin respuesta. Preséntate una vez como Sol, del equipo. No contradigas lo que ella ofreció ni prometas nada fuera del catálogo; pagos, contrato, cambios y reclamos → "escalar" diciendo que ella se lo confirma muy pronto.`

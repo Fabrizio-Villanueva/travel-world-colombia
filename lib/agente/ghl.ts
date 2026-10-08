@@ -330,6 +330,11 @@ export async function oportunidadesEnEtapa(
   return todas
 }
 
+/** Asigna la oportunidad a un usuario (asesora) sin moverla de etapa. */
+export async function asignarOportunidad(opportunityId: string, userId: string): Promise<void> {
+  await mandar('PUT', `/opportunities/${id(opportunityId)}`, { assignedTo: userId })
+}
+
 /** Cambia el nombre visible de una oportunidad (la tarjeta del tablero). */
 export async function renombrarOportunidad(opportunityId: string, nombre: string): Promise<void> {
   await mandar('PUT', `/opportunities/${id(opportunityId)}`, { name: nombre })

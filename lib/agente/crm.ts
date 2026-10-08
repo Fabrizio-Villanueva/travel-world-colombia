@@ -1,12 +1,16 @@
 import {
   actualizarCampos,
   actualizarCamposOportunidad,
+  actualizarContacto,
   agregarTags,
+  asignarOportunidad,
   crearNota,
   moverOportunidad,
+  obtenerContacto,
   oportunidadesDe,
   renombrarOportunidad,
 } from '@/lib/agente/ghl'
+import { buscarMiembro, equipo } from '@/lib/agente/equipo'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   CAMPO_IA_NOMBRE,
@@ -438,6 +442,37 @@ async function marcarHandoff(e: EntradaCrm): Promise<string | null> {
 }
 
 /**
+ * El cliente pidió a una persona concreta del equipo ("necesito al asesor Juan
+ * Camilo"): el contacto —y su tarjeta abierta de Leads— pasan a esa persona,
+ * para que la notificación y la tarea de la escalada le lleguen a ella y no a
+ * quien quedó de dueña por reparto. Va ANTES del tag `transferencia a humano`
+ * (conversacion.ts), que es el que dispara el workflow de la escalada.
+ *
+ * No se toca nada si la tarjeta ya está en territorio humano (Contactado o más
+ * allá: alguien la está trabajando), si el nombre no resuelve a una sola
+ * persona o si esa persona no recibe clientes; en esos casos la nota de
+ * escalada igual dice por quién preguntó.
+ */
+export async function asignarAsesorPedido(contactId: string, decision: Decision): Promise<string | null> {
+  const pedido = decision.asesor_pedido?.trim()
+  if (decision.accion !== 'escalar' || !pedido) return null
+
+  const miembro = buscarMiembro(await equipo(), pedido)
+  if (!miembro) return `pide a "${pedido}": no corresponde a una sola persona del equipo (no se reasigna)`
+  if (!miembro.asignable) return `pide a ${miembro.nombre}: no recibe clientes (no se reasigna)`
+
+  const abierta = (await oportunidadesDe(contactId)).find(o => o.pipelineId === PIPELINE.id && o.status === 'open')
+  if (abierta && (PIPELINE.etapasVedadas as readonly string[]).includes(abierta.pipelineStageId ?? '')) {
+    return `pide a ${miembro.nombre}, pero la tarjeta ya la trabaja una persona (no se reasigna)`
+  }
+
+  const contacto = await obtenerContacto(contactId)
+  if (contacto?.assignedTo !== miembro.id) await actualizarContacto(contactId, { assignedTo: miembro.id })
+  if (abierta) await asignarOportunidad(abierta.id, miembro.id)
+  return `asignado a ${miembro.nombre} (el cliente lo pidió)${abierta ? ' · contacto y tarjeta' : ' · contacto'}`
+}
+
+/**
  * El briefing que hoy no existe: quien reciba el lead entra a cerrar, no a
  * re-preguntar. Se deja como nota interna al escalar o al dejarlo listo.
  */
@@ -464,6 +499,7 @@ async function dejarNotaDeEscalada({ contactId, decision }: EntradaCrm): Promise
       ? '🤖 Sol escaló esta conversación.'
       : '🤖 Sol dejó este lead listo para cotizar.',
     decision.resumen?.trim() || `Motivo: ${decision.motivo}`,
+    decision.asesor_pedido?.trim() ? `👤 Pregunta por: ${decision.asesor_pedido.trim()}` : null,
     datos.length ? `Datos capturados:\n- ${datos.join('\n- ')}` : null,
     decision.temperatura !== 'no_aplica' ? `Temperatura: ${decision.temperatura}` : null,
     // Mismo recordatorio que en el brief: el contenido viene del cliente.
