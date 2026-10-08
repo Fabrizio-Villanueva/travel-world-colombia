@@ -9,20 +9,20 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.115.0",
-    "@hookform/resolvers": "^5.4.0",
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@hookform/resolvers": "^5.9.1",
     "@sparticuz/chromium": "^153.0.0",
-    "@supabase/ssr": "^0.10.3",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.106.2",
-    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/ratelimit": "^2.2.0",
     "@upstash/redis": "^1.38.0",
-    "lucide-react": "^1.17.0",
+    "lucide-react": "^1.52.0",
     "next": "^16.3.8",
     "puppeteer-core": "^25.12.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "react-hook-form": "^7.77.0",
-    "zod": "^4.4.3"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-hook-form": "^7.89.0",
+    "zod": "^4.6.5"
   },
   "overrides": {
     "postcss": "^8.5.10"
@@ -30,14 +30,14 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/pg": "^8.20.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "d3-geo": "^3.1.1",
     "eslint": "^9",
     "eslint-config-next": "^16.3.8",
-    "pg": "^8.21.0",
-    "playwright": "^1.60.0",
+    "pg": "^8.23.1",
+    "playwright": "^1.63.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
