@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation'
 import { Star } from 'lucide-react'
-import { getAdminSession } from '@/lib/admin/guard'
+import { requirePagina } from '@/lib/admin/guard'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ResenaForm } from './ResenaForm'
 import { ResenaActions } from './ResenaActions'
@@ -18,8 +17,7 @@ interface Resena {
 }
 
 export default async function ResenasPage() {
-  const session = await getAdminSession()
-  if (!session) redirect('/admin/login')
+  const session = await requirePagina()
   const { rol } = session
 
   const admin = createAdminClient()

@@ -1,9 +1,8 @@
 import Image from '@/components/ui/Foto'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getAdminSession } from '@/lib/admin/guard'
+import { requirePagina } from '@/lib/admin/guard'
 import { destinoCardImg } from '@/lib/hero'
 import type { Destino } from '@/types/destino'
 import { RowActions } from '../_components/RowActions'
@@ -31,8 +30,7 @@ function Filtro({ href, activo, children }: { href: string; activo: boolean; chi
 }
 
 export default async function ViajesPage({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
-  const session = await getAdminSession()
-  if (!session) redirect('/admin/login')
+  const session = await requirePagina()
   const { rol } = session
 
   // Service-role: el panel muestra también los viajes ocultos y no depende de

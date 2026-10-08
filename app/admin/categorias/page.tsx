@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation'
-import { getAdminSession } from '@/lib/admin/guard'
+import { requirePagina } from '@/lib/admin/guard'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { arbolCategorias } from '@/lib/categorias'
 import type { Categoria } from '@/types/destino'
@@ -9,8 +8,7 @@ import { CategoriaFila } from './CategoriaFila'
 export const dynamic = 'force-dynamic'
 
 export default async function CategoriasPage() {
-  const session = await getAdminSession()
-  if (!session) redirect('/admin/login')
+  const session = await requirePagina()
   const { rol } = session
 
   const admin = createAdminClient()

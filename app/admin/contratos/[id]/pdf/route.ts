@@ -16,7 +16,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.redirect(new URL(`/admin/login?next=/admin/contratos/${id}/pdf`, req.url))
   }
   const c = await contratoPorId(id)
-  if (!c || c.estado !== 'firmado') return new NextResponse('Este contrato no existe o aún no está firmado.', { status: 404 })
+  // Firmado, o anulado DESPUÉS de firmarse: la evidencia sigue disponible para el equipo.
+  if (!c || !(c.estado === 'firmado' || (c.estado === 'anulado' && c.firmado_en))) {
+    return new NextResponse('Este contrato no existe o aún no está firmado.', { status: 404 })
+  }
   const listo = await asegurarPdf(c, req.headers.get('host'))
   await registrarActividad({
     email: session.user.email ?? '',

@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getRole, type Role } from '@/lib/admin/allowlist'
 import type { User } from '@supabase/supabase-js'
@@ -56,5 +57,24 @@ export async function requireReservas(): Promise<AdminSession> {
 export async function requireAdminRole(): Promise<AdminSession> {
   const session = await requireAdmin()
   if (session.rol !== 'admin') throw new Error('Solo un administrador puede hacer esto.')
+  return session
+}
+
+/**
+ * Guard de PÁGINA del panel (auditoría 2026-10-08). Antes, las páginas de solo
+ * lectura dependían únicamente del proxy para la regla "representante solo ve
+ * Reservas"; ahora cada página la impone también en servidor (defensa en
+ * profundidad, igual que las actions).
+ *
+ * - Sin sesión aprobada → /admin/login.
+ * - `representante` fuera de Reservas → /admin/reservas (salvo que `roles` lo incluya).
+ * - Si se pasan `roles` y el rol no está → /admin (p. ej. Usuarios y Actividad: solo admin).
+ */
+export async function requirePagina(opts: { roles?: Role[] } = {}): Promise<AdminSession> {
+  const session = await getAdminSession()
+  if (!session) redirect('/admin/login')
+  const permitidos = opts.roles
+  if (session.rol === 'representante' && !permitidos?.includes('representante')) redirect('/admin/reservas')
+  if (permitidos && !permitidos.includes(session.rol)) redirect('/admin')
   return session
 }

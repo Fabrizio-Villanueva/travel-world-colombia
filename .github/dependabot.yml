@@ -1,0 +1,20 @@
+# Avisos automáticos de dependencias con vulnerabilidades (auditoría 2026-10-08).
+# Un PR semanal agrupando parches y menores; las de seguridad llegan aparte y
+# de inmediato. Vercel construye un preview de cada PR para probar antes de unir.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: America/Bogota
+    open-pull-requests-limit: 5
+    groups:
+      menores-y-parches:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencias

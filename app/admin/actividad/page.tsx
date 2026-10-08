@@ -1,10 +1,9 @@
-import { redirect } from 'next/navigation'
 import {
   PlusCircle, Pencil, Trash2, Eye, EyeOff, Star, StarOff, Activity, UserCheck, UserX, UserCog,
   ClipboardList, Send, Link2, Ban, FileSearch, Globe, FileSignature,
 } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getAdminUser } from '@/lib/admin/guard'
+import { requirePagina } from '@/lib/admin/guard'
 import type { AccionAudit } from '@/lib/admin/audit'
 
 export const dynamic = 'force-dynamic'
@@ -51,8 +50,7 @@ const fmtFecha = new Intl.DateTimeFormat('es-CO', {
 })
 
 export default async function ActividadPage() {
-  const user = await getAdminUser()
-  if (!user) redirect('/admin/login')
+  await requirePagina({ roles: ['admin'] })
 
   // Service-role: no depende de RLS (ver nota en app/admin/viajes/page.tsx).
   const supabase = createAdminClient()

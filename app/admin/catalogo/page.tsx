@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { getAdminSession } from '@/lib/admin/guard'
+import { requirePagina } from '@/lib/admin/guard'
 import { revisarCatalogo, type Problema } from '@/lib/catalogo/salud'
 
 export const dynamic = 'force-dynamic'
@@ -11,8 +10,7 @@ const COLOR: Record<Problema['gravedad'], { bg: string; fg: string; etiqueta: st
 }
 
 export default async function SaludCatalogoPage() {
-  const session = await getAdminSession()
-  if (!session) redirect('/admin/login')
+  await requirePagina()
 
   const salud = await revisarCatalogo()
   const avisos = salud.problemas.length - salud.graves

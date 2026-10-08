@@ -1,7 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { correrSeguimientos } from '@/lib/agente/seguimiento'
-import { secretoRecibido } from '@/lib/agente/secreto'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -35,8 +34,10 @@ function autorizado(req: NextRequest): boolean {
   const bearer = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
   if (igual(bearer, process.env.CRON_SECRET)) return true
 
-  // Llamadas manuales: el mismo secreto del webhook.
-  return igual(secretoRecibido(req), process.env.AGENTE_WEBHOOK_SECRET)
+  // Solo el secreto del cron (auditoría 2026-10-08): el del webhook está
+  // pegado en workflows de GHL y no debe poder disparar corridas. Para una
+  // llamada manual: `Authorization: Bearer $CRON_SECRET`.
+  return false
 }
 
 export async function GET(req: NextRequest) {
@@ -47,6 +48,6 @@ export async function GET(req: NextRequest) {
     return Response.json({ ok: true, ...resumen })
   } catch (err) {
     console.error('correrSeguimientos error:', err)
-    return Response.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return Response.json({ ok: false, error: 'error interno (ver logs)' }, { status: 500 })
   }
 }

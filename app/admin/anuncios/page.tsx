@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation'
-import { getAdminSession } from '@/lib/admin/guard'
+import { requirePagina } from '@/lib/admin/guard'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { nombreDe } from '@/lib/agente/anuncios'
 import { AnuncioFila, type AnuncioVista, type OpcionDestino } from './AnuncioFila'
@@ -22,8 +21,7 @@ interface FilaAnuncio {
 }
 
 export default async function AnunciosPage() {
-  const session = await getAdminSession()
-  if (!session) redirect('/admin/login')
+  const session = await requirePagina()
   const { rol } = session
 
   const admin = createAdminClient()

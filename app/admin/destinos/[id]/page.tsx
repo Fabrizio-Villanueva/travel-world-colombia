@@ -1,5 +1,5 @@
-import { redirect, notFound } from 'next/navigation'
-import { getAdminUser } from '@/lib/admin/guard'
+import { notFound } from 'next/navigation'
+import { requirePagina } from '@/lib/admin/guard'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Destino } from '@/types/destino'
 import { DestinoForm } from '../../_components/DestinoForm'
@@ -10,8 +10,7 @@ import { getTextosSitio } from '@/lib/textos'
 export const dynamic = 'force-dynamic'
 
 export default async function EditarDestinoPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await getAdminUser()
-  if (!user) redirect('/admin/login')
+  await requirePagina()
 
   const { id } = await params
   const admin = createAdminClient()

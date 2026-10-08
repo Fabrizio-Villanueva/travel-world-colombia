@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation'
-import { getAdminSession } from '@/lib/admin/guard'
+import { requirePagina } from '@/lib/admin/guard'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { CATALOGO_TEXTOS, ORIGINALES } from '@/lib/textos'
 import { TextosForm } from './TextosForm'
@@ -7,8 +6,7 @@ import { TextosForm } from './TextosForm'
 export const dynamic = 'force-dynamic'
 
 export default async function TextosPage() {
-  const session = await getAdminSession()
-  if (!session) redirect('/admin/login')
+  const session = await requirePagina()
   const { rol } = session
 
   // Se lee con la service role (no con el cliente público cacheado) para que

@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation'
 import { ShieldCheck, Clock, Users as UsersIcon, Send } from 'lucide-react'
-import { getAdminSession } from '@/lib/admin/guard'
+import { requirePagina } from '@/lib/admin/guard'
 import { superadmins, ROLE_LABEL, type Role } from '@/lib/admin/allowlist'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { AprobarBtn, RevocarBtn, RoleSelect, InvitarForm, NombreEditable } from './UserActions'
@@ -12,8 +11,7 @@ const fmtFecha = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'shor
 interface AllowRow { email: string; nombre: string | null; rol: Role | null; aprobado_por: string | null; created_at: string }
 
 export default async function UsuariosPage() {
-  const session = await getAdminSession()
-  if (!session) redirect('/admin/login')
+  const session = await requirePagina({ roles: ['admin'] })
   const { user, rol: miRol } = session
   const esAdmin = miRol === 'admin'
   const puedeModificar = miRol !== 'lector'

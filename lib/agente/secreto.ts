@@ -1,7 +1,9 @@
 import type { NextRequest } from 'next/server'
 
 /**
- * Lee el secreto compartido del agente desde el request.
+ * Lee el secreto compartido del agente desde el request. Solo lo usan los dos
+ * endpoints que llama GHL (webhook y reservacion); los crons exigen únicamente
+ * `CRON_SECRET` (auditoría 2026-10-08).
  *
  * Canal preferido: el header `x-sol-secret`. El query `?secret=` sigue
  * aceptado como fallback SOLO mientras los webhooks de GHL migran al header —

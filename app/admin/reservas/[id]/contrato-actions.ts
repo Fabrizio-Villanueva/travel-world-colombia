@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireReservas } from '@/lib/admin/guard'
+import { requireAdminRole, requireReservas } from '@/lib/admin/guard'
 import { registrarActividad } from '@/lib/admin/audit'
 import { contratoDesdeGhl } from '@/lib/contratos/desde-ghl'
 import {
@@ -92,6 +92,10 @@ export async function anularContratoPanel(opportunityId: string, contratoId: str
     const session = await requireReservas()
     const c = await contratoDeOportunidad(opportunityId)
     if (!c || c.id !== contratoId) throw new Error('El contrato no corresponde a esta reserva.')
+    // Un contrato FIRMADO es evidencia legal: anularlo solo lo puede hacer un
+    // administrador (auditoría 2026-10-08). El PDF firmado sigue disponible
+    // para el equipo aunque quede anulado.
+    if (c.estado === 'firmado') await requireAdminRole()
     const email = session.user.email ?? 'panel'
     await anularContrato(contratoId, 'Anulado desde el panel', email)
     await registrarActividad({ email, accion: 'anular-contrato', slug: opportunityId, nombre: `TW-${c.reserva}` })

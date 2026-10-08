@@ -264,7 +264,7 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   // así la notificación y la tarea de la escalada le llegan a esa persona.
   let notaAsesor: string | null = null
   if (decision.accion === 'escalar') {
-    notaAsesor = await asignarAsesorPedido(e.contactId, decision).catch(
+    notaAsesor = await asignarAsesorPedido(e.contactId, decision, e.tags).catch(
       err => `asignar al asesor pedido falló: ${(err as Error).message}`
     )
     await agregarTags(e.contactId, [TAGS.transferenciaHumano])

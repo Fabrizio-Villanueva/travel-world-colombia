@@ -11,6 +11,7 @@ import {
   renombrarOportunidad,
 } from '@/lib/agente/ghl'
 import { buscarMiembro, equipo } from '@/lib/agente/equipo'
+import { nombreSeguro, textoAcotado } from '@/lib/agente/nombre'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   CAMPO_IA_NOMBRE,
@@ -20,6 +21,7 @@ import {
   HORARIO,
   MAX_INTENTOS_SEGUIMIENTO,
   PIPELINE,
+  PIPELINES_POSTVENTA,
   TAGS,
 } from '@/lib/agente/config'
 import type { Decision } from '@/lib/agente/claude'
@@ -114,17 +116,22 @@ async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
   const calif = (clave: keyof typeof CAMPOS_CALIFICACION_OPP, valor: string | number) => {
     camposOpp.push({ id: CAMPOS_CALIFICACION_OPP[clave], field_value: valor })
   }
+  // Todo lo que escribe aquí lo dijo el cliente en el chat: acotado (200
+  // caracteres, sin saltos) antes de ir a un campo que el equipo lee como dato.
   const texto = (clave: keyof typeof CAMPOS_CALIFICACION_OPP, nombre: string, valor?: string) => {
-    if (valor?.trim()) {
-      calif(clave, valor.trim())
+    const limpio = textoAcotado(valor)
+    if (limpio) {
+      calif(clave, limpio)
       escritos.push(nombre)
     }
   }
 
   // Nombre real → ia__nombre (un workflow lo copia al "Nombre" principal). Solo
   // si cambió, para no re-disparar ese workflow con el mismo valor cada turno.
-  const nombre = d.nombre?.trim()
-  if (nombre && nombre !== e.nombreConfirmado?.trim()) {
+  // Saneado: ia__nombre vuelve al bloque `system` de todos los turnos siguientes,
+  // así que no puede llevar nada que no sea un nombre (anti prompt-injection).
+  const nombre = nombreSeguro(d.nombre)
+  if (nombre && nombre !== nombreSeguro(e.nombreConfirmado)) {
     campos.push({ id: CAMPO_IA_NOMBRE, field_value: nombre })
     escritos.push('nombre')
   }
@@ -452,24 +459,46 @@ async function marcarHandoff(e: EntradaCrm): Promise<string | null> {
  * allá: alguien la está trabajando), si el nombre no resuelve a una sola
  * persona o si esa persona no recibe clientes; en esos casos la nota de
  * escalada igual dice por quién preguntó.
+ *
+ * Guardas (auditoría 2026-10-08): el nombre lo pone el cliente, así que esto
+ * solo puede mover un lead NUEVO y una sola vez. Nunca reasigna si el chat ya
+ * se escaló antes (cada turno con otro nombre volvía a reasignar), si el
+ * contacto tiene una reserva en curso (post-venta: su asesora es la dueña) o
+ * si no hay tarjeta abierta en Leads (antes se cambiaba el dueño del contacto
+ * sin ninguna comprobación).
  */
-export async function asignarAsesorPedido(contactId: string, decision: Decision): Promise<string | null> {
-  const pedido = decision.asesor_pedido?.trim()
+export async function asignarAsesorPedido(
+  contactId: string,
+  decision: Decision,
+  tags: readonly string[] = []
+): Promise<string | null> {
+  const pedido = textoAcotado(decision.asesor_pedido, 80)
   if (decision.accion !== 'escalar' || !pedido) return null
 
   const miembro = buscarMiembro(await equipo(), pedido)
   if (!miembro) return `pide a "${pedido}": no corresponde a una sola persona del equipo (no se reasigna)`
   if (!miembro.asignable) return `pide a ${miembro.nombre}: no recibe clientes (no se reasigna)`
+  if (tags.includes(TAGS.transferenciaHumano)) {
+    return `pide a ${miembro.nombre}, pero el chat ya se había escalado antes (no se reasigna otra vez)`
+  }
 
-  const abierta = (await oportunidadesDe(contactId)).find(o => o.pipelineId === PIPELINE.id && o.status === 'open')
-  if (abierta && (PIPELINE.etapasVedadas as readonly string[]).includes(abierta.pipelineStageId ?? '')) {
+  const oportunidades = await oportunidadesDe(contactId)
+  const enPostventa = oportunidades.some(
+    o => o.status === 'open' && (PIPELINES_POSTVENTA as readonly string[]).includes(o.pipelineId ?? '')
+  )
+  if (enPostventa) {
+    return `pide a ${miembro.nombre}, pero tiene una reserva en curso con su asesora (no se reasigna)`
+  }
+  const abierta = oportunidades.find(o => o.pipelineId === PIPELINE.id && o.status === 'open')
+  if (!abierta) return `pide a ${miembro.nombre}, pero no tiene tarjeta abierta en Leads (no se reasigna)`
+  if ((PIPELINE.etapasVedadas as readonly string[]).includes(abierta.pipelineStageId ?? '')) {
     return `pide a ${miembro.nombre}, pero la tarjeta ya la trabaja una persona (no se reasigna)`
   }
 
   const contacto = await obtenerContacto(contactId)
   if (contacto?.assignedTo !== miembro.id) await actualizarContacto(contactId, { assignedTo: miembro.id })
-  if (abierta) await asignarOportunidad(abierta.id, miembro.id)
-  return `asignado a ${miembro.nombre} (el cliente lo pidió)${abierta ? ' · contacto y tarjeta' : ' · contacto'}`
+  await asignarOportunidad(abierta.id, miembro.id)
+  return `asignado a ${miembro.nombre} (el cliente lo pidió) · contacto y tarjeta`
 }
 
 /**
@@ -499,7 +528,7 @@ async function dejarNotaDeEscalada({ contactId, decision }: EntradaCrm): Promise
       ? '🤖 Sol escaló esta conversación.'
       : '🤖 Sol dejó este lead listo para cotizar.',
     decision.resumen?.trim() || `Motivo: ${decision.motivo}`,
-    decision.asesor_pedido?.trim() ? `👤 Pregunta por: ${decision.asesor_pedido.trim()}` : null,
+    textoAcotado(decision.asesor_pedido, 80) ? `👤 Pregunta por: ${textoAcotado(decision.asesor_pedido, 80)}` : null,
     datos.length ? `Datos capturados:\n- ${datos.join('\n- ')}` : null,
     decision.temperatura !== 'no_aplica' ? `Temperatura: ${decision.temperatura}` : null,
     // Mismo recordatorio que en el brief: el contenido viene del cliente.

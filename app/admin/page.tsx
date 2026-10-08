@@ -1,7 +1,6 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import { Plane, Star, HelpCircle, Users, ArrowRight } from 'lucide-react'
-import { getAdminUser } from '@/lib/admin/guard'
+import { requirePagina } from '@/lib/admin/guard'
 import { superadmins } from '@/lib/admin/allowlist'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -10,8 +9,7 @@ export const dynamic = 'force-dynamic'
 const fmtFecha = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' })
 
 export default async function Dashboard() {
-  const user = await getAdminUser()
-  if (!user) redirect('/admin/login')
+  const { user } = await requirePagina()
 
   const admin = createAdminClient()
   const cnt = (q: { count: number | null }) => q.count ?? 0
