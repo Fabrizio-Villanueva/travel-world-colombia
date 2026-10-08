@@ -280,6 +280,15 @@ export const RAFAGA_MS = Number(process.env.AGENTE_RAFAGA_MS ?? 10_000)
  */
 export const MAX_INTENTOS_SEGUIMIENTO = 3
 
+/**
+ * Sol v2: el seguimiento lo agenda el CÓDIGO, no la IA (en v2 el modelo casi
+ * nunca lo programaba en su último turno: 14 de 17 leads quedaban sin
+ * seguimiento). Días hábiles desde el envío anterior, índice = intentos ya
+ * hechos: al día siguiente, al 3.º y al 7.º día desde que dejó de contestar.
+ * El intento 3 es una despedida fija con la ficha del producto (sin IA).
+ */
+export const DIAS_SEGUIMIENTO_V2 = [1, 2, 4] as const
+
 /** Horario de atención de la agencia (America/Bogota), para fijar expectativas. */
 export const HORARIO = {
   zona: 'America/Bogota',

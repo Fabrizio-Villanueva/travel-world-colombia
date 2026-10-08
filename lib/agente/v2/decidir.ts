@@ -31,7 +31,7 @@ export interface ContextoV2 {
   nombreConfirmado?: string
   canal?: string
   primerContacto?: boolean
-  seguimiento?: { intento: number; maximo: number; angulo?: string }
+  seguimiento?: { intento: number; maximo: number; angulo?: string; producto?: { slug: string; nombre: string } }
   anuncio?: AnuncioContexto | null
   respaldo?: { asesora?: string; idsSol: Set<string> }
   /** Estado comercial con que quedó el cliente el turno anterior (decide el módulo de foco). */
@@ -99,7 +99,7 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
       ? 'Es el PRIMER mensaje: aparte ya se le envía el saludo con tu nombre y el aviso de datos. No te vuelvas a presentar. Si solo saluda, pregúntale qué viaje tiene en mente; si ya dijo destino, ve directo a eso.'
       : null,
     ctx.seguimiento
-      ? `Este turno es un SEGUIMIENTO programado (intento ${ctx.seguimiento.intento} de ${ctx.seguimiento.maximo}): el cliente no contestó tu último mensaje.${ctx.seguimiento.angulo ? ` Ángulo anotado: ${ctx.seguimiento.angulo}` : ''} Decide si vale la pena escribir ("callar" es válido); si escribes, aporta algo nuevo y corto.`
+      ? `Este turno es un SEGUIMIENTO programado (intento ${ctx.seguimiento.intento} de ${ctx.seguimiento.maximo}): el cliente no contestó tu último mensaje.${ctx.seguimiento.angulo ? ` Ángulo anotado: ${ctx.seguimiento.angulo}` : ''} Decide si vale la pena escribir ("callar" es válido); si escribes, aporta algo nuevo y corto.${ctx.seguimiento.producto ? ` El producto que le interesó es «${ctx.seguimiento.producto.nombre}»: cierra el mensaje con [ficha:${ctx.seguimiento.producto.slug}|por qué le encaja] para que vea el plan (en un seguimiento SÍ puedes repetir esa ficha).` : ''}`
       : null,
     lineaEquipo(miembros, Boolean(ctx.respaldo)),
     anuncio ? lineaAnuncio(anuncio, nombreDe) : null,

@@ -29,6 +29,27 @@ export interface Tarjeta {
   vista: { titulo: string; texto: string; imagen?: string; boton: string; enlace: string }
 }
 
+/**
+ * El producto del catálogo que más le interesa al cliente, sin gastar IA: el
+ * de la última tarjeta (o link) que Sol le mandó —el botón lleva
+ * `/destinos/<slug>`— o, si no hubo, el del anuncio por el que llegó (solo si
+ * apunta a un único programa). Null si no hay o el destino ya no está activo.
+ *
+ * `salientes` va del más reciente al más antiguo (como los da GHL).
+ */
+export async function productoDeInteres(
+  salientes: string[],
+  slugsAnuncio: string[] = []
+): Promise<{ slug: string; nombre: string } | null> {
+  const enMensajes = salientes
+    .map(t => t.match(/\/destinos\/([a-z0-9-]+)/i)?.[1]?.toLowerCase())
+    .find(Boolean)
+  const slug = enMensajes ?? (slugsAnuncio.length === 1 ? slugsAnuncio[0] : undefined)
+  if (!slug) return null
+  const d = (await getDestinos()).find(x => x.slug === slug)
+  return d ? { slug: d.slug, nombre: d.nombre } : null
+}
+
 export async function extraerTarjetas(mensaje: string): Promise<{ texto: string; tarjetas: Tarjeta[] }> {
   const fichas = [...mensaje.matchAll(RE_FICHA)].map(m => ({ slug: m[1].toLowerCase(), motivo: m[2] ?? '' }))
   const llamar = /\[llamar\]/i.test(mensaje)

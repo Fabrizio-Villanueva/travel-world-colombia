@@ -12,12 +12,14 @@ import {
 } from '@/lib/agente/ghl'
 import { buscarMiembro, equipo } from '@/lib/agente/equipo'
 import { nombreSeguro, textoAcotado } from '@/lib/agente/nombre'
+import { esFestivo } from '@/lib/agente/festivos'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   CAMPO_IA_NOMBRE,
   CAMPO_SOL_IDIOMA,
   CAMPOS_SOL_OPP,
   CAMPOS_CALIFICACION_OPP,
+  DIAS_SEGUIMIENTO_V2,
   HORARIO,
   MAX_INTENTOS_SEGUIMIENTO,
   PIPELINE,
@@ -60,6 +62,8 @@ export interface EntradaCrm {
    * normal (el cliente escribió) es 0: el contador se reinicia solo.
    */
   intentos?: number
+  /** Qué disparó el turno. En un seguimiento no se toca la hora preferida del cliente. */
+  origen?: 'mensaje' | 'seguimiento'
 }
 
 export async function sincronizarCrm(e: EntradaCrm): Promise<string[]> {
@@ -394,6 +398,22 @@ export function fechaBogota(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: HORARIO.zona }).format(new Date())
 }
 
+/** Hora local de Colombia (0-23). */
+export function horaBogota(ahora = new Date()): number {
+  const h = new Intl.DateTimeFormat('en-US', { timeZone: HORARIO.zona, hour: 'numeric', hour12: false }).format(ahora)
+  return Number(h) % 24 // algunos motores dan "24" a medianoche
+}
+
+/** Fecha de Bogotá + n días en YYYY-MM-DD; si cae domingo o festivo, corre al siguiente día hábil. */
+export function fechaHabilEnDias(dias: number): string {
+  const base = new Date(`${fechaBogota()}T12:00:00Z`)
+  base.setUTCDate(base.getUTCDate() + dias)
+  while (base.getUTCDay() === 0 || esFestivo(base.toISOString().slice(0, 10))) {
+    base.setUTCDate(base.getUTCDate() + 1)
+  }
+  return base.toISOString().slice(0, 10)
+}
+
 /**
  * La fecha de seguimiento que propone el modelo, saneada: formato YYYY-MM-DD y
  * en el futuro. Cualquier otra cosa se descarta — mejor un lead sin seguimiento
@@ -592,6 +612,21 @@ async function programarSeguimiento(e: EntradaCrm): Promise<string | null> {
       programado_para: null,
       nota: `sin respuesta tras ${MAX_INTENTOS_SEGUIMIENTO} seguimientos`,
     }
+  } else if (d.venta) {
+    // Sol v2: agenda el código. Lead vivo (no escaló, no pasó a L-01, no dijo
+    // que no) = siempre tiene su siguiente intento; la IA solo aporta el ángulo.
+    if (e.origen === 'seguimiento' && d.accion === 'callar') {
+      // Releyendo, Sol vio que no vale insistir: se cierra (y no se gasta otra llamada mañana).
+      fila = { estado: 'cerrado', programado_para: null, nota: `Sol decidió no insistir: ${d.motivo}` }
+    } else if (d.temperatura === 'no_aplica') {
+      fila = { estado: 'cerrado', programado_para: null, nota: 'no es un cliente' }
+    } else {
+      fila = {
+        estado: 'pendiente',
+        programado_para: fechaHabilEnDias(DIAS_SEGUIMIENTO_V2[intentos]),
+        nota: d.seguimiento?.angulo?.trim() || null,
+      }
+    }
   } else if (fecha) {
     fila = { estado: 'pendiente', programado_para: fecha, nota: d.seguimiento?.angulo ?? null }
   } else {
@@ -604,7 +639,11 @@ async function programarSeguimiento(e: EntradaCrm): Promise<string | null> {
     conversation_id: e.conversationId,
     canal: canalNormalizado(e.canal) ?? null,
     intentos,
+    fallos: 0,
     actualizado_en: new Date().toISOString(),
+    // La hora a la que escribe el cliente = la de su mensaje. En un turno de
+    // seguimiento se omite y el upsert conserva la que ya había.
+    ...(e.origen === 'seguimiento' ? {} : { hora: horaBogota() }),
     ...fila,
   })
   if (error) throw new Error(error.message)
