@@ -408,8 +408,9 @@ export function ContratoDocumento({
             </div>
           </Seccion>
 
-          {(datos.incluye.length > 0 || datos.noIncluye.length > 0) && (
+          {(datos.incluye.length > 0 || datos.noIncluye.length > 0 || datos.condicionesObservaciones) && (
             <Seccion n={sig()} titulo="Condiciones de su plan">
+              {(datos.incluye.length > 0 || datos.noIncluye.length > 0) && (
               <div className={s.condiciones}>
                 <div>
                   <h3 className={s.incluyeTitulo}>Incluye</h3>
@@ -428,6 +429,13 @@ export function ContratoDocumento({
                   </ul>
                 </div>
               </div>
+              )}
+              {datos.condicionesObservaciones && (
+                <div className={s.nota}>
+                  <span>Observaciones</span>
+                  <p>{datos.condicionesObservaciones}</p>
+                </div>
+              )}
             </Seccion>
           )}
         </div>

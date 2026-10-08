@@ -72,6 +72,7 @@ export const CONTRATO_MUESTRA: ContratoDatos = {
     'Propinas',
     'Equipaje adicional',
   ],
+  condicionesObservaciones: 'No incluye impuesto ecoambiental: se paga directamente en el hotel.',
 }
 
 const ADULTOS_MUESTRA = [

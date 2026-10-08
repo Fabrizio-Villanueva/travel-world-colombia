@@ -92,4 +92,6 @@ export interface ContratoDatos {
 
   incluye: string[]
   noIncluye: string[]
+  /** Campo "Observaciones" de la carpeta Inclusiones: va con las condiciones. */
+  condicionesObservaciones?: string
 }

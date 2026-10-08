@@ -238,5 +238,6 @@ export function armarContrato(e: EntradaContrato): ContratoDatos {
     pagos,
     incluye: lista(o('Inclusiones')),
     noIncluye: lista(o('No incluye')),
+    condicionesObservaciones: texto(o('Observaciones')),
   }
 }
