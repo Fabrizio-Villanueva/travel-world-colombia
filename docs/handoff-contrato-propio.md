@@ -78,6 +78,24 @@ también el contrato).
   `9c94de93-0e54-4925-9901-f6bf8c6f57b6`, ✍️ Contrato Firmado `ecdf4a60-5ef6-4b21-b61c-0103fec0e146`.
 - Migraciones en prod: 034 (docs 1–12), 035 (contratos), 036 (docs 1–20).
 
+## 4b. Cambios pedidos por el cliente (08-oct-2026)
+
+Ocho puntos aplicados el mismo día (contrato + Generador + GHL):
+
+| # | Qué | Dónde |
+|---|---|---|
+| 1–2 | Avisos "Cargos e impuestos locales" y "Saldos pendientes" bajo el plan de pagos, antes de los medios de pago | `ContratoDocumento.tsx` (`AVISO_*`, `.aviso`) |
+| 3 | Cláusula "Validez y confirmación de la reserva" tras las observaciones, antes de la hoja legal (bloque sin número; no mueve la numeración) | `ContratoDocumento.tsx` (`CLAUSULA_VALIDEZ`, `.validez`) |
+| 4 | "Tipo de pago" → **Depósito mínimo requerido para confirmar reserva**: etiqueta en el Generador (`ETIQUETA_CAMPO`) y línea en el contrato (`depositoMinimo`). El campo GHL sigue siendo `Pago 1 - Tipo de Pago` (TEXT); si es solo número se imprime en pesos | `Wizard.tsx`, `armar.ts`, `ContratoDocumento.tsx` |
+| 5 | "Liquidación Porción Terrestre **o Plan Turístico**": pestaña del Generador (`ETIQUETA_PASO`, la llave interna no cambia) y chip "Terrestre o plan turístico" en la tabla | `Wizard.tsx`, `ContratoDocumento.tsx` |
+| 6 | **Cuotas pendientes**: campos `Cuota N - Importe` / `Cuota N - Fecha de vencimiento` (N=1..6, carpeta Plan de Pagos, `scripts/ghl-crear-campos-cuotas.mjs`); bloque propio en el paso Plan de Pagos (agregar/quitar, total programado, depósito a la vista, validaciones: importe > 0, total = abonos + cuotas, vencimiento ≤ un mes antes del viaje; nada se ajusta solo); tabla "Cuotas pendientes" + total programado en el contrato. Quitar una cuota vacía la ranura en GHL (`guardarReserva(..., limpiar)`), único caso en que el Generador borra. `cuotas`/`depositoMinimo` son opcionales en `ContratoDatos`: las fotos congeladas viejas se imprimen igual | `Wizard.tsx`, `actions.ts`, `reservas.ts` (`RE_CUOTA`), `armar.ts` (`MAX_CUOTAS`), `tipos.ts`, `muestra.ts` (`?cuotas=0`) |
+| 7–8 | Opciones de Inclusiones (17) / No incluye (10) en GHL | `scripts/ghl-opciones-inclusiones.mjs` |
+| — | "Tipo de Contrato": Tiquetes Aéreos · Paquete Turístico · Plan Todo Incluido · Asistencia en Viajes · Excursiones · Tiquetes Aéreos y Asistencia en Viajes (pedido de Ginna). `PASOS_NO_APLICAN` conserva también los nombres viejos | `scripts/ghl-opciones-tipo-contrato.mjs`, `Wizard.tsx` |
+
+Paginación tras los cambios (muestra, carta, márgenes de `pdf.ts`): 4 páginas con o sin cuotas
+(antes 3). `.juntos` ya no obliga a pagos + condiciones en la misma hoja (cada sección entera,
+`.validez` pegada a las condiciones): si no, la liquidación quedaba sola en una hoja casi vacía.
+
 ## 5. Pendiente
 
 **Del usuario (GHL):**

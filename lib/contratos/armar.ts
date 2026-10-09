@@ -1,4 +1,5 @@
 import type {
+  ContratoCuota,
   ContratoDatos,
   ContratoLiquidacionFila,
   ContratoPago,
@@ -39,6 +40,8 @@ export interface EntradaContrato {
 export const MAX_PASAJEROS = 20
 export const MAX_TRAYECTOS = 4
 export const MAX_PAGOS = 4
+/** Cuotas pendientes (Cuota 1–6 en GHL; scripts/ghl-crear-campos-cuotas.mjs). */
+export const MAX_CUOTAS = 6
 
 function texto(v: Valor): string | undefined {
   if (v == null) return undefined
@@ -189,6 +192,16 @@ export function armarContrato(e: EntradaContrato): ContratoDatos {
     })
   }
 
+  // Cuotas pendientes: entra la que tenga importe (> 0) o fecha. Un importe
+  // en cero o negativo no es una cuota: se ignora (el Generador ya lo avisa).
+  const cuotas: ContratoCuota[] = []
+  for (let i = 1; i <= MAX_CUOTAS; i++) {
+    const importe = numero(o(`Cuota ${i} - Importe`))
+    const vence = fechaIso(o(`Cuota ${i} - Fecha de vencimiento`))
+    if ((importe == null || importe <= 0) && !vence) continue
+    cuotas.push({ numero: cuotas.length + 1, importe: importe != null && importe > 0 ? importe : 0, vence })
+  }
+
   const titular = texto(o('Titular de la Reserva')) ?? e.contacto.nombre ?? e.facturacion.nombre ?? ''
   // Documento del titular: el de la factura si es la misma persona; si no, el
   // del pasajero con el mismo nombre.
@@ -236,6 +249,8 @@ export function armarContrato(e: EntradaContrato): ContratoDatos {
         : undefined,
     },
     pagos,
+    cuotas,
+    depositoMinimo: texto(o('Pago 1 - Tipo de Pago')),
     incluye: lista(o('Inclusiones')),
     noIncluye: lista(o('No incluye')),
     condicionesObservaciones: texto(o('Observaciones')),

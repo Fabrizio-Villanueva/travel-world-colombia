@@ -94,11 +94,12 @@
   "name": "Tipo de Contrato",
   "dataType": "SINGLE_OPTIONS",
   "options": [
-   "Ticketes Aéreos",
+   "Tiquetes Aéreos",
+   "Paquete Turístico",
    "Plan Todo Incluido",
-   "Solo Asistencia",
-   "Solo Excursiones",
-   "Ticketes & Asistencia"
+   "Asistencia en Viajes",
+   "Excursiones",
+   "Tiquetes Aéreos y Asistencia en Viajes"
   ],
   "sourceContactKey": "contact.tipo_de_contrato"
  },
@@ -984,20 +985,87 @@
   "sourceContactKey": "contact.p1__tipo_de_pago"
  },
  {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 1 - Importe",
+  "dataType": "NUMERICAL"
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 1 - Fecha de vencimiento",
+  "dataType": "DATE"
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 2 - Importe",
+  "dataType": "NUMERICAL"
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 2 - Fecha de vencimiento",
+  "dataType": "DATE"
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 3 - Importe",
+  "dataType": "NUMERICAL"
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 3 - Fecha de vencimiento",
+  "dataType": "DATE"
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 4 - Importe",
+  "dataType": "NUMERICAL"
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 4 - Fecha de vencimiento",
+  "dataType": "DATE"
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 5 - Importe",
+  "dataType": "NUMERICAL"
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 5 - Fecha de vencimiento",
+  "dataType": "DATE"
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 6 - Importe",
+  "dataType": "NUMERICAL"
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 6 - Fecha de vencimiento",
+  "dataType": "DATE"
+ },
+ {
   "folder": "Inclusiones",
   "name": "Inclusiones",
   "dataType": "MULTIPLE_OPTIONS",
   "options": [
-   "✈️ boleto aéreo",
+   "✈️ Tiquetes aéreos ida y regreso",
    "💺asignación de sillas de manera aleatoria por la aerolínea",
    "💺asignación de sillas preferida para cada pasajero",
    "💺asignación de sillas preferida",
-   "🎒  Un Articulo perssonal que no exeda las medidas 35 x 45 x 20",
    "🧳 Equipaje de mano con ruedas que no exceda las medidas 45 x 35 x 25 cm",
    "🧳  Maleta para enviar por Bodega de 23 Kg. que lo exceda 158 cm lineales.",
    "🚑 Seguro de asistencia en médica en viajes",
    "🚑 Seguro de cancelación de viaje",
-   "📄Impuestos y tasas."
+   "📄Impuestos y tasas.",
+   "🎒 Artículo personal 10 kg con medidas que no excedan los 45 x 25 x 35 centímetros",
+   "🚙 Traslado Aeropuerto – Hotel – Aeropuerto",
+   "🚐 Traslados entre hoteles",
+   "🏨 Alojamiento en el hotel seleccionado en las fechas previstas",
+   "🍛 Alimentación: Desayunos de acuerdo a las noches tomadas",
+   "🍛 Alimentación: Desayunos y cenas de acuerdo a las noches tomadas",
+   "🍛 Alimentación: Desayunos, almuerzos y cenas de acuerdo a las noches tomadas",
+   "🍕🍨🍹 Snacks, bebidas y licores ilimitados en horarios establecidos por el hotel"
   ],
   "sourceContactKey": "contact.inclusiones"
  },
@@ -1010,7 +1078,12 @@
    "🧳 Equipaje de mano con ruedas que no exceda las medidas 45 x 35 x 25 cm",
    "🧳  Maleta para enviar por Bodega de 23 Kg. que lo exceda 158 cm lineales.",
    "🚑 Seguro de asistencia en médica en viajes",
-   "🚑 Seguro de cancelación de viaje"
+   "🚑 Seguro de cancelación de viaje",
+   "🧳 Equipaje de mano que excede las medidas 45 x 35 x 25 cm",
+   "🙋🏻 Servicios de índole personal: propinas de guías, conductores, lavandería, spa, peluquería, llamadas telefónicas, fotografías, internet, manejo de equipaje, excesos de equipaje",
+   "✖️ Gastos no especificados: ningún servicio que NO esté claramente especificado como incluido en el programa del cliente",
+   "🏝️ Tarjeta de entrada a la isla",
+   "🚌 Excursiones o visitas definidas como opcionales o que no se hayan especificado como incluidas"
   ],
   "sourceContactKey": "contact.no_incluye"
  },

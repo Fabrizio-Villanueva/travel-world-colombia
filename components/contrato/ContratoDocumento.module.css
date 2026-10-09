@@ -276,6 +276,110 @@
   color: var(--suave);
   font-weight: 600;
 }
+/* Depósito mínimo requerido para confirmar la reserva (Plan de pagos). */
+.deposito {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin: 0 0 10px;
+  padding: 8px 14px;
+  background: var(--fondo);
+  border-radius: 8px;
+}
+.deposito span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto);
+}
+.deposito strong {
+  font-size: 13px;
+  color: var(--navy);
+}
+
+/* Cuotas pendientes pactadas (tabla propia bajo los pagos). */
+.cuotas {
+  margin-top: 12px;
+  break-inside: avoid;
+}
+.cuotasTitulo {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--suave);
+}
+
+/*
+ * Avisos del plan de pagos (cargos locales / saldos pendientes): dos
+ * recuadros con el mismo molde que .nota pero cada uno con su color, para
+ * que se distingan a simple vista. Nunca se cortan entre páginas.
+ */
+.aviso {
+  margin-top: 10px;
+  padding: 9px 14px;
+  border-left: 3px solid;
+  border-radius: 0 6px 6px 0;
+  break-inside: avoid;
+}
+.aviso span {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.aviso p {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+.avisoCargos {
+  background: var(--oro-suave);
+  border-color: var(--oro);
+}
+.avisoCargos span {
+  color: #8a6a00;
+}
+.avisoSaldos {
+  background: #eef3fb;
+  border-color: var(--azul);
+}
+.avisoSaldos span {
+  color: var(--azul);
+}
+
+/* Cláusula de validez: bloque propio entre las condiciones y la hoja legal. */
+.validez {
+  margin-top: 22px;
+  padding: 12px 16px;
+  border: 1px solid var(--linea);
+  border-top: 3px solid var(--navy);
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+  break-inside: avoid;
+}
+.validezTitulo {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+.validez p {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--texto);
+}
+
 .medios {
   margin-top: 12px;
   padding: 10px 14px;
@@ -439,8 +543,18 @@
    * Hoja legal: cláusulas 08 y 09 + declaración + firmas, siempre en una
    * hoja propia y completa. Tipografía ajustada para que quepa en carta.
    */
-  .juntos {
+  /*
+   * Pagos y condiciones: cada sección entera (sin cortarse), pero pueden
+   * ir en hojas distintas. Con los avisos y las cuotas (oct-2026) el par
+   * completo ya no cabe en el resto de la hoja de la liquidación y, si se
+   * obligara a ir junto, la liquidación quedaría sola en una hoja casi vacía.
+   */
+  .juntos > .seccion {
     break-inside: avoid;
+  }
+  /* La cláusula de validez va pegada a las condiciones (nunca sola arriba de una hoja). */
+  .validez {
+    break-before: avoid;
   }
   /* Filas un poco más bajas en papel: 20 pasajeros caben en una hoja. */
   .tabla td {

@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Loader2, Check, ChevronLeft, ChevronRight, FileSignature } from 'lucide-react'
-import type { CampoReserva, ValorCampo } from '@/lib/admin/reservas'
+import { Loader2, Check, ChevronLeft, ChevronRight, FileSignature, Plus, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { RE_CUOTA, esCampoCuota, type CampoReserva, type ValorCampo } from '@/lib/admin/reservas'
 import { guardarReserva } from '../actions'
 
 /**
@@ -45,8 +45,41 @@ const ETIQUETA_PASO: Record<string, string> = {
   'Generales del Viaje': 'Generales del Viaje',
   Inclusiones: 'Inclusiones y Exclusiones',
   'Plan de Pagos': 'Plan de Pagos',
+  // Pedido del cliente (08-oct-2026): la llave interna no cambia (el catálogo
+  // TMS y PASOS_NO_APLICAN la usan), solo lo que se ve.
+  'Liquidación Porción Terrestre': 'Liquidación Porción Terrestre o Plan Turístico',
 }
 const etiquetaPaso = (p: string) => ETIQUETA_PASO[p] ?? p
+
+/**
+ * Etiquetas visibles distintas del nombre del campo en GHL (el nombre GHL no
+ * se toca: el catálogo y el contrato lo buscan por nombre exacto).
+ */
+const ETIQUETA_CAMPO: Record<string, string> = {
+  'Destino de interés': 'Destino',
+  // Era "Tipo de pago" (texto libre). El cliente pidió (08-oct-2026) que se
+  // llame así y que el contrato lo imprima en el Plan de pagos.
+  'Pago 1 - Tipo de Pago': 'Depósito mínimo requerido para confirmar reserva',
+}
+const PLACEHOLDER_CAMPO: Record<string, string> = {
+  'Pago 1 - Tipo de Pago': 'Ej.: 30% · 3.000.000 · 100% de los tiquetes',
+}
+const NOMBRE_DEPOSITO_MINIMO = 'Pago 1 - Tipo de Pago'
+const MAX_CUOTAS = 6
+const PASO_PAGOS = 'Plan de Pagos'
+
+/** Suma AAAA-MM-DD + meses (negativo para restar), en UTC para no correr el día. */
+function sumarMeses(iso: string, meses: number): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
+  if (!m) return null
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1 + meses, Number(m[3])))
+  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10)
+}
+const pesos = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
+const fechaCo = (iso: string) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso
+}
 
 /**
  * Pasos que solo se abren con clic en su pestaña: "Guardar y seguir" nunca
@@ -63,6 +96,11 @@ const PASOS_APARTE = new Set(['Operaciones'])
  * con datos, así que dejarlos vacíos no deja huecos en el PDF.
  */
 const PASOS_NO_APLICAN: Record<string, string[]> = {
+  // Nombres vigentes (08-oct-2026, scripts/ghl-opciones-tipo-contrato.mjs)…
+  'Tiquetes Aéreos': ['Liquidación Porción Terrestre'],
+  'Asistencia en Viajes': ['Vuelos', 'Liquidación Vuelos'],
+  Excursiones: ['Vuelos', 'Liquidación Vuelos'],
+  // …y los anteriores, que las oportunidades viejas aún tienen guardados.
   'Ticketes Aéreos': ['Liquidación Porción Terrestre'],
   'Solo Asistencia': ['Vuelos', 'Liquidación Vuelos'],
   'Solo Excursiones': ['Vuelos', 'Liquidación Vuelos'],
@@ -217,6 +255,63 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
 
   const [cuentaPago, setCuentaPago] = useState(() => conDatos.Pago)
 
+  // ── Cuotas pendientes (plan de pagos por cuotas, oct-2026) ──
+  // Los campos "Cuota N - Importe / Fecha de vencimiento" viven en GHL como
+  // 6 ranuras fijas; aquí se ven como filas que se agregan y se quitan.
+  const cuotaIds = useMemo(() => {
+    const m = new Map<number, { importe?: string; vence?: string }>()
+    for (const c of campos) {
+      const r = RE_CUOTA.exec(c.name)
+      if (!r) continue
+      const n = Number(r[1])
+      const e = m.get(n) ?? {}
+      if (r[2] === 'Importe') e.importe = c.ghlId
+      else e.vence = c.ghlId
+      m.set(n, e)
+    }
+    return [...m.entries()].sort((a, b) => a[0] - b[0]).map(([, e]) => e).slice(0, MAX_CUOTAS)
+  }, [campos])
+  const [cuentaCuotas, setCuentaCuotas] = useState(() => {
+    const tiene = (id?: string) => id !== undefined && valoresIniciales[id] !== undefined && valoresIniciales[id] !== ''
+    let n = 0
+    cuotaIds.forEach((e, i) => {
+      if (tiene(e.importe) || tiene(e.vence)) n = i + 1
+    })
+    return n
+  })
+  // Ranuras que quedaron vacías al quitar una cuota: se vacían en GHL al guardar.
+  const [porBorrar, setPorBorrar] = useState<Set<string>>(new Set())
+
+  function agregarCuota() {
+    if (cuentaCuotas < cuotaIds.length) setCuentaCuotas(cuentaCuotas + 1)
+  }
+
+  /** Quita la cuota k (0-based): las siguientes suben un puesto y la última ranura se vacía. */
+  function quitarCuota(k: number) {
+    const v = { ...valores }
+    const borrar = new Set(porBorrar)
+    for (let i = k; i < cuentaCuotas; i++) {
+      const actual = cuotaIds[i]
+      const siguiente = i + 1 < cuentaCuotas ? cuotaIds[i + 1] : undefined
+      for (const campo of ['importe', 'vence'] as const) {
+        const id = actual[campo]
+        if (!id) continue
+        const idSig = siguiente?.[campo]
+        const nuevo = idSig ? v[idSig] : undefined
+        if (nuevo === undefined || nuevo === '') {
+          delete v[id]
+          borrar.add(id)
+        } else {
+          v[id] = nuevo
+          borrar.delete(id)
+        }
+      }
+    }
+    setValores(v)
+    setPorBorrar(borrar)
+    setCuentaCuotas(cuentaCuotas - 1)
+  }
+
   function leerCuenta(id: string | undefined, tope: number, piso: number): number {
     const v = id ? valores[id] : undefined
     const n = typeof v === 'string' ? Number(v) : NaN
@@ -259,6 +354,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
     const sueltos: CampoReserva[] = []
     const series = new Set<'P' | 'T' | 'Pago'>()
     for (const c of camposDelPaso) {
+      if (esCampoCuota(c.name)) continue // las cuotas tienen su propio bloque (abajo)
       const pref = prefijoDe(c.name)
       const rep = pref ? numeroRepetible(pref) : null
       if (rep) {
@@ -299,6 +395,14 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
       // Se guarda TODO lo visible del paso con valor (PUT idempotente, GHL
       // hace merge): así los sugeridos revisados también quedan escritos.
       const visibles = [...grupos.values()].flat().concat(sueltos)
+      if (carpetaActual === PASO_PAGOS) {
+        for (const e of cuotaIds.slice(0, cuentaCuotas)) {
+          for (const id of [e.importe, e.vence]) {
+            const c = campos.find(x => x.ghlId === id)
+            if (c) visibles.push(c)
+          }
+        }
+      }
       const lote: Record<string, ValorCampo> = {}
       for (const c of visibles) {
         const v = valores[c.ghlId]
@@ -310,11 +414,14 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
         const v = id ? valores[id] : undefined
         if (id && typeof v === 'string' && v !== '') lote[id] = v
       }
-      const r = await guardarReserva(opportunityId, lote)
+      // Cuotas quitadas: sus ranuras se vacían en GHL (borrado explícito).
+      const limpiar = carpetaActual === PASO_PAGOS ? [...porBorrar].filter(id => lote[id] === undefined) : []
+      const r = await guardarReserva(opportunityId, lote, limpiar)
       if (!r.ok) {
         setAviso({ ok: false, texto: `No se pudo guardar: ${r.error}` })
         return
       }
+      if (limpiar.length > 0) setPorBorrar(new Set())
       setSugeridos(prev => {
         const s = new Set(prev)
         for (const id of Object.keys(lote)) s.delete(id)
@@ -340,6 +447,25 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
       setGuardando(false)
     }
   }
+
+  // Lectura numérica de un campo (para las validaciones de cuotas).
+  const num = (id?: string): number | null => {
+    const x = id ? valores[id] : undefined
+    if (typeof x !== 'string' || x.trim() === '') return null
+    const n = Number(x)
+    return Number.isFinite(n) ? n : null
+  }
+  const cuotasVisibles = cuotaIds.slice(0, cuentaCuotas)
+  const totalProgramado = cuotasVisibles.reduce((t, e) => t + Math.max(num(e.importe) ?? 0, 0), 0)
+  const totalPlan = num(idDe('Total Pasajeros - Valor Total'))
+  const abonado = [1, 2, 3, 4].reduce((t, n) => t + (num(idDe(`Pago ${n} - Abono`)) ?? 0), 0)
+  // Diferencia entre el total y lo cubierto (abonos ya hechos + cuotas): el
+  // depósito no se cuenta dos veces porque los abonos son los pagos reales.
+  const diferencia = totalPlan !== null ? Math.round((totalPlan - abonado - totalProgramado) * 100) / 100 : null
+  const fechaIda = valores[idDe('Fecha confirmada de salida') ?? '']
+  // Tope: un mes antes del viaje (aviso de saldos del contrato).
+  const limiteCuotas = typeof fechaIda === 'string' && fechaIda ? sumarMeses(fechaIda, -1) : null
+  const depositoMinimo = valores[idDe(NOMBRE_DEPOSITO_MINIMO) ?? '']
 
   // Los contadores de avance miran solo los campos que el contrato imprime:
   // el objetivo del wizard es un contrato completo, no llenar el catálogo TMS.
@@ -476,6 +602,134 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
           )
         })}
 
+        {/* Plan de pagos por cuotas: filas que se agregan y se quitan, total
+            programado, depósito mínimo a la vista y validaciones (no bloquean:
+            el importe acordado nunca se cambia solo). */}
+        {carpetaActual === PASO_PAGOS && cuotaIds.length > 0 && (
+          <fieldset className="mt-4 rounded-lg p-4" style={{ border: '1px solid var(--border)', background: 'var(--bg-alt)' }}>
+            <legend className="px-2 font-inter text-xs font-semibold" style={{ color: 'var(--orange)' }}>
+              Cuotas pendientes
+            </legend>
+
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
+              <span>
+                Depósito mínimo requerido para confirmar reserva:{' '}
+                <strong style={{ color: 'var(--text-primary)' }}>
+                  {typeof depositoMinimo === 'string' && depositoMinimo ? depositoMinimo : 'sin definir (campo del Pago 1)'}
+                </strong>
+              </span>
+              <span>
+                Total programado en cuotas:{' '}
+                <strong style={{ color: 'var(--text-primary)' }}>{pesos.format(totalProgramado)}</strong>
+              </span>
+            </div>
+
+            {cuentaCuotas === 0 && (
+              <p className="mb-3 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
+                Sin cuotas registradas: el contrato se genera igual, solo con los pagos de arriba.
+              </p>
+            )}
+
+            <div className="flex flex-col gap-2">
+              {cuotasVisibles.map((e, i) => {
+                const importe = num(e.importe)
+                const vence = e.vence ? valores[e.vence] : undefined
+                const importeMalo = importe !== null && importe <= 0
+                const tarde = typeof vence === 'string' && vence && limiteCuotas ? vence > limiteCuotas : false
+                return (
+                  <div key={i} className="grid grid-cols-[auto_1fr_1fr_auto] items-end gap-3">
+                    <span className="pb-2 font-inter text-xs font-semibold" style={{ color: 'var(--text-dim)' }}>
+                      Cuota {i + 1}
+                    </span>
+                    <label className="block">
+                      <span className="mb-1 block font-inter text-xs" style={{ color: 'var(--text-dim)' }}>Importe (COP)</span>
+                      <input
+                        type="number"
+                        min={1}
+                        step="any"
+                        value={(e.importe ? (valores[e.importe] as string) : '') ?? ''}
+                        onChange={ev => e.importe && poner(e.importe, ev.target.value)}
+                        className="w-full rounded-md px-3 py-2 font-inter text-sm outline-none"
+                        style={{ border: `1px solid ${importeMalo ? '#dc2626' : 'var(--border)'}`, color: 'var(--text-primary)', background: 'white' }}
+                      />
+                      {importeMalo && (
+                        <span className="mt-1 block font-inter text-xs" style={{ color: '#b91c1c' }}>El importe debe ser mayor que cero.</span>
+                      )}
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block font-inter text-xs" style={{ color: 'var(--text-dim)' }}>Fecha de vencimiento</span>
+                      <input
+                        type="date"
+                        value={(typeof vence === 'string' ? vence : '') ?? ''}
+                        onChange={ev => e.vence && poner(e.vence, ev.target.value)}
+                        className="w-full rounded-md px-3 py-2 font-inter text-sm outline-none"
+                        style={{ border: `1px solid ${tarde ? '#d97706' : 'var(--border)'}`, color: 'var(--text-primary)', background: 'white' }}
+                      />
+                      {tarde && limiteCuotas && (
+                        <span className="mt-1 block font-inter text-xs" style={{ color: '#92400e' }}>
+                          Vence después del límite ({fechaCo(limiteCuotas)}, un mes antes del viaje).
+                        </span>
+                      )}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => quitarCuota(i)}
+                      title="Quitar esta cuota"
+                      aria-label={`Quitar cuota ${i + 1}`}
+                      className="mb-0.5 rounded-md p-2"
+                      style={{ border: '1px solid var(--border)', color: '#b91c1c', background: 'white' }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={agregarCuota}
+                disabled={cuentaCuotas >= cuotaIds.length}
+                className="flex items-center gap-1 rounded-md px-3 py-2 font-inter text-xs font-semibold disabled:opacity-40"
+                style={{ border: '1px solid var(--border-orange)', color: 'var(--orange)', background: 'white' }}
+              >
+                <Plus size={14} /> Agregar cuota
+              </button>
+              {cuentaCuotas >= cuotaIds.length && (
+                <span className="font-inter text-xs" style={{ color: 'var(--text-dim)' }}>Máximo {cuotaIds.length} cuotas.</span>
+              )}
+            </div>
+
+            {totalPlan !== null && (cuentaCuotas > 0 || abonado > 0) && (
+              <p
+                className="mt-3 flex items-start gap-2 rounded-md px-3 py-2 font-inter text-xs"
+                style={
+                  diferencia === 0
+                    ? { background: '#ecfdf5', color: '#047857' }
+                    : { background: '#fffbeb', color: '#92400e' }
+                }
+              >
+                {diferencia === 0 ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" /> : <AlertTriangle size={14} className="mt-0.5 shrink-0" />}
+                <span>
+                  Total del viaje {pesos.format(totalPlan)} = abonos {pesos.format(abonado)} + cuotas {pesos.format(totalProgramado)}
+                  {diferencia === 0
+                    ? '. Las cuentas cuadran.'
+                    : diferencia !== null && diferencia > 0
+                      ? `. Faltan ${pesos.format(diferencia)} por programar.`
+                      : `. Las cuotas superan el saldo en ${pesos.format(Math.abs(diferencia ?? 0))}.`}
+                  {' '}Los importes no se ajustan solos: revísalos tú.
+                </span>
+              </p>
+            )}
+            {porBorrar.size > 0 && (
+              <p className="mt-2 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
+                Las cuotas quitadas se borran en GHL al guardar el paso.
+              </p>
+            )}
+          </fieldset>
+        )}
+
         {/* Campos operativos (catálogo TMS): no salen en el contrato, van plegados
             para que el formulario calque el documento. */}
         {sueltos.some(c => !c.enContrato) && (
@@ -567,8 +821,7 @@ function Campo({
   // La etiqueta sin el prefijo del grupo ("P3 - Documento" → "Documento").
   // 'Destino de interés' se muestra como 'Destino' en el paso Contrato (el
   // nombre GHL no se toca: el catálogo TMS lo busca por nombre exacto).
-  const etiqueta =
-    campo.name === 'Destino de interés' ? 'Destino' : campo.name.replace(/^.+? - /, '')
+  const etiqueta = ETIQUETA_CAMPO[campo.name] ?? campo.name.replace(/^.+? - /, '')
   const base: React.CSSProperties = {
     border: '1px solid var(--border)',
     color: 'var(--text-primary)',
@@ -625,6 +878,7 @@ function Campo({
         <input
           type={campo.dataType === 'DATE' ? 'date' : campo.dataType === 'NUMERICAL' ? 'number' : campo.dataType === 'PHONE' ? 'tel' : campo.dataType === 'EMAIL' ? 'email' : 'text'}
           step={campo.dataType === 'NUMERICAL' ? 'any' : undefined}
+          placeholder={PLACEHOLDER_CAMPO[campo.name]}
           value={(valor as string) ?? ''}
           onChange={e => onChange(campo.ghlId, e.target.value)}
           className={clase}

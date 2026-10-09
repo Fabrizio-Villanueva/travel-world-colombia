@@ -222,7 +222,9 @@ export async function catalogoResuelto(): Promise<{
       espejoExtraIds: (ESPEJOS_EXTRA[c.name] ?? [])
         .map(k => contactoPorKey.get(k)?.id)
         .filter((x): x is string => Boolean(x)),
-      enContrato: Boolean(c.sourceContactKey),
+      // Las cuotas (oct-2026) nacieron en la oportunidad, sin campo viejo de
+      // contacto, pero el contrato sí las imprime.
+      enContrato: Boolean(c.sourceContactKey) || esCampoCuota(c.name),
     })
   }
 
@@ -277,6 +279,15 @@ export async function catalogoResuelto(): Promise<{
 
   return { campos, sinResolver }
 }
+
+/**
+ * Plan de pagos por cuotas (oct-2026): "Cuota N - Importe" y
+ * "Cuota N - Fecha de vencimiento" (N = 1..6, scripts/ghl-crear-campos-cuotas.mjs).
+ * El Generador los edita con un bloque propio (agregar / quitar cuotas) y el
+ * contrato los imprime en una tabla bajo los pagos.
+ */
+export const RE_CUOTA = /^Cuota (\d{1,2}) - (Importe|Fecha de vencimiento)$/
+export const esCampoCuota = (nombre: string) => RE_CUOTA.test(nombre)
 
 /** Valor de formulario: siempre serializable y simple. */
 export type ValorCampo = string | string[]

@@ -58,6 +58,12 @@ export const CONTRATO_MUESTRA: ContratoDatos = {
     { fecha: '2026-10-07', medio: 'Transferencia Bancolombia', totalPlan: 10_130_000, abono: 3_000_000, saldo: 7_130_000 },
     { fecha: '2026-11-07', medio: 'PSE', totalPlan: 10_130_000, abono: 3_500_000, saldo: 3_630_000 },
   ],
+  // Lo pendiente (3.630.000) pactado en dos cuotas; la última vence un mes antes del viaje.
+  cuotas: [
+    { numero: 1, importe: 1_815_000, vence: '2026-10-25' },
+    { numero: 2, importe: 1_815_000, vence: '2026-11-12' },
+  ],
+  depositoMinimo: '30%',
 
   incluye: [
     'Tiquetes aéreos Bogotá – Punta Cana – Bogotá',
@@ -124,6 +130,8 @@ export function muestraConPasajeros(n: number): ContratoDatos {
   const valorPlan = terrestre.reduce((t, f) => t + f.valorTotal, 0)
   const abono1 = Math.round((valorTotal * 0.3) / 1000) * 1000
   const abono2 = Math.round((valorTotal * 0.35) / 1000) * 1000
+  const pendiente = valorTotal - abono1 - abono2
+  const cuota1 = Math.round(pendiente / 2 / 1000) * 1000
 
   return {
     ...CONTRATO_MUESTRA,
@@ -139,5 +147,17 @@ export function muestraConPasajeros(n: number): ContratoDatos {
       { fecha: '2026-10-07', medio: 'Transferencia Bancolombia', totalPlan: valorTotal, abono: abono1, saldo: valorTotal - abono1 },
       { fecha: '2026-11-07', medio: 'PSE', totalPlan: valorTotal, abono: abono2, saldo: valorTotal - abono1 - abono2 },
     ],
+    cuotas: [
+      { numero: 1, importe: cuota1, vence: '2026-10-25' },
+      { numero: 2, importe: pendiente - cuota1, vence: '2026-11-12' },
+    ],
   }
+}
+
+/** La misma muestra SIN cuotas ni depósito mínimo (reservas anteriores a oct-2026). */
+export function muestraSinCuotas(base: ContratoDatos = CONTRATO_MUESTRA): ContratoDatos {
+  const { cuotas: _c, depositoMinimo: _d, ...resto } = base
+  void _c
+  void _d
+  return resto
 }

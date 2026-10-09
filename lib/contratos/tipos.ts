@@ -47,6 +47,14 @@ export interface ContratoPago {
   saldo?: number
 }
 
+/** Cuota PENDIENTE pactada con el cliente (plan de pagos por cuotas, oct-2026). */
+export interface ContratoCuota {
+  numero: number
+  importe: number
+  /** Fecha de vencimiento (AAAA-MM-DD). */
+  vence?: string
+}
+
 export interface ContratoDatos {
   /** Número de reserva TWC (el "TW-" lo pone el documento). */
   reserva: string
@@ -89,6 +97,17 @@ export interface ContratoDatos {
     dolares?: { trm: number; valorPlan?: number; valorTotal?: number }
   }
   pagos: ContratoPago[]
+  /**
+   * Cuotas pendientes pactadas (Cuota 1–6 en GHL). Opcional: las fotos
+   * congeladas anteriores a oct-2026 no lo traen y se imprimen igual.
+   */
+  cuotas?: ContratoCuota[]
+  /**
+   * "Depósito mínimo requerido para confirmar reserva" (campo de texto
+   * "Pago 1 - Tipo de Pago" en GHL): "30%", "3.000.000"… tal como lo escribe
+   * la asesora. Opcional por la misma razón.
+   */
+  depositoMinimo?: string
 
   incluye: string[]
   noIncluye: string[]

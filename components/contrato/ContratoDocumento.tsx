@@ -36,12 +36,36 @@ const MEDIOS_DE_PAGO = [
   { Icono: Mail, texto: 'Comprobantes: contabilidad.travelworld@gmail.com' },
 ]
 
+/**
+ * Avisos y cláusula pedidos por el cliente (08-oct-2026). Textos literales:
+ * van en mayúsculas en el original y así se imprimen.
+ */
+const AVISO_CARGOS_LOCALES =
+  'PUEDEN APLICAR CARGOS O IMPUESTOS LOCALES EN DESTINO QUE HASTA LA FECHA NO HAN SIDO ESPECIFICADOS POR EL HOTEL - HEMOS INCLUIDO TODOS LOS CONCEPTOS A PAGAR HASTA EL MOMENTO.'
+const AVISO_SALDOS_PENDIENTES =
+  'LOS SALDOS PENDIENTES PUEDEN REALIZARSE SEGÚN LO INFORMADO POR SU ASESOR. PAGO TOTAL DEBE ESTAR REALIZADO MÁXIMO UN MES ANTES DE LA FECHA DE VIAJE PARA EVITAR PENALIDADES O CANCELACIONES.'
+const CLAUSULA_VALIDEZ = {
+  titulo: 'Validez y confirmación de la reserva',
+  texto:
+    'EL PRESENTE CONTRATO TIENE VALIDEZ UNA VEZ RECIBIDO Y CONFIRMADO EL DEPOSITO TOTAL EXIGIDO PARA GARANTIZAR LA RESERVA, Y EN EL MOMENTO EN QUE EL ASESOR LE INDIQUE QUE TODOS LOS SERVICIOS HAN SIDO CONFIRMADOS, LAS TARIFAS ESTAN SUJETAS A CAMBIOS SIN PREVIO AVISO Y DISPONIBILIDAD Y SÓLO PUEDEN GARANTIZARSE UNA VEZ TOMADOS Y PAGADOS LOS SERVICIOS DE PARTE DE LA AGENCIA, POSTERIOR A LA RECEPCIÓN DEL ABONO INICIAL REQUERIDO.',
+}
+
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 const pesos = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 const numero = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 })
 
 const dinero = (v?: number) => (v == null ? '' : pesos.format(v))
 const vacio = (v: unknown) => v == null || (typeof v === 'string' && v.trim() === '')
+
+/**
+ * Depósito mínimo tal como lo escribió la asesora ("30%", "3000000",
+ * "$ 3.000.000"): si es solo un número se imprime como pesos; si no, tal cual.
+ */
+function deposito(t?: string): string {
+  if (!t) return ''
+  const limpio = t.replace(/[\s$.]/g, '')
+  return /^\d+$/.test(limpio) ? pesos.format(Number(limpio)) : t.trim()
+}
 
 /** AAAA-MM-DD → DD/MM/AAAA. */
 function fecha(iso?: string): string {
@@ -197,6 +221,9 @@ export function ContratoDocumento({
   const ultimoPago = datos.pagos.at(-1)
   const abonado = datos.pagos.reduce((t, p) => t + (p.abono ?? 0), 0)
   const saldo = ultimoPago?.saldo ?? liq.total.valorTotal - abonado
+  // Fotos congeladas anteriores a oct-2026 no traen cuotas.
+  const cuotas = datos.cuotas ?? []
+  const totalCuotas = cuotas.reduce((t, c) => t + c.importe, 0)
   const v = datos.viaje
 
   let n = 0
@@ -347,7 +374,7 @@ export function ContratoDocumento({
             ]}
             filas={[
               ...filasLiquidacion('Aéreo', liq.aereos, conPlan),
-              ...filasLiquidacion('Terrestre', liq.terrestre, conPlan),
+              ...filasLiquidacion('Terrestre o plan turístico', liq.terrestre, conPlan),
             ]}
             pie={
               <tfoot>
@@ -376,6 +403,12 @@ export function ContratoDocumento({
             solo en una hoja casi vacía. */}
         <div className={s.juntos}>
           <Seccion n={sig()} titulo="Plan de pagos">
+            {datos.depositoMinimo && (
+              <p className={s.deposito}>
+                <span>Depósito mínimo requerido para confirmar reserva</span>
+                <strong>{deposito(datos.depositoMinimo)}</strong>
+              </p>
+            )}
             {datos.pagos.length > 0 && (
               <Tabla
                 columnas={[
@@ -396,6 +429,36 @@ export function ContratoDocumento({
                 ])}
               />
             )}
+
+            {cuotas.length > 0 && (
+              <div className={s.cuotas}>
+                <span className={s.cuotasTitulo}>Cuotas pendientes</span>
+                <Tabla
+                  columnas={[{ titulo: 'Cuota' }, { titulo: 'Importe', num: true }, { titulo: 'Fecha de vencimiento' }]}
+                  filas={cuotas.map(c => [c.numero, <strong key="i">{dinero(c.importe)}</strong>, fecha(c.vence)])}
+                  pie={
+                    <tfoot>
+                      <tr className={s.total}>
+                        <td>Total programado</td>
+                        <td className={s.num}>{dinero(totalCuotas)}</td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  }
+                />
+              </div>
+            )}
+
+            {/* Avisos (pedido del cliente 08-oct-2026): después del saldo, antes de los medios de pago. */}
+            <div className={`${s.aviso} ${s.avisoCargos}`}>
+              <span>Cargos e impuestos locales</span>
+              <p>{AVISO_CARGOS_LOCALES}</p>
+            </div>
+            <div className={`${s.aviso} ${s.avisoSaldos}`}>
+              <span>Saldos pendientes</span>
+              <p>{AVISO_SALDOS_PENDIENTES}</p>
+            </div>
+
             <div className={s.medios}>
               <span className={s.mediosTitulo}>Medios de pago autorizados</span>
               <ul>
@@ -439,6 +502,14 @@ export function ContratoDocumento({
             </Seccion>
           )}
         </div>
+
+        {/* Cláusula de validez (pedido del cliente 08-oct-2026): bloque propio,
+            sin número, después de las observaciones y antes de la hoja legal.
+            Se imprime completo en una sola página. */}
+        <section className={s.validez} aria-label={CLAUSULA_VALIDEZ.titulo}>
+          <span className={s.validezTitulo}>{CLAUSULA_VALIDEZ.titulo}</span>
+          <p>{CLAUSULA_VALIDEZ.texto}</p>
+        </section>
 
         {/* Hoja legal: las dos cláusulas, la declaración y las firmas van
             SIEMPRE juntas en una hoja propia (nunca se cortan). */}

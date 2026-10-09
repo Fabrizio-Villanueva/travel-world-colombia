@@ -179,13 +179,19 @@ export type ResultadoGuardado =
 
 export async function guardarReserva(
   opportunityId: string,
-  valores: Record<string, ValorCampo>
+  valores: Record<string, ValorCampo>,
+  /**
+   * Campos de OPORTUNIDAD a dejar vacíos (quitar una cuota del plan de pagos).
+   * Un valor vacío en `valores` se ignora a propósito (nunca se borra por
+   * accidente): borrar es siempre una decisión explícita del Generador.
+   */
+  limpiar: string[] = []
 ): Promise<ResultadoGuardado> {
   // El error se devuelve como dato, no se lanza: Next.js enmascara los errores
   // lanzados en producción ("omitted in production builds") y el representante
   // se quedaba sin saber POR QUÉ no guardó.
   try {
-    return { ok: true, guardados: await guardar(opportunityId, valores) }
+    return { ok: true, guardados: await guardar(opportunityId, valores, limpiar) }
   } catch (e) {
     console.error('guardarReserva:', e)
     return { ok: false, error: (e as Error).message }
@@ -194,7 +200,8 @@ export async function guardarReserva(
 
 async function guardar(
   opportunityId: string,
-  valores: Record<string, ValorCampo>
+  valores: Record<string, ValorCampo>,
+  limpiar: string[]
 ): Promise<number> {
   const { user } = await requireReservas()
 
@@ -235,6 +242,16 @@ async function guardar(
         }
       }
     }
+  }
+
+  // Vaciar explícito (quitar cuotas): solo campos de oportunidad del catálogo
+  // que no vengan también con valor en este mismo lote.
+  for (const ghlId of new Set(limpiar)) {
+    const campo = porId.get(ghlId)
+    const conValor = valores[ghlId] !== undefined && valores[ghlId] !== ''
+    if (!campo || campo.model !== 'opportunity' || conValor) continue
+    if (loteOportunidad.some(x => x.id === ghlId)) continue
+    loteOportunidad.push({ id: ghlId, field_value: '' })
   }
 
   const nEstandar = Object.keys(estandar).length
