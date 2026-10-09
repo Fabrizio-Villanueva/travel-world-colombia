@@ -32,7 +32,7 @@ import type { ContratoDatos } from './tipos'
  */
 
 export interface EventoContrato {
-  tipo: 'creado' | 'codigo_enviado' | 'verificado' | 'visto' | 'firmado' | 'pdf' | 'anulado' | 'descargado'
+  tipo: 'creado' | 'codigo_enviado' | 'verificado' | 'visto' | 'firmado' | 'pdf' | 'anulado' | 'descargado' | 'copia_reenviada'
   en: string
   ip?: string
   ua?: string

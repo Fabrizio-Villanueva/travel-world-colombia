@@ -43,7 +43,7 @@ function htmlCorreo(codigo: string, reserva: string | null): string {
 <p style="color:#94A3B8;font-size:11px">Si no pediste este código, ignora este mensaje.</p></div>`
 }
 
-async function enviarCorreo(contactId: string, asunto: string, html: string): Promise<{ messageId?: string; conversationId?: string }> {
+export async function enviarCorreo(contactId: string, asunto: string, html: string): Promise<{ messageId?: string; conversationId?: string }> {
   const t = process.env.GHL_TWC_PIT
   if (!t) throw new Error('Falta GHL_TWC_PIT')
   const res = await fetch(`${GHL.api}/conversations/messages`, {

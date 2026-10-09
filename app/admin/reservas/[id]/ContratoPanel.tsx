@@ -4,7 +4,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, Ban, CheckCircle2, Eye, FileSignature, Loader2, RefreshCw, Send } from 'lucide-react'
-import { anularContratoPanel, enviarContrato, estadoContrato, reenviarContrato, type EstadoContratoPanel } from './contrato-actions'
+import {
+  anularContratoPanel,
+  enviarContrato,
+  estadoContrato,
+  reenviarContrato,
+  reenviarCopiaFirmada,
+  type EstadoContratoPanel,
+} from './contrato-actions'
 
 /**
  * Recuadro "Contrato" del Generador: estado del contrato propio (enviado →
@@ -31,7 +38,7 @@ const fechaHora = (iso: string) =>
 
 export function ContratoPanel({ opportunityId, inicial }: { opportunityId: string; inicial: EstadoContratoPanel }) {
   const router = useRouter()
-  const [ocupado, setOcupado] = useState<null | 'enviar' | 'reenviar' | 'anular'>(null)
+  const [ocupado, setOcupado] = useState<null | 'enviar' | 'reenviar' | 'copia' | 'anular'>(null)
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
   // Los faltantes se calculan al abrir la página; la asesora los va llenando en
   // el wizard de abajo, así que se pueden volver a revisar sin recargar (y el
@@ -51,6 +58,24 @@ export function ContratoPanel({ opportunityId, inicial }: { opportunityId: strin
     }
   }
   const vigente = u && (u.estado === 'enviado' || u.estado === 'visto')
+
+  async function reenviarCopia() {
+    if (!confirm('Se le enviará al cliente el enlace de su contrato firmado por WhatsApp y correo. ¿Continuar?')) return
+    setOcupado('copia')
+    setMensaje(null)
+    try {
+      const r = await reenviarCopiaFirmada(opportunityId)
+      setMensaje(
+        r.ok
+          ? { tipo: 'ok', texto: `Copia del contrato firmado enviada por ${r.datos.canales.join(' y ')}.` }
+          : { tipo: 'error', texto: r.error }
+      )
+    } catch {
+      setMensaje({ tipo: 'error', texto: 'No se pudo completar. Revisa tu conexión e intenta de nuevo.' })
+    } finally {
+      setOcupado(null)
+    }
+  }
 
   async function correr(accion: 'enviar' | 'reenviar' | 'anular') {
     if (accion === 'enviar' && vigente && !confirm('Se enviará una versión NUEVA con los datos actuales y el enlace anterior dejará de servir. ¿Continuar?')) return
@@ -149,9 +174,15 @@ export function ContratoPanel({ opportunityId, inicial }: { opportunityId: strin
         </Link>
 
         {u?.estado === 'firmado' ? (
-          <a href={`/admin/contratos/${u.id}/pdf`} target="_blank" rel="noopener noreferrer" className={boton} style={{ background: ACCENT, color: '#fff' }}>
-            <FileSignature size={14} /> Ver PDF firmado
-          </a>
+          <>
+            <a href={`/admin/contratos/${u.id}/pdf`} target="_blank" rel="noopener noreferrer" className={boton} style={{ background: ACCENT, color: '#fff' }}>
+              <FileSignature size={14} /> Ver PDF firmado
+            </a>
+            <button type="button" onClick={reenviarCopia} disabled={ocupado !== null} className={boton} style={{ border: `1px solid ${BORDER}`, color: NAVY }}>
+              {ocupado === 'copia' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              Reenviar copia firmada
+            </button>
+          </>
         ) : (
           <button
             type="button"

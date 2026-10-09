@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdminRole, requireReservas } from '@/lib/admin/guard'
 import { registrarActividad } from '@/lib/admin/audit'
 import { contratoDesdeGhl } from '@/lib/contratos/desde-ghl'
+import { enviarCopiaFirmada } from '@/lib/contratos/copia'
 import {
   anularContrato,
   contratoDeOportunidad,
@@ -82,6 +83,17 @@ export async function reenviarContrato(opportunityId: string): Promise<Resultado
     await requireReservas()
     await reenviarAvisoContrato(opportunityId)
     return { ok: true, datos: null }
+  } catch (e) {
+    return fallo(e)
+  }
+}
+
+export async function reenviarCopiaFirmada(opportunityId: string): Promise<Resultado<{ canales: string[] }>> {
+  try {
+    const session = await requireReservas()
+    const datos = await enviarCopiaFirmada(opportunityId)
+    await registrarActividad({ email: session.user.email ?? 'panel', accion: 'reenviar-copia-contrato', slug: opportunityId })
+    return { ok: true, datos }
   } catch (e) {
     return fallo(e)
   }

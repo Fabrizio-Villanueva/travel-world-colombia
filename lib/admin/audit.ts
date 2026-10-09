@@ -23,6 +23,7 @@ export type AccionAudit =
   // Contrato propio con firma electrónica.
   | 'enviar-contrato'
   | 'anular-contrato'
+  | 'reenviar-copia-contrato'
   | 'ver-contrato'
 
 interface RegistroActividad {

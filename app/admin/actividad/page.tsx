@@ -39,6 +39,7 @@ const ACCIONES: Record<AccionAudit, { label: string; color: string; Icon: typeof
   'editar-regla-visa':         { label: 'Editó regla de visa', color: 'var(--orange)', Icon: Globe },
   'enviar-contrato':           { label: 'Envió contrato para firma', color: '#4ade80', Icon: FileSignature },
   'anular-contrato':           { label: 'Anuló un contrato', color: '#ef4444', Icon: Ban },
+  'reenviar-copia-contrato':   { label: 'Reenvió copia de contrato firmado', color: '#4ade80', Icon: FileSignature },
   'ver-contrato':              { label: 'Abrió un contrato firmado', color: 'var(--orange)', Icon: FileSearch },
 }
 
