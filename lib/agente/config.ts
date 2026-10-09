@@ -225,7 +225,7 @@ export const RESPALDO = {
  * cambiarlo, edítalo aquí.
  */
 export const AVISO_DATOS =
-  '¡Hola! Soy Sol, tu asesora en Travel World Colombia 🌍\n\n' +
+  '¡Hola! Soy Sol, de Travel World Colombia 🌍\n\n' +
   'Con gusto te ayudo a planear tu viaje. Para cuidar tus datos: al continuar ' +
   'por este chat aceptas nuestros términos y el tratamiento de tu información ' +
   'según nuestra política 👉 https://bit.ly/4tGfmuG'

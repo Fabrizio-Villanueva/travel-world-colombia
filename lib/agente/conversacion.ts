@@ -64,7 +64,11 @@ export async function meTocaResponder(
   if (RAFAGA_MS <= 0) return true
 
   await new Promise(r => setTimeout(r, RAFAGA_MS))
+  return sinMensajeMasNuevo(conversationId, recibidoEn)
+}
 
+/** ¿No hay ningún mensaje del cliente más nuevo que este en la conversación? */
+async function sinMensajeMasNuevo(conversationId: string, recibidoEn: string): Promise<boolean> {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('agente_eventos')
@@ -100,6 +104,8 @@ interface Entrada {
   tags: string[]
   /** Fecha del mensaje que disparó el turno. */
   fechaMensaje?: Date
+  /** `recibido_en` del evento que disparó el turno (para el re-chequeo de ráfaga antes de enviar). */
+  recibidoEn?: string
 }
 
 /**
@@ -206,6 +212,16 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
     })
   }
   marcarFuenteAnuncio(decision, anuncio)
+
+  // Re-chequeo de ráfaga, ya con la respuesta lista: GHL a veces entrega el
+  // webhook con 15-20 s de retraso, y el mensaje siguiente del cliente puede
+  // registrarse después de que terminó nuestra espera (caso real 08-oct: dos
+  // respuestas casi iguales a "¿cuál es el precio?" + "¿cuáles son los
+  // hoteles?"). Si ya hay uno más nuevo, este turno no envía nada: el del
+  // mensaje nuevo responde con toda la conversación a la vista.
+  if (e.recibidoEn && !(await sinMensajeMasNuevo(e.conversationId, e.recibidoEn))) {
+    return { actuo: false, decision, nota: 'descarta su respuesta: llegó otro mensaje mientras pensaba (ráfaga)' }
+  }
 
   // Primero la voz, después la mano: el mensaje al cliente sale de inmediato y
   // la escritura en el CRM va al final, donde un fallo ya no le quita respuesta

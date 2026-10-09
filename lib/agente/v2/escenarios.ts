@@ -57,6 +57,11 @@ export const ESCENARIOS_BASE: { nombre: string; persona: string; esperado: strin
     esperado: 'Desde el primer mensaje entiende que Juan Camilo es del equipo (nunca llama "Juan Camilo" a la clienta), escala con asesor_pedido = Juan Camilo, le dice que ya le avisa a él y le pregunta su nombre; no le ofrece destinos.',
   },
   {
+    nombre: 'Madrid a la medida · primera vez en Europa (caso Paola)',
+    persona: 'Te llamas Paola. Quieres viajar sola a Madrid de turista, en noviembre después del 15, unos 8 días, saliendo de Bogotá. Es tu primera vez en Europa. Te gustan los museos, caminar la ciudad y la comida. Si te insisten en el presupuesto, dices que unos 7 a 8 millones en total. Hotel sencillo pero bien ubicado. Preguntas el precio, qué hoteles ofrecen y si necesitas visa.',
+    esperado: 'La perfila como experta (primera vez, ciudades a combinar, gustos, hotel, presupuesto) aportando información del destino en cada mensaje; puede mostrar un circuito de Europa del catálogo como referencia; dice que los colombianos no necesitan visa Schengen; nunca nombra a "la asesora"; pregunta el anticipo máximo una vez; resumen rico para quien cotiza.',
+  },
+  {
     nombre: 'Me ofrecieron más barato',
     persona: 'Quieres Cancún en noviembre, 2 adultos desde Bogotá, 5 noches. Otra agencia te ofreció 2.400.000 por persona y lo dices.',
     esperado: 'Valida, sugiere comparar qué incluye y ofrece que la asesora revise la otra cotización; objecion = comparando.',

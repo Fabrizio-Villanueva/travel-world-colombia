@@ -151,6 +151,7 @@ export async function POST(req: NextRequest) {
         fechaMensaje: extra?.mensajeCrudo?.dateAdded
           ? new Date(extra.mensajeCrudo.dateAdded)
           : new Date(),
+        recibidoEn: evento?.recibidoEn,
       })
       if (evento) await anotarEvento(evento.id, `SOL → ${turno.nota}`)
     } catch (err) {

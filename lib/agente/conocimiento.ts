@@ -59,7 +59,7 @@ const MAX_DETALLES_TOTAL = 6
 function bloqueDetalle(d: Destino): string {
   const partes = [
     `### ${d.nombre}${d.nombre_local ? ` (${d.nombre_local})` : ''}`,
-    d.precio_desde ? `- precio desde: ${d.precio_desde}` : '- precio: no publicado (lo confirma una asesora)',
+    d.precio_desde ? `- precio desde: ${d.precio_desde}` : '- precio: no publicado (se confirma en la cotización)',
     d.duracion ? `- duración: ${d.duracion}` : null,
     d.descripcion ? `- descripción: ${recortar(d.descripcion, 320)}` : null,
     d.incluye?.length ? `- incluye: ${recortar(d.incluye.join(' · '), 400)}` : null,
@@ -121,8 +121,8 @@ export async function construirConocimiento(): Promise<Conocimiento> {
 Estos son los ÚNICOS programas ya armados que vende la agencia, con su precio de
 referencia; entre corchetes van sus categorías (ej. Cruceros · Sin visa, Todo
 incluido), útiles si el cliente busca por tipo de plan. Si el cliente pregunta
-por un destino que NO está en esta lista, se arma a la medida (lo cotiza una
-asesora) — enmárcalo en positivo, sin decir que no está publicado. Cuando el cliente se interese por uno de esta lista, su
+por un destino que NO está en esta lista, se arma a la medida (se cotiza
+aparte) — enmárcalo en positivo, sin decir que no está publicado. Cuando el cliente se interese por uno de esta lista, su
 detalle completo (qué incluye, itinerario…) aparecerá más abajo en el contexto.
 
 ${indice}
