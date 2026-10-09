@@ -58,6 +58,9 @@ const INCLUSIONES_NUEVAS = [
   '🍛 Alimentación: Desayunos y cenas de acuerdo a las noches tomadas',
   '🍛 Alimentación: Desayunos, almuerzos y cenas de acuerdo a las noches tomadas',
   '🍕🍨🍹 Snacks, bebidas y licores ilimitados en horarios establecidos por el hotel',
+  // 09-oct: pedido del cliente.
+  '🚌 Traslado en bus durante todo el recorrido',
+  '🧑‍✈️ Coordinador de viaje',
 ]
 
 const NO_INCLUYE_ORIGINALES = [
