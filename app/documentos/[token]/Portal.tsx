@@ -715,7 +715,9 @@ function Casilla({
         ) : null}
       </div>
 
-      <input ref={inputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={elegir} />
+      {/* Sin `capture`: forzaba la cámara y, si el celular la tenía bloqueada, el
+          botón no abría nada. Así el sistema ofrece cámara, galería o archivo. */}
+      <input ref={inputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={elegir} />
 
       {(fase === 'subiendo' || fase === 'leyendo') && <PantallaAnalisis fase={fase} etiqueta={etiqueta} />}
 
