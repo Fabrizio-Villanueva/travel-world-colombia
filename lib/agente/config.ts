@@ -218,6 +218,26 @@ export const RESPALDO = {
 } as const
 
 /**
+ * Pausa temporal de Sol (prueba del 09-oct-2026: Ginna atiende como Sol
+ * debería trabajar y Sol solo observa). Mientras dure:
+ *  - Sol no contesta (ni turno normal, ni respaldo, ni seguimientos);
+ *  - todo cliente que escriba y no tenga dueño se asigna a `asignarA`
+ *    (contacto + tarjeta abierta de Leads) y queda con stop_bot, para que al
+ *    terminar la pausa Sol no se meta en un chat que ya lleva una persona;
+ *  - el webhook sigue registrando todo, así queda el rastro para el resumen.
+ * Se apaga sola al pasar `hasta`. `AGENTE_PAUSA_HASTA` en Vercel la cambia sin
+ * tocar código (fecha ISO; vacío o pasada = sin pausa).
+ */
+export const PAUSA = {
+  hasta: new Date(process.env.AGENTE_PAUSA_HASTA || '2026-10-09T22:00:00Z'), // 5:00 p. m. Bogotá
+  asignarA: process.env.AGENTE_PAUSA_ASIGNAR_A || '2fa0Pph0vWepKKCNmju8', // Ginna Cardenas
+} as const
+
+export function solEnPausa(ahora = new Date()): boolean {
+  return ahora.getTime() < PAUSA.hasta.getTime()
+}
+
+/**
  * Aviso de tratamiento de datos (Ley 1581 de 2012): consentimiento informado +
  * enlace a la política. Se envía UNA sola vez por contacto, como mensaje aparte,
  * antes de la primera respuesta real de Sol. Es texto LEGAL: va literal, nunca

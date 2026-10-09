@@ -4,8 +4,12 @@ import {
   agregarTags,
   crearNota,
   enviarMensaje,
+  actualizarContacto,
+  asignarOportunidad,
+  moverYAsignarOportunidad,
   nombreUsuario,
   obtenerContacto,
+  oportunidadesDe,
   quitarTags,
   rutaDeRespuesta,
   ultimosMensajes,
@@ -14,7 +18,19 @@ import {
 import { asignarAsesorPedido, sincronizarCrm } from '@/lib/agente/crm'
 import { extraerFotos } from '@/lib/agente/conocimiento'
 import { anuncioParaConversacion, type AnuncioContexto } from '@/lib/agente/anuncios'
-import { ACTIVO_DESDE, AVISO_DATOS, CAMPO_IA_NOMBRE, HORARIO, RAFAGA_MS, RESPALDO, TAGS, TAG_PRUEBAS } from '@/lib/agente/config'
+import {
+  ACTIVO_DESDE,
+  AVISO_DATOS,
+  CAMPO_IA_NOMBRE,
+  HORARIO,
+  PAUSA,
+  PIPELINE,
+  RAFAGA_MS,
+  RESPALDO,
+  TAGS,
+  TAG_PRUEBAS,
+  solEnPausa,
+} from '@/lib/agente/config'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { costoUsd, decidirV2 } from '@/lib/agente/v2/decidir'
 import { enviarRespuestaV2, estadoPrevioV2, registrarTurnoAB, versionPara } from '@/lib/agente/v2/ab'
@@ -109,6 +125,41 @@ interface Entrada {
 }
 
 /**
+ * Durante la PAUSA: el cliente sin dueño pasa a `PAUSA.asignarA` (contacto y
+ * tarjeta abierta de Leads; si la tarjeta sigue en Lead Nuevo, sube a Asignado
+ * a Agente) y queda con stop_bot. Un contacto que ya tiene otra asesora se
+ * respeta. Nunca lanza: devuelve la nota para el evento.
+ */
+async function asignarEnPausa(contactId: string): Promise<string> {
+  try {
+    const contacto = await obtenerContacto(contactId)
+    const dueno = contacto?.assignedTo
+    if (dueno && dueno !== PAUSA.asignarA) {
+      return 'PAUSA: Sol no contesta · el contacto ya tiene otra asesora (no se reasigna)'
+    }
+    const partes: string[] = []
+    if (!dueno) {
+      await actualizarContacto(contactId, { assignedTo: PAUSA.asignarA })
+      partes.push('contacto')
+    }
+    const abierta = (await oportunidadesDe(contactId)).find(
+      o => o.pipelineId === PIPELINE.id && o.status === 'open'
+    )
+    if (abierta?.pipelineStageId === PIPELINE.etapas.leadNuevo) {
+      await moverYAsignarOportunidad(abierta.id, PIPELINE.id, PIPELINE.etapas.asignadoAAgente, PAUSA.asignarA)
+      partes.push('tarjeta → Asignado a Agente')
+    } else if (abierta) {
+      await asignarOportunidad(abierta.id, PAUSA.asignarA)
+      partes.push('tarjeta')
+    }
+    if (!contacto?.tags?.includes(TAGS.stopBot)) await agregarTags(contactId, [TAGS.stopBot])
+    return `PAUSA: Sol no contesta · asignado a la persona de la pausa (${partes.join(', ') || 'ya era suyo'}) · stop_bot`
+  } catch (err) {
+    return `PAUSA: Sol no contesta · asignar falló: ${(err as Error).message}`
+  }
+}
+
+/**
  * Orquesta un turno de Sol: decide si debe intervenir, consulta al modelo,
  * envía la respuesta y registra el mensaje enviado.
  *
@@ -132,6 +183,10 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   if (e.tags.some(t => (TAGS.noCliente as readonly string[]).includes(t))) {
     return { actuo: false, nota: 'proveedor/mayorista' }
   }
+  // 3a. Sol en pausa (ver PAUSA): no contesta; el cliente pasa a la persona
+  //     designada. Va después del filtro de proveedores (a esos no se les asigna).
+  if (solEnPausa()) return { actuo: false, nota: await asignarEnPausa(e.contactId) }
+
   // Con stop_bot solo se sigue si Sol ya está cubriendo a la asesora (ver
   // RESPALDO): contesta al instante hasta que ella vuelva a escribir.
   const enRespaldo = e.tags.includes(TAGS.stopBot) && RESPALDO.activo && e.tags.includes(TAGS.respaldo)

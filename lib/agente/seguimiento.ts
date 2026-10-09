@@ -28,6 +28,7 @@ import {
   PIPELINES_POSTVENTA,
   TAGS,
   TAG_PRUEBAS,
+  solEnPausa,
 } from '@/lib/agente/config'
 
 /**
@@ -80,6 +81,9 @@ const MAX_FALLOS = 2
 const VENTANA_META_DIAS = 7
 
 export async function correrSeguimientos(limite = 8): Promise<ResumenSeguimientos> {
+  // Sol en pausa (ver PAUSA): la cola se queda quieta y la retoma una corrida posterior.
+  if (solEnPausa()) return { revisados: 0, enviados: 0, notas: ['Sol en pausa: sin seguimientos'] }
+
   // Ley 2300 de 2023: solo L-V 8-19 y sábados 8-15, nunca domingos ni
   // festivos. La fila no se pierde: la recoge una corrida siguiente.
   if (!horaDeSeguimiento()) {

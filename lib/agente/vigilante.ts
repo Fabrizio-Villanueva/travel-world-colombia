@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { anotarEvento } from '@/lib/agente/eventos'
 import { atenderRespaldo, enHorario } from '@/lib/agente/conversacion'
 import { obtenerContacto, ultimosMensajes, agregarTags, quitarTags, type MensajeGhl } from '@/lib/agente/ghl'
-import { HORARIO, RESPALDO, TAGS } from '@/lib/agente/config'
+import { HORARIO, RESPALDO, TAGS, solEnPausa } from '@/lib/agente/config'
 import { esFestivo } from '@/lib/agente/festivos'
 
 /**
@@ -196,6 +196,7 @@ export async function correrVigilancia(
         dry ? 'DRY RUN (no escribe tags ni llama a Sol)' : null,
         marcar ? null : 'fuera de horario: no marca lead_sin_respuesta',
         RESPALDO.activo ? null : 'respaldo apagado (AGENTE_RESPALDO=off)',
+        solEnPausa(ahora) ? 'Sol en pausa: sin respaldo' : null,
         prueba ? `PRUEBA: solo ${prueba}, sin espera` : null,
       ]
         .filter(Boolean)
@@ -289,6 +290,7 @@ export async function correrVigilancia(
       //    así quedó sin respuesta (Sol calló o falló), se reintenta aquí.
       const tocaRespaldo =
         RESPALDO.activo &&
+        !solEnPausa(ahora) &&
         tags.includes(TAGS.stopBot) &&
         (Boolean(prueba) || edadEntranteMin >= esperaRespaldoMin(llegada, ahora))
       if (!tocaRespaldo) continue
