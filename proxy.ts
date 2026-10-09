@@ -69,9 +69,11 @@ export async function proxy(req: NextRequest) {
       return NextResponse.redirect(new URL('/admin/registro', req.url))
     }
 
-    // El representante solo ve Reservas: cualquier otra sección lo devuelve
-    // ahí (chequeo optimista; los guards de página/acción son la defensa real).
-    if (rol === 'representante' && !path.startsWith('/admin/reservas')) {
+    // El representante solo ve Reservas (y el PDF firmado que se abre desde
+    // ahí): cualquier otra sección lo devuelve a Reservas (chequeo optimista;
+    // los guards de página/acción son la defensa real).
+    const permitidaRepresentante = path.startsWith('/admin/reservas') || /^\/admin\/contratos\/[^/]+\/pdf$/.test(path)
+    if (rol === 'representante' && !permitidaRepresentante) {
       return NextResponse.redirect(new URL('/admin/reservas', req.url))
     }
   }
