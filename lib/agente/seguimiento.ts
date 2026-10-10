@@ -160,6 +160,7 @@ async function atenderSeguimiento(fila: FilaSeguimiento): Promise<string> {
     return `saltado: modo prueba (falta el tag ${TAG_PRUEBAS})`
   }
   if (tags.includes(TAGS.stopBot)) return cerrar(fila, 'el contacto tiene stop_bot')
+  if (tags.includes(TAGS.noContactar)) return cerrar(fila, 'pidió no recibir novedades (no_contactar)')
   if (tags.some(t => (TAGS.noCliente as readonly string[]).includes(t))) {
     return cerrar(fila, 'proveedor/mayorista')
   }

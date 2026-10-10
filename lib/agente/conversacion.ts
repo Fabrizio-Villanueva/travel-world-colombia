@@ -183,6 +183,12 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   if (e.tags.some(t => (TAGS.noCliente as readonly string[]).includes(t))) {
     return { actuo: false, nota: 'proveedor/mayorista' }
   }
+  // Pidió no recibir novedades (respondió SALIR a una reactivación): Sol no
+  // sigue esa conversación como venta. Si escribe de nuevo, lo atiende una
+  // persona (el vigilante avisa si nadie responde). La asesora puede quitar el tag.
+  if (e.tags.includes(TAGS.noContactar)) {
+    return { actuo: false, nota: `pidió no recibir novedades (${TAGS.noContactar}): Sol no responde; lo atiende una persona` }
+  }
   // 3a. Sol en pausa (ver PAUSA): no contesta; el cliente pasa a la persona
   //     designada. Va después del filtro de proveedores (a esos no se les asigna).
   if (solEnPausa()) return { actuo: false, nota: await asignarEnPausa(e.contactId) }

@@ -9,6 +9,8 @@ import { TAGS, ACTIVO_DESDE, TAG_PRUEBAS } from '@/lib/agente/config'
 import { atender, meTocaResponder } from '@/lib/agente/conversacion'
 import { extraerReferral, registrarAnuncio } from '@/lib/agente/anuncios'
 import { secretoRecibido } from '@/lib/agente/secreto'
+import { marcarRespuestaReactivacion, procesarBaja } from '@/lib/agente/reactivacion/baja'
+import { esBaja } from '@/lib/agente/reactivacion/reglas'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -134,6 +136,21 @@ export async function POST(req: NextRequest) {
     // conversación para que Sol sepa qué vio (nunca lanza).
     const referral = extraerReferral(crudo)
     if (referral) await registrarAnuncio(referral, conversationId, n.contactId)
+
+    // Reactivación A/B: si le habíamos escrito, el cliente respondió (nunca lanza).
+    await marcarRespuestaReactivacion(n.contactId)
+
+    // Baja ("SALIR", "no me escriban"): se atiende aquí, sin turno de Sol y sin
+    // esperar la ráfaga — es una sola respuesta fija y legal, no una venta. El
+    // evento ya quedó registrado arriba, así que un mensaje posterior de la
+    // misma ráfaga sigue su camino normal (y Sol lo calla por el tag).
+    if (esBaja(n.cuerpo ?? extra?.cuerpo)) {
+      const nota = await procesarBaja({ contactId: n.contactId, conversationId, tags }).catch(
+        err => `BAJA falló: ${(err as Error).message}`
+      )
+      if (evento) await anotarEvento(evento.id, nota)
+      return
+    }
 
     try {
       if (evento && !(await meTocaResponder(conversationId, evento.recibidoEn))) {

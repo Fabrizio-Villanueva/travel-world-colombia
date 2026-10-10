@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Plane, Star, HelpCircle, Users, Activity, Globe, LogOut, Menu, X,
-  ClipboardList, Tags, Megaphone, Type, FileCheck, HeartPulse, Bot, FlaskConical, Split,
+  ClipboardList, Tags, Megaphone, Type, FileCheck, HeartPulse, Bot, FlaskConical, Split, RefreshCw,
 } from 'lucide-react'
 import { signOut } from '../actions'
 import type { Role } from '@/lib/admin/allowlist'
@@ -20,6 +20,7 @@ const NAV: { href: string; label: string; Icon: typeof Plane; exact?: boolean; s
   { href: '/admin/sol',         label: 'Sol: reglas comerciales', Icon: Bot, soloAdmin: true, exact: true },
   { href: '/admin/sol/laboratorio', label: 'Laboratorio de Sol', Icon: FlaskConical, soloAdmin: true },
   { href: '/admin/sol/ab',      label: 'Sol: prueba A/B', Icon: Split, soloAdmin: true },
+  { href: '/admin/sol/reactivacion', label: 'Sol: reactivación A/B', Icon: RefreshCw, soloAdmin: true },
   { href: '/admin/reservas',    label: 'Generador de Contratos', Icon: ClipboardList },
   { href: '/admin/documentos',  label: 'Documentos de viajeros', Icon: FileCheck },
   { href: '/admin/resenas',     label: 'Reseñas',      Icon: Star },

@@ -185,6 +185,48 @@ export const TAGS = {
    * reaparece en un lead que la asesora ya contactó.
    */
   nuevoLead: 'new_lead',
+  /**
+   * NUEVO (lo pone el código): el cliente pidió no recibir más novedades
+   * (respondió SALIR o "no me escriban" — ver `esBaja` en
+   * lib/agente/reactivacion/reglas.ts). Desde ahí nadie le escribe por
+   * iniciativa propia: ni la reactivación, ni los seguimientos, ni Sol vende en
+   * ese chat. Si vuelve a escribir, lo atiende una persona (el vigilante avisa
+   * por SLA). Quitarlo es decisión de una asesora, a mano.
+   */
+  noContactar: 'no_contactar',
+} as const
+
+/**
+ * Reactivación de leads no calificados por WhatsApp, con prueba A/B
+ * (IA de Sol vs. plantilla fija). Ver lib/agente/reactivacion/.
+ *
+ * El código decide QUIÉN y CUÁNDO (elegibilidad, cupo, horario legal) y la
+ * lista corta de productos; la variante solo decide CÓMO se dice.
+ *
+ *  - `activo`: interruptor general. En false la ruta solo acepta `?dry=1`
+ *    (genera y registra como dry_run, sin enviar nada). Encender = cambiar a
+ *    true y publicar (decisión del dueño, después de revisar un dry-run).
+ *  - `loteDiario`: envíos por corrida (el cron corre una vez al día, L-S),
+ *    repartidos 50/50 entre variantes para que la comparación sea pareja.
+ *  - `promoDelMes`: texto de una promoción REAL vigente que la variante IA
+ *    puede mencionar (null = ninguna; entonces no se habla de descuentos).
+ */
+export const REACTIVACION = {
+  activo: false,
+  loteDiario: 20,
+  promoDelMes: null as string | null,
+  /** Días mínimos desde el último mensaje de Sol sin respuesta. */
+  diasSinRespuesta: 3,
+  /** No se vuelve a escribir a un contacto reactivado (o evaluado por la IA) en este plazo. */
+  diasEntreReactivaciones: 30,
+  /** Leads más viejos que esto (última actividad de Sol) ya no se persiguen. */
+  ventanaDias: 90,
+  /** Tags que excluyen además de stop_bot, sol_calificado, escalada, no_contactar y no-clientes. */
+  tagsExcluidos: ['invalid whatsapp number', 'contact is not registered'],
+  /** Línea legal que el código agrega SIEMPRE al final del texto (no la escribe la IA). */
+  lineaBaja: 'Si prefieres no recibir más novedades, responde SALIR.',
+  /** Respuesta única a quien pide la baja. Texto fijo (no lo redacta el modelo). */
+  confirmacionBaja: 'Listo, no te enviaremos más novedades. Si algún día quieres planear un viaje, aquí estamos 🙌',
 } as const
 
 /**
