@@ -85,7 +85,10 @@ export function lineaEquipo(miembros: MiembroEquipo[], respaldo = false): string
   return partes.join(' ')
 }
 
-/** Quita tildes y mayúsculas para comparar nombres. */
+/**
+ * Quita tildes y mayúsculas y colapsa letras dobles para comparar nombres:
+ * los clientes escriben "Johanna" por Johana o "Ginna"/"Gina" (caso real 06-oct).
+ */
 function normalizar(s: string): string[] {
   return s
     .normalize('NFD')
@@ -93,6 +96,7 @@ function normalizar(s: string): string[] {
     .toLowerCase()
     .split(/[^a-zñ]+/)
     .filter(Boolean)
+    .map(p => p.replace(/(.)\1+/g, '$1'))
 }
 
 /**

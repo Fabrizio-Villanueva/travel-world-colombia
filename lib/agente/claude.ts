@@ -4,6 +4,7 @@ import { construirConocimiento } from '@/lib/agente/conocimiento'
 import { resolverAudios } from '@/lib/agente/transcribir'
 import { HORARIO } from '@/lib/agente/config'
 import { equipo, lineaEquipo } from '@/lib/agente/equipo'
+import { lineaHorario } from '@/lib/agente/horario'
 import { nombreSeguro } from '@/lib/agente/nombre'
 import type { MensajeGhl } from '@/lib/agente/ghl'
 import type { AnuncioContexto } from '@/lib/agente/anuncios'
@@ -216,7 +217,8 @@ export async function decidir(
       : null,
     contexto.enHorario
       ? 'Estás dentro del horario de atención: si escalas, una asesora puede responder hoy.'
-      : 'Estás FUERA del horario de atención: si escalas, avísale que una asesora le escribe cuando abran, sin prometer una hora exacta.',
+      : 'Estás FUERA del horario de atención: si escalas, avísale que una asesora le escribe cuando abran.',
+    lineaHorario(),
     lineaEquipo(miembros, Boolean(contexto.respaldo)),
     anuncio ? lineaAnuncio(anuncio, nombreDe) : null,
     contexto.respaldo ? lineaRespaldo(contexto.respaldo.asesora, contexto.enHorario) : null,

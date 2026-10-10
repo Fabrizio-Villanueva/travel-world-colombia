@@ -5,6 +5,7 @@ import { resolverAudios } from '@/lib/agente/transcribir'
 import { cargarReglas, reglasParaPrompt, type ReglasComerciales } from '@/lib/agente/reglas'
 import { HORARIO } from '@/lib/agente/config'
 import { equipo, lineaEquipo } from '@/lib/agente/equipo'
+import { lineaHorario } from '@/lib/agente/horario'
 import { nombreSeguro } from '@/lib/agente/nombre'
 import { armarBorrador } from '@/lib/agente/v2/borrador'
 import { EJEMPLOS, ESQUEMA_DECISION_V2, FOCO, METODO, NUCLEO } from '@/lib/agente/v2/prompt'
@@ -102,6 +103,7 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
       ? `Este turno es un SEGUIMIENTO programado (intento ${ctx.seguimiento.intento} de ${ctx.seguimiento.maximo}): el cliente no contestó tu último mensaje.${ctx.seguimiento.angulo ? ` Ángulo anotado: ${ctx.seguimiento.angulo}` : ''} Decide si vale la pena escribir ("callar" es válido); si escribes, aporta algo nuevo y corto.${ctx.seguimiento.producto ? ` El producto que le interesó es «${ctx.seguimiento.producto.nombre}»: cierra el mensaje con [ficha:${ctx.seguimiento.producto.slug}|por qué le encaja] para que vea el plan (en un seguimiento SÍ puedes repetir esa ficha).` : ''}`
       : null,
     lineaEquipo(miembros, Boolean(ctx.respaldo)),
+    lineaHorario(),
     anuncio ? lineaAnuncio(anuncio, nombreDe) : null,
     ctx.respaldo
       ? `MODO RESPALDO: esta conversación la lleva ${ctx.respaldo.asesora ? `la asesora ${ctx.respaldo.asesora}` : 'una asesora'}; los mensajes "[Escrito por la asesora]" son suyos. La cubres porque el cliente lleva rato sin respuesta. Preséntate una vez como Sol, del equipo. No contradigas lo que ella ofreció ni prometas nada fuera del catálogo; pagos, contrato, cambios y reclamos → "escalar" diciendo que ella se lo confirma muy pronto.`
