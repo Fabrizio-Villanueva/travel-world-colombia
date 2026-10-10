@@ -109,6 +109,8 @@ export interface ResumenReactivacion {
 export interface OpcionesCorrida {
   dry: boolean
   limite?: number
+  /** Máximo de clientes atendidos en esta corrida (las reales: REACTIVACION.porCorrida). */
+  porCorrida?: number
   /** false = no escribe nada en la base (dry-run local contra producción). */
   registrar?: boolean
   /** Revisa TODOS los candidatos (para contar elegibles), aunque el cupo ya se llenó. */
@@ -233,6 +235,22 @@ export async function correrReactivacion(op: OpcionesCorrida): Promise<ResumenRe
 
   // Cupo 50/50: con un lote impar, la unidad extra va a la IA.
   const cupo: Record<Variante, number> = { ia: Math.ceil(limite / 2), plantilla: Math.floor(limite / 2) }
+
+  // Corridas reales (una por minuto): el cupo es del DÍA, no de la corrida, y
+  // se respeta el espaciado entre envíos aunque dos pasadas se crucen.
+  if (!op.dry) {
+    const bogota = new Date(ahora.getTime() - 5 * 3_600_000)
+    const inicioDia = new Date(Date.UTC(bogota.getUTCFullYear(), bogota.getUTCMonth(), bogota.getUTCDate(), 5)).toISOString()
+    const deHoy = previas.filter(f => f.creado_en >= inicioDia)
+    // Al cupo solo cuentan los enviados: si Sol decide callar, ese turno no gasta un mensaje del lote.
+    for (const f of deHoy) if (f.variante && f.decision === 'enviado') cupo[f.variante] = Math.max(0, cupo[f.variante] - 1)
+    if (cupo.ia + cupo.plantilla === 0) return { ...resumen, nota: `lote del día completo (${deHoy.length})` }
+    const ultimo = deHoy[0]?.creado_en // previas viene del más reciente al más antiguo
+    if (ultimo && ahora.getTime() - new Date(ultimo).getTime() < REACTIVACION.espaciadoSegundos * 1000) {
+      return { ...resumen, nota: 'espaciado: el último envío fue hace menos de un minuto' }
+    }
+  }
+  const porCorrida = op.porCorrida ?? Infinity
   const hechos: Record<Variante, number> = { ia: 0, plantilla: 0 }
   // Tope de revisiones en una corrida real (cada una son ~4 llamadas a GHL).
   const maxRevisados = op.evaluarTodos ? Infinity : Math.max(limite * 8, 20)
@@ -272,13 +290,31 @@ export async function correrReactivacion(op: OpcionesCorrida): Promise<ResumenRe
       break
     }
 
+    // Dos corridas cruzadas podrían elegir al mismo cliente: se revisa justo antes.
+    if (!op.dry && (await tocadoHace30Dias(admin, ev.e.contactId, hace(REACTIVACION.diasEntreReactivaciones)))) {
+      excluir('otra corrida lo atendió')
+      continue
+    }
+
     const r = await atender(ev.e, v, { destinos, temporada, previas: porContacto.get(ev.e.contactId) ?? [], dry: op.dry })
     hechos[v]++
     resumen.resultados.push(r)
     if (registrar) await guardar(admin, r)
+    if (resumen.resultados.length >= porCorrida) break
   }
 
   return resumen
+}
+
+async function tocadoHace30Dias(admin: ReturnType<typeof createAdminClient>, contactId: string, desde: string): Promise<boolean> {
+  const { data } = await admin
+    .from('agente_reactivacion')
+    .select('id')
+    .eq('contact_id', contactId)
+    .neq('decision', 'dry_run')
+    .gte('creado_en', desde)
+    .limit(1)
+  return Boolean(data?.length)
 }
 
 /** Variante del contacto: la guardada si ya la tiene; si no, el hash. */

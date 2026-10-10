@@ -212,8 +212,16 @@ export const TAGS = {
  *    puede mencionar (null = ninguna; entonces no se habla de descuentos).
  */
 export const REACTIVACION = {
-  activo: false,
+  /** Encendido el 09-oct-2026 tras aprobar el primer lote (20 mensajes revisados uno a uno). */
+  activo: true,
   loteDiario: 20,
+  /**
+   * Un cliente por corrida y al menos este tiempo entre envíos (pedido del
+   * dueño, 09-oct): el cron corre cada minuto de 10:00 a 10:39 y cada pasada
+   * atiende a uno solo, así el lote sale espaciado y no como ráfaga.
+   */
+  porCorrida: 1,
+  espaciadoSegundos: 55,
   promoDelMes: null as string | null,
   /** Días mínimos desde el último mensaje de Sol sin respuesta. */
   diasSinRespuesta: 3,

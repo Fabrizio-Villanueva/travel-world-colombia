@@ -17,8 +17,10 @@ export const maxDuration = 300
  * Runner de la reactivación de leads (A/B IA vs. plantilla), ver
  * lib/agente/reactivacion/correr.ts.
  *
- * Lo dispara el cron de Vercel (ver `vercel.json`, L-S 15:00 UTC = 10:00
- * Bogotá) o una llamada manual con el secreto del cron.
+ * Lo dispara el cron de Vercel cada minuto de 10:00 a 10:39 Bogotá, L-S (ver
+ * `vercel.json`): cada pasada atiende a UN cliente hasta completar el lote del
+ * día, así hay un minuto entre envíos. También acepta una llamada manual con
+ * el secreto del cron.
  *  - `?dry=1`: genera los mensajes y los registra como `dry_run`, sin enviar
  *    nada; devuelve el JSON completo para revisarlos.
  *  - `?limite=N`: tamaño del lote (por defecto `REACTIVACION.loteDiario`).
@@ -51,7 +53,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const resumen = await correrReactivacion({ dry, limite })
+    // Real: un cliente por corrida (el cron corre cada minuto); dry: el lote completo.
+    const resumen = await correrReactivacion({ dry, limite, porCorrida: dry ? undefined : REACTIVACION.porCorrida })
     return Response.json({ ok: true, ...resumen })
   } catch (err) {
     console.error('correrReactivacion error:', err)
