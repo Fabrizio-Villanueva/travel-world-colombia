@@ -13,6 +13,7 @@ import {
 import { buscarMiembro, equipo } from '@/lib/agente/equipo'
 import { nombreSeguro, textoAcotado } from '@/lib/agente/nombre'
 import { esFestivo } from '@/lib/agente/festivos'
+import { registrarTraspaso } from '@/lib/agente/sla-registro'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   CAMPO_IA_NOMBRE,
@@ -462,7 +463,9 @@ async function marcarHandoff(e: EntradaCrm): Promise<string | null> {
   if (listoParaAsesora(decision) && !tags.includes(TAGS.calificado)) {
     await agregarTags(e.contactId, [TAGS.calificado])
     await dejarNotaDeEscalada(e) // el mismo brief sirve para quien arme la cotización
-    return `handoff silencioso: ${TAGS.calificado} + nota con brief`
+    // Desde aquí corre el SLA de respuesta humana (lib/agente/sla-humano.ts).
+    const sla = await registrarTraspaso(e.contactId, e.conversationId, 'calificado')
+    return [`handoff silencioso: ${TAGS.calificado} + nota con brief`, sla].filter(Boolean).join(' · ')
   }
 
   return null

@@ -16,6 +16,7 @@ import { fechaBogota, fechaHabilEnDias, horaBogota, sincronizarCrm } from '@/lib
 import { extraerFotos } from '@/lib/agente/conocimiento'
 import { registrarEvento } from '@/lib/agente/eventos'
 import { esFestivo } from '@/lib/agente/festivos'
+import { registrarTraspaso } from '@/lib/agente/sla-registro'
 import { costoUsd, decidirV2 } from '@/lib/agente/v2/decidir'
 import { enviarRespuestaV2, estadoPrevioV2, registrarTurnoAB, versionPara } from '@/lib/agente/v2/ab'
 import { productoDeInteres } from '@/lib/agente/v2/ficha'
@@ -297,6 +298,8 @@ async function seguimientoConIa(
   // lo pone la intervención humana. Consistente con el webhook.
   if (decision.accion === 'escalar') {
     await agregarTags(fila.contact_id, [TAGS.transferenciaHumano])
+    // Reloj del SLA de respuesta humana (lib/agente/sla-humano.ts).
+    await registrarTraspaso(fila.contact_id, fila.conversation_id, 'escalado')
   }
 
   // v1: si el modelo escribió pero olvidó programar el siguiente intento, la

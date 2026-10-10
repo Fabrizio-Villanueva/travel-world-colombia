@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { correrVigilancia } from '@/lib/agente/vigilante'
+import { revisarSlaHumano, type ResumenSla } from '@/lib/agente/sla-humano'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -15,8 +16,9 @@ export const maxDuration = 300
 /**
  * Runner del VIGILANTE de Sol: marca los leads que llevan más del SLA sin que
  * nadie responda (dentro del horario de atención) para que un workflow de GHL
- * avise al usuario asignado, y a toda hora activa a Sol de respaldo en los
- * chats de asesora que se quedaron sin respuesta.
+ * avise al usuario asignado, a toda hora activa a Sol de respaldo en los
+ * chats de asesora que se quedaron sin respuesta, y revisa el SLA de respuesta
+ * humana a los leads que Sol calificó o escaló (avisos a los 60 min y 3 h hábiles).
  *
  * Lo dispara el cron de Vercel (ver `vercel.json`) o una llamada manual con el
  * secreto. GET a propósito: es lo que envía el cron. Idempotente: una segunda
@@ -50,7 +52,21 @@ export async function GET(req: NextRequest) {
     // minutos del respaldo — Sol lo cubre en el acto si toca.
     const soloContacto = req.nextUrl.searchParams.get('solo') || undefined
     const resumen = await correrVigilancia({ dry, soloContacto })
-    return Response.json({ ok: true, ...resumen })
+
+    // SLA de respuesta HUMANA a los leads que Sol pasó al equipo (calificados
+    // o escalados): ver lib/agente/sla-humano.ts. Va aparte del vigilante
+    // porque su reloj es otro (desde el traspaso, no desde el último mensaje
+    // del cliente) y un fallo suyo no debe frenar al respaldo ni a las marcas.
+    let slaHumano: ResumenSla | { error: string } | undefined
+    if (!soloContacto) {
+      try {
+        slaHumano = await revisarSlaHumano({ dry })
+      } catch (err) {
+        console.error('revisarSlaHumano error:', err)
+        slaHumano = { error: 'error interno (ver logs)' }
+      }
+    }
+    return Response.json({ ok: true, ...resumen, slaHumano })
   } catch (err) {
     console.error('correrVigilancia error:', err)
     return Response.json({ ok: false, error: 'error interno (ver logs)' }, { status: 500 })

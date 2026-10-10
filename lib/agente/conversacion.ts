@@ -18,6 +18,7 @@ import {
 import { asignarAsesorPedido, sincronizarCrm } from '@/lib/agente/crm'
 import { extraerFotos } from '@/lib/agente/conocimiento'
 import { anuncioParaConversacion, type AnuncioContexto } from '@/lib/agente/anuncios'
+import { registrarTraspaso } from '@/lib/agente/sla-registro'
 import {
   ACTIVO_DESDE,
   AVISO_DATOS,
@@ -340,11 +341,16 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   // Si pidió a alguien del equipo por su nombre, se le asigna ANTES del tag:
   // así la notificación y la tarea de la escalada le llegan a esa persona.
   let notaAsesor: string | null = null
+  let notaSla: string | null = null
   if (decision.accion === 'escalar') {
     notaAsesor = await asignarAsesorPedido(e.contactId, decision, e.tags).catch(
       err => `asignar al asesor pedido falló: ${(err as Error).message}`
     )
     await agregarTags(e.contactId, [TAGS.transferenciaHumano])
+    // Arranca el reloj del SLA de respuesta humana (lo vigila el cron del
+    // vigilante). Cada escalada lo intenta: si ya hay un episodio abierto, el
+    // reloj no se reinicia; si el anterior ya lo respondió una persona, abre uno nuevo.
+    notaSla = await registrarTraspaso(e.contactId, e.conversationId, 'escalado')
   }
 
   const notasCrm = await sincronizarCrm({
@@ -364,6 +370,7 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
       `[${version}${decision.venta ? ` · ${decision.venta.estado}` : ''}] ${habla ? decision.accion : 'callar'}: ${decision.motivo}`,
       anuncio ? `anuncio: ${anuncio.nombre}${anuncio.slugs.length ? ` → ${anuncio.slugs.join(', ')}` : ' (sin producto en el catálogo)'}` : null,
       notaAsesor,
+      notaSla,
       ...notasCrm,
     ]
       .filter(Boolean)
@@ -505,6 +512,14 @@ export async function atenderRespaldo(
         notas.push(`no se pudo marcar el respaldo: ${(err as Error).message}`)
       }
     }
+  }
+
+  // Escalar en respaldo: la asesora debe retomar. El reloj del SLA arranca en
+  // cada escalada (no solo la primera: el tag `transferencia a humano` queda
+  // puesto para siempre, y el episodio anterior pudo haberse respondido ya).
+  if (decision.accion === 'escalar') {
+    const notaSla = await registrarTraspaso(e.contactId, e.conversationId, 'escalado_respaldo')
+    if (notaSla) notas.push(notaSla)
   }
 
   // Escalar en respaldo: avisa al equipo (dispara la notificación) con nota, una sola vez.

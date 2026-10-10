@@ -32,7 +32,7 @@ const MEDIOS_DE_PAGO = [
   { Icono: Landmark, texto: 'Bancolombia Ahorros #264-133178-51 · VAMOS POR MÁS S.A.S.' },
   { Icono: Landmark, texto: 'Davivienda Corriente #406-169997292' },
   { Icono: QrCode, texto: 'Bre-B: Bancolombia 0090272526 · Davivienda @9005371997' },
-  { Icono: Monitor, texto: 'PSE: zonapagos.com/basica · travelworldcolombia.com/pagos' },
+  { Icono: Monitor, texto: 'PSE: portal de pagos Davivienda en travelworldcolombia.com/pagos' },
   { Icono: Mail, texto: 'Comprobantes: contabilidad.travelworld@gmail.com' },
 ]
 

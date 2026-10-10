@@ -156,7 +156,9 @@ export const TAGS = {
   /** Escalada: dispara la notificación al equipo. */
   transferenciaHumano: 'transferencia a humano',
   /** No son clientes: Sol no interviene. Espeja la exclusión del workflow "Sol Webhook". */
-  noCliente: ['proveedor', 'mayorista / operadores', 'zolutium-ai', '[device] - mayorista b2b'],
+  // Equipo interno (10-oct): "administrador" = supervisoras (Lynda) y "equipo" = asesoras;
+  // reemplazan a "mayorista / operadores" en los contactos del equipo. Sol nunca les contesta.
+  noCliente: ['proveedor', 'mayorista / operadores', 'zolutium-ai', '[device] - mayorista b2b', 'administrador', 'equipo'],
   /** Ya se le envió el aviso de tratamiento de datos: no repetirlo. */
   avisoDatos: 'sol_aviso_datos',
   /**
@@ -194,6 +196,85 @@ export const TAGS = {
    * por SLA). Quitarlo es decisión de una asesora, a mano.
    */
   noContactar: 'no_contactar',
+  /**
+   * NUEVO (lo pone el código): Sol calificó o escaló el lead y pasaron 60 min
+   * hábiles sin ningún mensaje de una persona del equipo (ver `SLA_HUMANO`).
+   * Se quita solo cuando alguien del equipo escribe. Sirve para filtrar en GHL
+   * "quién está esperando" y para colgarle un workflow que notifique al
+   * usuario asignado (igual que `lead_sin_respuesta`).
+   */
+  slaHumano: 'sla_sin_respuesta_humana',
+  /**
+   * Los pone la integración de WhatsApp cuando el chat nace de un anuncio de
+   * Meta (clic a WhatsApp desde Facebook o Instagram). Fuente del lead cuando
+   * no quedó la etiqueta del anuncio en `agente_conversacion_anuncio`.
+   */
+  anuncioMeta: ['fb-ad-lead-whatsapp', 'instagram-ad-lead-whatsapp'],
+} as const
+
+/**
+ * SLA de respuesta HUMANA a los leads que Sol pasa al equipo (calificados con
+ * `sol_calificado` o escalados con `transferencia a humano`). Ver
+ * lib/agente/sla-humano.ts; lo corre el cron del vigilante.
+ *
+ * Por qué existe (auditoría del 09-oct-2026): Sol responde en 18 s, pero el
+ * primer mensaje de una asesora a un lead calificado tardaba una mediana de
+ * 21 h y el 23 % nunca recibía uno. El vigilante no lo veía: Sol sigue en
+ * "espera caliente" contestando, así que para él el chat estaba respondido.
+ *
+ *  - `activo`: `AGENTE_SLA_HUMANO=off` en Vercel lo apaga (los traspasos se
+ *    siguen registrando, así al encenderlo no arranca en blanco).
+ *  - `minAsesora`: minutos HÁBILES (ver `minutosHabilesEntre`) hasta el primer
+ *    aviso: a la asesora asignada + nota en el contacto + tag `slaHumano`.
+ *  - `minSupervision`: minutos hábiles hasta el segundo aviso, a `ALERTAS_INTERNAS`.
+ *  - `ventanaDias`: un traspaso más viejo que esto se da por vencido sin avisar
+ *    más (evita una avalancha de avisos viejos tras una caída del cron).
+ *  - `maxAvisosPorCorrida`: tope de WhatsApps internos por corrida (cada 10 min).
+ */
+export const SLA_HUMANO = {
+  activo: process.env.AGENTE_SLA_HUMANO !== 'off',
+  minAsesora: 60,
+  minSupervision: 180,
+  ventanaDias: 5,
+  maxAvisosPorCorrida: 10,
+} as const
+
+/**
+ * WhatsApp interno de cada asesora: usuario de GHL → su contacto en GHL (al que
+ * se le escribe por la misma ruta que `ALERTAS_INTERNAS`). Solo funciona si ese
+ * contacto ya le escribió alguna vez a la línea (el canal custom necesita un
+ * entrante previo). Una asesora que no esté aquí no recibe el aviso directo:
+ * va a `ALERTAS_INTERNAS` diciendo de quién es el lead. Agregar a las demás
+ * cuando se tenga su contacto (no inventar ids).
+ */
+export const CONTACTO_INTERNO_DE_ASESORA: Readonly<Record<string, string>> = {
+  '2fa0Pph0vWepKKCNmju8': 'J2zSGMpjGr865pH1Qx95', // Ginna Cardenas
+  'gtBMafW2RLtgisOI1iuN': '6FpczLZAbqLDC0qvwc7E', // Lynda Quintero (+57 315 595 6783; tag administrador: Sol no le responde)
+  // 10-oct: teléfonos de Configuración → Usuarios, cruzados con su contacto de WhatsApp en GHL.
+  'gfnLjWvx4P1cBqKTE3sr': 'DUVlAtfz6QYkf9eRDx1C', // Adriana Gomez
+  'TUADpssNhFeR5ZKoFQeE': 'zgflFnJFQCDvYTFGGZ0N', // Alejandra Mayorga
+  'DEOpN0jovQXAXy49fo9D': 'Dpby2l4v7VZBpk53HsVS', // Johana Lozano
+  'LCUXUU3Ai3hyU2oPtkso': 'Yo0UDSlBsxSq95YFsXkZ', // Juan Camilo Gomez
+  'GXv9erHPii1ZKzwfbLhD': 'uUZDsfNxayZbfG6MImkS', // Juanita Sue Cardenas
+  'YufMwsZbiQHyk4qiI3w5': '6GDbr6vBmkznPKjIRZZl', // Luisa Aguirre
+}
+
+/**
+ * Mantenimiento de las oportunidades que corre con el cron de etapas:
+ *  - `fuente`: escribe la fuente REAL del lead (anuncio, Instagram, WhatsApp
+ *    directo…) en el `source` nativo, que el workflow E-01 deja en "lead" y
+ *    vuelve inútil el reporte de fuentes. `AGENTE_FUENTE=off` lo apaga.
+ *  - `fuenteDias`: solo oportunidades creadas en estos últimos días (las nuevas
+ *    se corrigen en ≤ 10 min; para el histórico, `?fuenteDias=365` a mano).
+ *  - `valor`: copia "Total Pasajeros - Valor Total" al valor de la tarjeta en
+ *    las ventas que no pasaron por el Generador. `AGENTE_VALOR_VENTA=off` lo apaga.
+ */
+export const MANTENIMIENTO_OPP = {
+  fuente: process.env.AGENTE_FUENTE !== 'off',
+  fuenteDias: 30,
+  maxFuentesPorCorrida: 60,
+  valor: process.env.AGENTE_VALOR_VENTA !== 'off',
+  maxValoresPorCorrida: 60,
 } as const
 
 /**
@@ -240,12 +321,14 @@ export const REACTIVACION = {
 /**
  * Avisos internos al equipo (salud del catálogo, "listo para reservar" sin
  * respuesta…). Se mandan por WhatsApp a estos contactos de GHL por la misma
- * ruta que Sol (el proveedor del último mensaje entrante). Ambos tienen el tag
- * "mayorista / operadores", así que Sol nunca les contesta. Decidido 05-oct-2026.
+ * ruta que Sol (el proveedor del último mensaje entrante). Todos tienen un tag
+ * de no-cliente ("mayorista / operadores" o "administrador"), así que Sol nunca
+ * les contesta. Decidido 05-oct-2026; Lynda (supervisora) desde el 10-oct.
  */
 export const ALERTAS_INTERNAS = [
   { nombre: 'Fabrizio Villanueva', contactId: 'uw120Td4Hyo4an1K4S0L' },
   { nombre: 'Ginna Cardenas', contactId: 'J2zSGMpjGr865pH1Qx95' },
+  { nombre: 'Lynda Quintero', contactId: '6FpczLZAbqLDC0qvwc7E' }, // supervisora (tag administrador), 10-oct
 ] as const
 
 /**

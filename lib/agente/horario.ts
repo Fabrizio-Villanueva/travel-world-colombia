@@ -70,3 +70,43 @@ export function lineaHorario(ahora = new Date()): string {
     ? `Horario de la agencia: ${horario}. AHORA la oficina está cerrada y abre ${abre} (si mencionas cuándo abre o cuándo le escriben, usa EXACTAMENTE eso: nunca adivines un día ni una hora).`
     : `Horario de la agencia: ${horario}. Ahora la oficina está abierta.`
 }
+
+/**
+ * Minutos HÁBILES entre dos instantes: solo cuentan los que caen dentro del
+ * horario de atención (L-V 9-17, sáb 9-13; sin domingos ni festivos).
+ *
+ * Lo usa el SLA de respuesta humana (lib/agente/sla-humano.ts): un lead que Sol
+ * califica un viernes a las 8 p. m. no "lleva 13 horas sin respuesta" el
+ * sábado a las 9 a. m.; su reloj arranca con la apertura. Equivale a contar el
+ * tiempo desde la siguiente apertura (`proximaApertura`) cuando el hecho
+ * ocurrió con la oficina cerrada.
+ *
+ * Bogotá no tiene horario de verano (UTC-5 fijo desde 1993), por eso las
+ * ventanas de cada día se arman con un desfase fijo.
+ */
+export function minutosHabilesEntre(desde: Date, hasta: Date): number {
+  if (!(hasta.getTime() > desde.getTime())) return 0
+  const inicio = partesBogota(desde).fecha
+  const fin = partesBogota(hasta).fecha
+  let total = 0
+  const dia = new Date(`${inicio}T12:00:00Z`)
+  for (let i = 0; i < 400; i++) {
+    const fecha = dia.toISOString().slice(0, 10)
+    const h = horarioDel(fecha)
+    if (h) {
+      const abre = Date.parse(`${fecha}T${String(h.desde).padStart(2, '0')}:00:00-05:00`)
+      const cierra = Date.parse(`${fecha}T${String(h.hasta).padStart(2, '0')}:00:00-05:00`)
+      const a = Math.max(abre, desde.getTime())
+      const b = Math.min(cierra, hasta.getTime())
+      if (b > a) total += (b - a) / 60_000
+    }
+    if (fecha >= fin) break
+    dia.setUTCDate(dia.getUTCDate() + 1)
+  }
+  return Math.floor(total)
+}
+
+/** ¿Este instante cae en horario hábil (incluye festivos, a diferencia de `enHorario`)? */
+export function esHabil(ahora = new Date()): boolean {
+  return proximaApertura(ahora) === null
+}

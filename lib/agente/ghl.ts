@@ -330,6 +330,61 @@ export async function oportunidadesEnEtapa(
   return todas
 }
 
+export interface OportunidadBusquedaGhl extends OportunidadEnEtapaGhl {
+  source?: string | null
+  createdAt?: string
+  /** El search los trae como `fieldValueString` / `fieldValueNumber`. */
+  customFields?: { id: string; fieldValueString?: string; fieldValueNumber?: number; fieldValue?: unknown }[]
+}
+
+/**
+ * Búsqueda paginada de oportunidades con filtros del search de GHL
+ * (`pipeline_id`, `pipeline_stage_id`, `status` = open|won|lost|abandoned|all).
+ * Trae source, createdAt, campos personalizados y los tags del contacto.
+ */
+export async function buscarOportunidades(
+  filtros: Record<string, string>,
+  maxPaginas = 20
+): Promise<OportunidadBusquedaGhl[]> {
+  const qs = Object.entries(filtros)
+    .map(([k, v]) => `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('')
+  const todas: OportunidadBusquedaGhl[] = []
+  for (let pagina = 1; pagina <= maxPaginas; pagina++) {
+    const r = await pedir<{ opportunities?: OportunidadBusquedaGhl[] }>(
+      `/opportunities/search?location_id=${GHL.locationId}${qs}&limit=100&page=${pagina}`
+    )
+    const lote = r.opportunities ?? []
+    todas.push(...lote)
+    if (lote.length < 100) break
+  }
+  return todas
+}
+
+/**
+ * Fija la fuente nativa (`source`) y, si se pasan, campos personalizados, en
+ * un solo PUT. Devuelve el `source` que quedó según la respuesta de GHL.
+ *
+ * OJO: `source` no figura en la documentación pública del PUT (sí lo devuelve
+ * el search). Si GHL lo rechaza (422) o lo ignora, quien llama lo detecta con
+ * lo devuelto y sigue solo con el campo "Fuente del lead".
+ */
+export async function fijarFuenteOportunidad(
+  opportunityId: string,
+  source: string | null,
+  campos: { id: string; field_value: string }[] = []
+): Promise<string | null> {
+  const r = await mandar<{ opportunity?: { source?: string | null } }>(
+    'PUT',
+    `/opportunities/${id(opportunityId)}`,
+    {
+      ...(source ? { source } : {}),
+      ...(campos.length ? { customFields: campos } : {}),
+    }
+  )
+  return r.opportunity?.source ?? null
+}
+
 /** Asigna la oportunidad a un usuario (asesora) sin moverla de etapa. */
 export async function asignarOportunidad(opportunityId: string, userId: string): Promise<void> {
   await mandar('PUT', `/opportunities/${id(opportunityId)}`, { assignedTo: userId })
