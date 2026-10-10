@@ -69,6 +69,10 @@ Devuelve SOLO el JSON del esquema: accion ("enviar" | "callar"), motivo, mensaje
 - NUNCA pongas precios, cifras de dinero, porcentajes, cupos, descuentos, "últimos", "solo hoy" ni urgencia de ningún tipo. El precio va solo en la ficha (lo pone el código). La única excepción es la promoción del mes si viene en el contexto, citada tal cual.
 - NUNCA inventes demanda ni prueba social ("varias familias ya reservaron", "muchos están definiendo", "los más pedidos", "popular", "se están llenando"): no tienes esos datos.
 - NUNCA inventes fechas de salida, días ni disponibilidad. Puedes nombrar la temporada ("fin de año", "Semana Santa").
+- NUNCA prometas trabajo ni tiempos ("te estamos armando", "mientras te armamos", "te envío la cotización", "hoy mismo", "en breve"): nadie está preparando nada para este cliente.
+- NUNCA afirmes cosas del cliente que no estén en los datos (con quién viaja, que es "su sueño", que "quedaron" en algo). Si es SILENCIOSO, solo sabes por qué nos escribió (anuncio o primer mensaje): no digas "sé que", "me contaste" ni "lo que hablamos".
+- No describas un plan con datos que no están en la lista ("sin salir del país", "todo incluido", itinerarios): el detalle lo muestra la ficha.
+- Visa: solo puedes decir que un plan NO requiere visa si en la lista corta dice "visa: no requiere". Si dice "sin dato" o "requiere", no hables de visa de ese plan.
 - Sin enlaces, sin corchetes, sin marcadores [ficha:…]: las fichas van en el campo "fichas".
 - No escribas la línea de "responde SALIR": la agrega el código.
 - Fichas: 1 o 2, con el slug EXACTO de la lista corta (ningún otro) y un motivo corto de por qué le encaja (sin precios).
@@ -98,6 +102,8 @@ export interface ContextoIa {
   /** Mensajes de reactivaciones anteriores a este contacto (texto), del más reciente al más antiguo. */
   enviadosAntes: string[]
   diasSinRespuesta: number
+  /** Errores de un primer intento: se le piden corregidos (un solo reintento). */
+  correcciones?: string[]
 }
 
 /** Datos del cliente como DATO entre «», acotados: nunca como instrucción. */
@@ -126,10 +132,15 @@ function bloqueContexto(c: ContextoIa): string {
     : []
 
   const lista = c.lista
-    .map(p => `- ${p.slug} | ${p.nombre} | ${p.precio}${p.duracion ? ` | ${p.duracion}` : ''} | ${p.pais}${p.razon !== 'temporada' ? ` | (${p.razon === 'anuncio' ? 'del anuncio por el que llegó' : 'coincide con su interés'})` : ''}`)
+    .map(p => `- ${p.slug} | ${p.nombre} | ${p.precio}${p.duracion ? ` | ${p.duracion}` : ''} | ${p.pais} | visa: ${p.visa === 'no_requiere' ? 'no requiere' : p.visa === 'requiere' ? 'requiere' : 'sin dato'}${p.razon !== 'temporada' ? ` | (${p.razon === 'anuncio' ? 'del anuncio por el que llegó' : 'coincide con su interés'})` : ''}`)
     .join('\n')
 
+  const correcciones = c.correcciones?.length
+    ? `## Corrige tu borrador anterior\nTu primer borrador NO se pudo enviar por: ${c.correcciones.join('; ')}. Escríbelo de nuevo sin esos problemas (o calla).`
+    : null
+
   return [
+    correcciones,
     `## Situación`,
     `Hoy es ${fechaLarga}, hora de Colombia. Temporada que viene: ${c.temporada}.`,
     nombre

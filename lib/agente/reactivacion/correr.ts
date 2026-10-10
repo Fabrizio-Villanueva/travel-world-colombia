@@ -484,7 +484,7 @@ async function atender(
     motivo = `plantilla capa ${capa}`
   } else {
     try {
-      const r = await redactarConIa(e.mensajes, {
+      const contextoIa = {
         segmento: e.segmento,
         capa,
         nombreConfirmado: e.nombreConfirmado,
@@ -495,9 +495,19 @@ async function atender(
         temporada: ctx.temporada.texto,
         enviadosAntes: ctx.previas.filter(f => f.decision === 'enviado' && f.mensaje).map(f => f.mensaje!),
         diasSinRespuesta: e.diasSinRespuesta,
-      })
+      }
+      let r = await redactarConIa(e.mensajes, contextoIa)
       extra.modelo = r.modelo
       extra.costoUsd = r.costoUsd
+      // Un solo reintento con los errores a la vista: un borrador rechazado deja
+      // al contacto 30 días sin mensaje (dry-run 09-oct: 5 de 10 rechazados).
+      if (r.salida.accion === 'enviar') {
+        const primeros = validarSalida({ mensaje: r.salida.mensaje, fichas: r.salida.fichas }, lista, REACTIVACION.promoDelMes, e.segmento)
+        if (primeros.length) {
+          r = await redactarConIa(e.mensajes, { ...contextoIa, correcciones: primeros })
+          extra.costoUsd = (extra.costoUsd ?? 0) + (r.costoUsd ?? 0)
+        }
+      }
       if (r.salida.accion === 'callar') return cerrar('callar', r.salida.motivo || 'la IA decidió callar', extra)
       salida = { mensaje: r.salida.mensaje, fichas: r.salida.fichas }
       motivo = r.salida.motivo
@@ -507,7 +517,7 @@ async function atender(
     }
   }
 
-  const errores = validarSalida(salida, lista, REACTIVACION.promoDelMes)
+  const errores = validarSalida(salida, lista, REACTIVACION.promoDelMes, e.segmento)
   const final = componerMensaje(salida.mensaje, salida.fichas, REACTIVACION.lineaBaja)
   extra.mensaje = final
   extra.fichas = salida.fichas

@@ -44,6 +44,9 @@ export interface ProductoCorto {
   /** Por qué quedó en la lista (para el motivo de la ficha de la plantilla). */
   razon: 'anuncio' | 'interes' | 'temporada'
   puntos: number
+  /** Qué dice la ficha del catálogo sobre la visa. Solo con 'no_requiere' se puede decir "sin visa". */
+  visa: 'no_requiere' | 'requiere' | 'sin_dato'
+  esCrucero: boolean
 }
 
 export interface FichaElegida {
@@ -230,6 +233,19 @@ export function imagenDe(d: Destino): string | undefined {
  * de prioridad pero pueden volver (en un rescate, repetir el plan que le gustó
  * es justo lo que funciona: así lo hacía la despedida fija de Sol v2).
  */
+/**
+ * Visa según el texto del catálogo. "Trámite de pasaporte, visa y valores
+ * consulares (cuando se requiera)" es genérico y NO cuenta. Caso real 09-oct:
+ * la IA dijo "Crucero Cartagena sin visa" y el catálogo no lo dice (solo La
+ * Romana trae "No requiere Visa").
+ */
+export function visaDe(d: Destino): ProductoCorto['visa'] {
+  const t = JSON.stringify(d)
+  if (/no requiere visa/i.test(t)) return 'no_requiere'
+  if (/pasaporte y visa|requiere visa|visa (americana|estadounidense)/i.test(t)) return 'requiere'
+  return 'sin_dato'
+}
+
 export function listaCorta(
   destinos: Destino[],
   c: {
@@ -288,6 +304,8 @@ export function listaCorta(
       pais: d.pais,
       razon,
       puntos,
+      visa: visaDe(d),
+      esCrucero: Boolean(d.es_crucero),
     })
   }
   // Empate: se respeta el orden del catálogo (getDestinos ya viene ordenado).
@@ -324,10 +342,14 @@ export function nombreDePila(nombreConfirmado?: string): string | undefined {
   return primero.charAt(0).toUpperCase() + primero.slice(1).toLowerCase()
 }
 
-function motivoPlantilla(p: ProductoCorto, temporada: Temporada, d?: Destino): string {
+function motivoPlantilla(p: ProductoCorto, temporada: Temporada, d: Destino | undefined, i: number, segmento: Segmento): string {
+  // La segunda ficha es la alternativa: no puede decir también "el plan por el que nos escribiste" (dry-run 09-oct).
+  if (i > 0 && p.razon !== 'temporada') return 'Otra opción para comparar'
   if (p.razon === 'anuncio') return 'El plan por el que nos escribiste'
-  if (p.razon === 'interes') return 'Va con lo que me contaste de tu viaje'
-  if (d?.salida_fin_ano && temporada.finDeAno > 0) return 'Con salida confirmada para fin de año'
+  // Un silencioso no nos "contó" nada: solo preguntó o llegó por un anuncio.
+  if (p.razon === 'interes') return segmento === 'rescate' ? 'Va con lo que me contaste de tu viaje' : 'Va con lo que nos preguntaste'
+  // "Salida confirmada" sería una promesa: solo se nombra la temporada.
+  if (d?.salida_fin_ano && temporada.finDeAno > 0) return 'Un plan para fin de año'
   if (d?.es_crucero) return 'Un crucero para la temporada'
   return p.pais && normalizarTexto(p.pais) === 'colombia' ? 'Un plan nacional para la temporada' : 'Un plan internacional para la temporada'
 }
@@ -353,7 +375,11 @@ export function plantilla(c: {
   const ordenada =
     c.capa === 2 ? [...c.lista.filter(p => c.slugsAnuncio.includes(p.slug)), ...c.lista.filter(p => !c.slugsAnuncio.includes(p.slug))] : c.lista
   const elegidos = ordenada.slice(0, 2)
-  const fichas = elegidos.map(p => ({ slug: p.slug, motivo: motivoPlantilla(p, c.temporada, porSlug.get(p.slug)) }))
+  const fichas = elegidos.map((p, i) => ({ slug: p.slug, motivo: motivoPlantilla(p, c.temporada, porSlug.get(p.slug), i, c.segmento) }))
+  const icono = elegidos[0]?.esCrucero ? '🛳️' : '✈️'
+  // "tu viaje a Crucero Disney Caribe" → "el crucero Disney Caribe".
+  const minuscula = (t: string) => t.charAt(0).toLowerCase() + t.slice(1)
+  const elPlan = (t: string) => (/^crucero/i.test(t) ? `el ${minuscula(t)}` : `el plan ${t}`)
   const dos = elegidos.length >= 2
   const opciones = dos ? 'dos opciones' : 'una opción'
 
@@ -364,18 +390,18 @@ export function plantilla(c: {
   let pregunta: string
   if (c.capa === 1) {
     if (c.segmento === 'rescate') {
-      razon = `Me quedé pensando en ${destino ? `tu viaje a ${destino}` : 'el viaje que me contaste'} 💛 Te dejo ${opciones} que te pueden servir para retomarlo.`
+      razon = `Me quedé pensando en ${destino ? (/^crucero/i.test(destino) ? elPlan(destino) : `tu viaje a ${destino}`) : 'el viaje que me contaste'} 💛 Te dejo ${opciones} que te pueden servir para retomarlo.`
       pregunta = '¿Quieres que te arme la cotización con tus fechas?'
     } else {
-      razon = `Hace unos días nos escribiste por ${destino ? `un viaje a ${destino}` : 'un viaje'} y quería saber si sigues con la idea ✈️ Te dejo ${opciones} para que les eches un ojo.`
+      razon = `Hace unos días nos escribiste por ${destino ? (/^crucero/i.test(destino) ? elPlan(destino) : `un viaje a ${destino}`) : 'un viaje'} y quería saber si sigues con la idea ${icono} Te dejo ${opciones} para que les eches un ojo.`
       pregunta = '¿Para cuándo lo estás pensando?'
     }
   } else if (c.capa === 2) {
     const producto = elegidos[0]?.nombre ?? 'nuestro plan'
     razon =
       c.segmento === 'rescate'
-        ? `Retomando lo que hablamos de ${producto} ✈️ Te lo dejo por aquí${dos ? ' con una alternativa, por si quieres compararlas' : ''}.`
-        : `Hace unos días nos escribiste por ${producto} ✈️ Te lo dejo por aquí${dos ? ' con una alternativa, por si quieres compararlas' : ''}.`
+        ? `Retomando lo que hablamos ${elPlan(producto).replace(/^el /, 'del ').replace(/^(?!del )/, 'de ')} ${icono} Te lo dejo por aquí${dos ? ' con una alternativa, por si quieres compararlas' : ''}.`
+        : `Hace unos días nos escribiste por ${elPlan(producto)} ${icono} Te lo dejo por aquí${dos ? ' con una alternativa, por si quieres compararlas' : ''}.`
     pregunta = '¿Te cuento qué fechas tenemos?'
   } else {
     razon = `Ya se acerca ${c.temporada.texto} ${c.temporada.emoji} y quería compartirte ${dos ? 'dos planes' : 'un plan'} que te pueden gustar.`
@@ -408,7 +434,16 @@ const PROHIBIDOS: { nombre: string; re: RegExp }[] = [
   { nombre: 'descuento/oferta', re: /\bdescuentos?\b|\bofertas?\b|\bpromo(ci[oó]n)?(es)?\b|\brebaja/i },
   { nombre: 'fecha concreta', re: new RegExp(`\\b\\d{1,2}\\s*(de\\s+)?(${MESES})\\b|\\b\\d{1,2}[/-]\\d{1,2}\\b|\\b20\\d{2}\\b|\\b(este|el pr[oó]ximo|pr[oó]ximo)\\s+(${DIAS_SEMANA})\\b`, 'i') },
   { nombre: 'enlace o marcador', re: /https?:\/\/|www\.|\[|\]|#btn/i },
+  // Promesa de trabajo o de tiempo (dry-run 09-oct: "Mientras te armamos esa opción a la medida"; auditoría: 60 "hoy mismo").
+  { nombre: 'promesa', re: /estamos armando|te (lo |la )?estamos (armando|preparando|cotizando)|\bmientras te\b|ya te (armamos|enviamos|mando)|te (env[ií]o|mando|comparto|paso|tengo) (la|tu) cotizaci[oó]n|hoy mismo|en breve|ya mismo|con prioridad|en un momento/i },
 ]
+
+/** Afirmaciones de "sin visa" (en el texto o en el motivo de una ficha). */
+const RE_SIN_VISA = /sin (tr[aá]mite de |necesidad de |pedir |necesitar |requerir )?visa|no (necesitas?|necesitan|requieren?|hace falta|piden?)( la| de)? visa|tampoco (requiere|necesita|pide)n? visa|no la necesitan|no necesitas? la visa/i
+/** Un crucero sale del país aunque zarpe de Cartagena (dry-run 09-oct: "Crucero nacional… sin salir del país"). */
+const RE_SIN_SALIR = /sin salir del pa[ií]s|crucero nacional/i
+/** Lo que solo se puede decir si el cliente lo contó (un silencioso no contó nada). */
+const RE_SABER = /\bs[eé] que\b|me contaste|me dijiste|quedamos en|lo que hablamos|tu sue[nñ]o/i
 
 /**
  * Valida la salida (de la IA o de la plantilla) ANTES de enviar. Devuelve la
@@ -422,7 +457,8 @@ const PROHIBIDOS: { nombre: string; re: RegExp }[] = [
 export function validarSalida(
   salida: { mensaje: string; fichas: FichaElegida[] },
   lista: ProductoCorto[],
-  promo: string | null = null
+  promo: string | null = null,
+  segmento?: Segmento
 ): string[] {
   const errores: string[] = []
   const texto = salida.mensaje.trim()
@@ -449,6 +485,23 @@ export function validarSalida(
 
   const preguntas = (texto.match(/\?/g) ?? []).length
   if (preguntas > 1) errores.push(`${preguntas} preguntas (máx. 1)`)
+
+  if (segmento === 'silencioso' && RE_SABER.test(texto)) errores.push(`texto: da por hecho algo que un silencioso no contó («${texto.match(RE_SABER)?.[0]}»)`)
+
+  // Visa: solo con respaldo del catálogo. En el texto, todas las fichas deben ser "no requiere".
+  const porSlugLista = new Map(lista.map(p => [p.slug, p]))
+  if (RE_SIN_VISA.test(texto) && !(salida.fichas.length > 0 && salida.fichas.every(f => porSlugLista.get(f.slug)?.visa === 'no_requiere'))) {
+    errores.push('texto: dice "sin visa" y el catálogo no lo respalda para todas las fichas')
+  }
+  for (const f of salida.fichas) {
+    if (RE_SIN_VISA.test(f.motivo) && porSlugLista.get(f.slug)?.visa !== 'no_requiere') errores.push(`ficha ${f.slug}: dice "sin visa" y el catálogo no lo respalda`)
+  }
+
+  const hayCrucero = salida.fichas.some(f => porSlugLista.get(f.slug)?.esCrucero)
+  if (hayCrucero && RE_SIN_SALIR.test(texto)) errores.push('texto: dice que un crucero no sale del país')
+  for (const f of salida.fichas) {
+    if (porSlugLista.get(f.slug)?.esCrucero && RE_SIN_SALIR.test(f.motivo)) errores.push(`ficha ${f.slug}: dice que un crucero no sale del país`)
+  }
 
   if (salida.fichas.length > 2) errores.push(`${salida.fichas.length} fichas (máx. 2)`)
   const validos = new Set(lista.map(p => p.slug))
