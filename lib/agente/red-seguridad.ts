@@ -1,5 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { atender } from '@/lib/agente/conversacion'
+import { atender, enHorario } from '@/lib/agente/conversacion'
+import { HORARIO } from '@/lib/agente/config'
+import { esFestivo } from '@/lib/agente/festivos'
 import { enriquecerDesdeContacto } from '@/lib/agente/enriquecer'
 import { anotarEvento, registrarEvento } from '@/lib/agente/eventos'
 import { conversacionesRecientes, ultimosMensajes, type MensajeGhl } from '@/lib/agente/ghl'
@@ -43,6 +45,22 @@ const MAX_TURNOS = 4
 /** Tipos de canal por los que Sol atiende (los que llegan por el webhook normal). */
 const CANALES_SOL = ['TYPE_CUSTOM_SMS', 'TYPE_CUSTOM_PROVIDER_SMS', 'TYPE_WHATSAPP', 'TYPE_INSTAGRAM', 'TYPE_FACEBOOK']
 
+/**
+ * Chats perdidos ANTES de que existiera la red (fuera de su ventana de 3 h):
+ * se recuperan una sola vez, en la primera corrida en horario hábil. El evento
+ * que se registra al atenderlos evita que se repita. Los 2 leads de Hawái del
+ * 4 y 5-oct (autorizado por el dueño el 09-oct). Se puede vaciar después.
+ */
+const RECUPERAR: { id: string; contactId: string }[] = [
+  { id: '2pcYg1taiPayqXLTXP3W', contactId: 'z2zQEtGpmnBkStCXl19u' },
+  { id: '8pDG1UneiQ6Ik2nHckcG', contactId: 'PqFW1y49XW9RpQkiekxi' },
+]
+
+function habil(fecha: Date): boolean {
+  const dia = new Intl.DateTimeFormat('en-CA', { timeZone: HORARIO.zona }).format(fecha)
+  return enHorario(fecha) && !esFestivo(dia)
+}
+
 export interface ResumenRed {
   revisadas: number
   leidas: number
@@ -77,6 +95,12 @@ export async function correrRedSeguridad(
   const recientes = (await conversacionesRecientes(new Date(ahora.getTime() - ventanaMin * 60_000), opciones.maxConversaciones ?? 200)).filter(
     c => (c.lastMessageDate ?? 0) <= limiteEspera
   )
+  // Los viejos por recuperar entran solo en horario hábil (atender no mira el horario).
+  if (habil(ahora)) {
+    for (const r of RECUPERAR) {
+      if (!recientes.some(c => c.id === r.id)) recientes.unshift({ ...r, lastMessageDate: Number.MAX_SAFE_INTEGER })
+    }
+  }
   resumen.revisadas = recientes.length
   if (recientes.length === 0) return resumen
 

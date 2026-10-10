@@ -114,6 +114,16 @@ Migraciones 040 y 041 **aplicadas en producción**.
   que no lo tenemos" para productos fuera del catálogo. Hawái/Disney siguen SIN ficha (falta contenido del
   dueño) y sus anuncios tienen fechas vencidas (Disney 01 y 04-oct, Hawái "septiembre").
 
+### Limpieza pendiente (después del sáb 10-oct)
+- [ ] Confirmar que Sol atendió los 2 leads de Hawái: en `agente_eventos`, nota "RED DE SEGURIDAD" en
+      `2pcYg1taiPayqXLTXP3W` y `8pDG1UneiQ6Ik2nHckcG` (respuesta de Sol en la nota "SOL → …").
+- [ ] Vaciar la lista `RECUPERAR` de `lib/agente/red-seguridad.ts` (uso único; no hace daño si queda,
+      porque el evento evita repetir, pero es código muerto) y publicar.
+- [ ] Anuncios pausados el 09-oct por fechas vencidas: Hawái `120251839809900047` y Disney
+      `120251839733600047`. Reemplazarlos con fechas nuevas o archivarlos cuando haya fichas en el catálogo.
+- [ ] Extensión `pg_trgm` en Supabase: se queda (OK del dueño), solo se usó para medir dobles.
+- 5 tarjetas dormidas movidas a 🧊 No calificado el 09-oct (195rHVL…, XVd3FPE…, kxmf92E…, 3irybHT…, VtkUgWx…).
+
 ## 6. Datos útiles
 
 - GHL: location `RMFUo0i4KOVl7eZHEn7s`, token `GHL_TWC_PIT` en `.env.local`. Paginar oportunidades **por
