@@ -6,6 +6,7 @@ import { HORARIO } from '@/lib/agente/config'
 import { equipo, lineaEquipo } from '@/lib/agente/equipo'
 import { lineaHorario } from '@/lib/agente/horario'
 import { nombreSeguro } from '@/lib/agente/nombre'
+import { salidasVencidas } from '@/lib/agente/salidas-vencidas'
 import type { MensajeGhl } from '@/lib/agente/ghl'
 import type { AnuncioContexto } from '@/lib/agente/anuncios'
 
@@ -309,11 +310,16 @@ const APP_ANUNCIO: Record<string, string> = {
  * la pieza) y si corresponde a programas del catálogo (cuyo detalle ya va en
  * el contexto) o a un producto que aún no está publicado.
  */
-export function lineaAnuncio(a: AnuncioContexto, nombreDe: (slug: string) => string | undefined): string {
+export function lineaAnuncio(
+  a: AnuncioContexto,
+  nombreDe: (slug: string) => string | undefined,
+  ahora: Date = new Date()
+): string {
   const donde = a.sourceApp ? (APP_ANUNCIO[a.sourceApp.toLowerCase()] ?? '') : ''
   const textoPieza = (a.texto ?? '').replace(/\s+/g, ' ').trim()
   const recorte = textoPieza.length > 700 ? `${textoPieza.slice(0, 697).trimEnd()}…` : textoPieza
   const nombres = a.slugs.map(s => nombreDe(s)).filter((n): n is string => Boolean(n))
+  const vencidas = salidasVencidas(textoPieza, ahora)
 
   const partes = [
     `El cliente LLEGÓ DESDE UN ANUNCIO${donde ? ` ${donde}` : ''}: «${a.nombre}». Aunque sea su primer mensaje, SÍ puedes hablar de eso desde el inicio: es lo que vino a preguntar.`,
@@ -322,7 +328,10 @@ export function lineaAnuncio(a: AnuncioContexto, nombreDe: (slug: string) => str
       ? `Ese anuncio corresponde a estos programas del catálogo: ${nombres.join(', ')} (su detalle completo va abajo). Oriéntalo entre ellos con una pregunta que discrimine antes de listar todo.`
       : nombres.length === 1
         ? `Ese anuncio corresponde al programa del catálogo «${nombres[0]}» (su detalle completo va abajo): la ficha manda sobre el anuncio si difieren.`
-        : 'Ese producto todavía NO está en el catálogo: lo único confiable es lo que dice el anuncio. Puedes citar eso (precio "desde", fechas, qué incluye) y nada más; lo que no esté ahí lo confirma una asesora. Califica igual y pásalo a cotización.',
+        : 'Ese producto todavía NO está en el catálogo, pero SÍ lo vendemos (por eso salió publicado): NUNCA digas que no lo tienen, que no está en los paquetes ni que no lo manejan. Lo único confiable es lo que dice el anuncio: puedes citar eso (precio "desde", fechas, qué incluye) y nada más; lo que no esté ahí lo confirma el equipo en la cotización. Califica igual y pásalo a cotización.',
+    vencidas.length
+      ? `OJO: estas fechas del anuncio YA PASARON y no se pueden ofrecer: ${vencidas.map(v => `«${v}»`).join(', ')}. Si el cliente pregunta por ellas, dile con naturalidad que esa salida ya partió y ofrécele las fechas del anuncio que sigan vigentes o cotizarle otra fecha.`
+      : null,
   ]
   return partes.filter(Boolean).join(' ')
 }

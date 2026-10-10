@@ -452,8 +452,8 @@ export async function conversacionDe(contactId: string): Promise<ConversacionGhl
 export async function conversacionesRecientes(
   desde: Date,
   tope = 500
-): Promise<{ id: string; contactId: string }[]> {
-  const salida: { id: string; contactId: string }[] = []
+): Promise<{ id: string; contactId: string; lastMessageDate?: number }[]> {
+  const salida: { id: string; contactId: string; lastMessageDate?: number }[] = []
   let despuesDe: number | null = null
   while (salida.length < tope) {
     const r: { conversations?: { id: string; contactId?: string; lastMessageDate?: number; sort?: number[] }[] } =
@@ -464,7 +464,7 @@ export async function conversacionesRecientes(
     const lote = r.conversations ?? []
     for (const c of lote) {
       if ((c.lastMessageDate ?? 0) < desde.getTime()) return salida
-      if (c.contactId) salida.push({ id: c.id, contactId: c.contactId })
+      if (c.contactId) salida.push({ id: c.id, contactId: c.contactId, lastMessageDate: c.lastMessageDate })
     }
     if (lote.length < 100) break
     despuesDe = lote[lote.length - 1].sort?.[0] ?? lote[lote.length - 1].lastMessageDate ?? null

@@ -106,7 +106,7 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
     lineaHorario(),
     anuncio ? lineaAnuncio(anuncio, nombreDe) : null,
     ctx.respaldo
-      ? `MODO RESPALDO: esta conversación la lleva ${ctx.respaldo.asesora ? `la asesora ${ctx.respaldo.asesora}` : 'una asesora'}; los mensajes "[Escrito por la asesora]" son suyos. La cubres porque el cliente lleva rato sin respuesta. Preséntate una vez como Sol, del equipo. No contradigas lo que ella ofreció ni prometas nada fuera del catálogo; pagos, contrato, cambios y reclamos → "escalar" diciendo que ella se lo confirma muy pronto.`
+      ? `MODO RESPALDO: esta conversación la lleva ${ctx.respaldo.asesora ? `la asesora ${ctx.respaldo.asesora}` : 'una asesora'}; los mensajes "[Escrito por la asesora]" son suyos. La cubres porque el cliente lleva rato sin respuesta. Preséntate una vez como Sol, del equipo. No contradigas lo que ella ofreció ni prometas nada fuera del catálogo; pagos, contrato, cambios y reclamos → "escalar" diciendo que ella se lo confirma por aquí (sin prometer tiempos).`
       : null,
   ]
     .filter(Boolean)

@@ -104,6 +104,22 @@ export type Clasificacion =
  *    mensaje de Sol; `silencioso` = solo escribió el mensaje inicial (casi
  *    siempre el texto prellenado del anuncio) y nunca volvió.
  */
+/**
+ * Mensajes del cliente (con texto o adjunto) DESPUÉS del saliente más antiguo
+ * de la ventana. `mensajes` viene del más nuevo al más viejo (como lo da GHL).
+ * ≥ 1 = `rescate`; 0 = `silencioso`.
+ */
+export function respuestasTrasPrimerSaliente(mensajes: MensajeGhl[]): number {
+  const reales = mensajes.filter(m => !m.messageType?.startsWith('TYPE_ACTIVITY'))
+  let idxPrimerSaliente = -1
+  reales.forEach((m, i) => {
+    if (m.direction === 'outbound') idxPrimerSaliente = i
+  })
+  return reales
+    .slice(0, idxPrimerSaliente)
+    .filter(m => m.direction === 'inbound' && ((m.body ?? '').trim() !== '' || (m.attachments?.length ?? 0) > 0)).length
+}
+
 export function clasificarConversacion(
   mensajes: MensajeGhl[],
   idsSol: Set<string>,
@@ -125,15 +141,7 @@ export function clasificarConversacion(
   const dias = (ahora.getTime() - fecha) / DIA_MS
   if (dias < diasMinimos) return { ok: false, motivo: `el último mensaje de Sol es de hace ${dias.toFixed(1)} días (< ${diasMinimos})` }
 
-  // Índice del saliente MÁS ANTIGUO de Sol en la ventana; lo que está antes en
-  // el arreglo es más nuevo.
-  let idxPrimerSol = -1
-  reales.forEach((m, i) => {
-    if (m.direction === 'outbound') idxPrimerSol = i
-  })
-  const respuestas = reales
-    .slice(0, idxPrimerSol)
-    .filter(m => m.direction === 'inbound' && ((m.body ?? '').trim() !== '' || (m.attachments?.length ?? 0) > 0)).length
+  const respuestas = respuestasTrasPrimerSaliente(reales)
 
   return {
     ok: true,

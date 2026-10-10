@@ -66,3 +66,40 @@ export async function anotarEvento(id: string, extra: string): Promise<void> {
     console.error('anotarEvento excepción:', (err as Error).message)
   }
 }
+
+/** Texto del mensaje tal como lo trae el webhook de GHL (`message.body`). */
+export function cuerpoDelWebhook(crudo: unknown): string | undefined {
+  const m = (crudo as { message?: { body?: unknown } } | null)?.message
+  return typeof m?.body === 'string' ? m.body : undefined
+}
+
+/**
+ * ¿GHL ya nos entregó ESTE mismo mensaje? A veces el workflow reenvía el
+ * webhook segundos o minutos después (68 casos en 30 días al 09-oct); si el
+ * reenvío llega fuera de la ventana de ráfaga abre un segundo turno y Sol
+ * contesta dos veces lo mismo.
+ *
+ * El webhook no trae el id del mensaje: `messageId` es el del último mensaje
+ * del chat según la API, y dos mensajes seguidos del cliente pueden compartirlo.
+ * Por eso se exige además el mismo `message.body` del webhook (en dos mensajes
+ * distintos difiere). Ante un fallo de lectura responde false: peor que
+ * contestar dos veces es no contestar.
+ */
+export async function esWebhookDuplicado(messageId: string | undefined, crudo: unknown): Promise<boolean> {
+  const cuerpo = cuerpoDelWebhook(crudo)
+  // Sin texto (foto, audio) no hay con qué distinguir dos mensajes seguidos: no se filtra.
+  if (!messageId || !cuerpo?.trim()) return false
+  try {
+    const { data, error } = await createAdminClient()
+      .from('agente_eventos')
+      .select('payload')
+      .eq('message_id', messageId)
+      .eq('autor', 'cliente')
+      .gt('recibido_en', new Date(Date.now() - 86_400_000).toISOString())
+      .limit(5)
+    if (error) return false
+    return (data ?? []).some(f => cuerpoDelWebhook((f.payload as { webhook?: unknown } | null)?.webhook) === cuerpo)
+  } catch {
+    return false
+  }
+}

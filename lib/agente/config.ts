@@ -19,6 +19,12 @@ export const PIPELINE = {
   id: 'MLoZOGIYvCBRUgQdYRA8',
   etapas: {
     leadNuevo: '369a3d70-ec39-4a88-9289-5d578fe63180', // 🆕 Lead Nuevo
+    /**
+     * Creada el 09-oct-2026: Sol terminó sus seguimientos sin calificarlo. Va
+     * ANTES de Calificado por Bot; desde aquí Sol (y la reactivación) puede
+     * subirlo igual que desde Lead Nuevo. Ver lib/agente/no-calificado.ts.
+     */
+    noCalificado: '7811ad09-1099-4e3e-a3bd-e45aebcfbf33', // 🧊 No calificado
     calificadoPorBot: '311ed363-2809-4443-8849-73a444bec6df', // 🤖 Calificado por Bot
     asignadoAAgente: '24cc9101-80ec-4478-910e-bf253d0f206d', // 👤 Asignado a Agente
     contactado: 'faa05280-9bb8-477e-9dfb-b8448bdee719', // 📞 Contactado
@@ -204,6 +210,15 @@ export const TAGS = {
    * usuario asignado (igual que `lead_sin_respuesta`).
    */
   slaHumano: 'sla_sin_respuesta_humana',
+  /**
+   * NUEVOS (los pone el código al mover la tarjeta a 🧊 No calificado): Sol
+   * agotó sus seguimientos sin calificarlo. `rescate` = el cliente conversó y
+   * se enfrió; `silencioso` = nunca contestó al primer mensaje de Sol. Mismo
+   * criterio que los segmentos de la reactivación. Se quedan aunque el lead
+   * vuelva y califique: marcan de dónde vino.
+   */
+  noCalificadoRescate: 'no_calificado_rescate',
+  noCalificadoSilencioso: 'no_calificado_silencioso',
   /**
    * Los pone la integración de WhatsApp cuando el chat nace de un anuncio de
    * Meta (clic a WhatsApp desde Facebook o Instagram). Fuente del lead cuando

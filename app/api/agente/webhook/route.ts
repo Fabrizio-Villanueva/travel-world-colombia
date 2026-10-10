@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { eventoGhlSchema, normalizar } from '@/lib/agente/schemas'
 import { identificarAutor } from '@/lib/agente/autor'
-import { anotarEvento, registrarEvento } from '@/lib/agente/eventos'
+import { anotarEvento, esWebhookDuplicado, registrarEvento } from '@/lib/agente/eventos'
 import { enriquecerDesdeContacto } from '@/lib/agente/enriquecer'
 import { TAGS, ACTIVO_DESDE, TAG_PRUEBAS } from '@/lib/agente/config'
 import { atender, meTocaResponder } from '@/lib/agente/conversacion'
@@ -110,6 +110,24 @@ export async function POST(req: NextRequest) {
 
     const tags = n.tags.length ? n.tags : (extra?.tagsContacto ?? [])
     const conversationId = n.conversationId ?? extra?.conversationId
+
+    // Reenvío del mismo mensaje por GHL: se registra para la bitácora, pero
+    // como 'desconocido' (no cuenta como mensaje nuevo para la ráfaga) y sin turno.
+    if (autor === 'cliente' && (await esWebhookDuplicado(messageId, crudo))) {
+      await registrarEvento({
+        tipo: n.tipo,
+        conversationId,
+        contactId: n.contactId,
+        messageId,
+        direccion,
+        canal: n.canal ?? extra?.canal,
+        cuerpo: n.cuerpo ?? extra?.cuerpo,
+        autor: 'desconocido',
+        payload: { webhook: crudo, mensaje: extra?.mensajeCrudo ?? null, tags },
+        nota: 'DUPLICADO: GHL reenvió un mensaje ya recibido · sin turno de Sol',
+      })
+      return
+    }
 
     // El evento se registra ANTES de esperar la ráfaga: así, si llega otro
     // mensaje mientras esperamos, ese ve el nuestro y sabe que es más nuevo.

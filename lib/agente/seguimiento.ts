@@ -17,6 +17,7 @@ import { extraerFotos } from '@/lib/agente/conocimiento'
 import { registrarEvento } from '@/lib/agente/eventos'
 import { esFestivo } from '@/lib/agente/festivos'
 import { registrarTraspaso } from '@/lib/agente/sla-registro'
+import { moverANoCalificado } from '@/lib/agente/no-calificado'
 import { costoUsd, decidirV2 } from '@/lib/agente/v2/decidir'
 import { enviarRespuestaV2, estadoPrevioV2, registrarTurnoAB, versionPara } from '@/lib/agente/v2/ab'
 import { productoDeInteres } from '@/lib/agente/v2/ficha'
@@ -389,6 +390,10 @@ async function despedidaFija(
       { id: CAMPOS_SOL_OPP.intentosSeguimiento, field_value: c.intento },
     ]).catch(err => console.error('campos de Sol (dormido):', (err as Error).message))
   }
+  const movida = await moverANoCalificado(fila.contact_id, fila.conversation_id, c.mensajes).catch(err => {
+    console.error('mover a No calificado:', (err as Error).message)
+    return null
+  })
 
   await registrarTurnoAB({
     contactId: fila.contact_id,
@@ -401,7 +406,7 @@ async function despedidaFija(
     costoUsd: 0,
   })
 
-  const nota = `enviado (intento ${c.intento}): despedida fija${c.producto ? ` con la ficha de ${c.producto.nombre}` : ''} · queda dormido`
+  const nota = `enviado (intento ${c.intento}): despedida fija${c.producto ? ` con la ficha de ${c.producto.nombre}` : ''} · queda dormido${movida ? ` · ${movida}` : ''}`
   await registrarEvento({
     tipo: 'seguimiento',
     conversationId: fila.conversation_id,

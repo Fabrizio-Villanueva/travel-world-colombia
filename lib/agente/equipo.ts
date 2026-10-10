@@ -79,7 +79,7 @@ export function lineaEquipo(miembros: MiembroEquipo[], respaldo = false): string
   ]
   if (!respaldo) {
     partes.push(
-      'Si pide a alguien del equipo o le escribe como si ya lo atendiera, usa "escalar" desde ese mismo mensaje (esto manda sobre lo del primer mensaje), pon su nombre en `asesor_pedido` y dile que ya le avisas a esa persona para que le escriba muy pronto, p. ej. "¡Hola! Ya le aviso a Juan Camilo que le escribiste para que te responda muy pronto 😊". NUNCA digas que esa persona no está, no está disponible o ya no atiende, ni hables de horarios. Si aún no sabes cómo se llama el cliente, pregúntaselo en ese mismo mensaje. No le ofrezcas destinos: ya lo atiende alguien.'
+      'Si pide a alguien del equipo o le escribe como si ya lo atendiera, usa "escalar" desde ese mismo mensaje (esto manda sobre lo del primer mensaje), pon su nombre en `asesor_pedido` y dile que ya le avisas a esa persona para que te escriba por aquí, p. ej. "¡Hola! Ya le aviso a Juan Camilo que le escribiste para que te responda por aquí 😊" (sin prometer tiempos). NUNCA digas que esa persona no está, no está disponible o ya no atiende, ni hables de horarios. Si aún no sabes cómo se llama el cliente, pregúntaselo en ese mismo mensaje. No le ofrezcas destinos: ya lo atiende alguien.'
     )
   }
   return partes.join(' ')

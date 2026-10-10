@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { correrVigilancia } from '@/lib/agente/vigilante'
 import { revisarSlaHumano, type ResumenSla } from '@/lib/agente/sla-humano'
+import { correrRedSeguridad, type ResumenRed } from '@/lib/agente/red-seguridad'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -66,7 +67,19 @@ export async function GET(req: NextRequest) {
         slaHumano = { error: 'error interno (ver logs)' }
       }
     }
-    return Response.json({ ok: true, ...resumen, slaHumano })
+
+    // Red de seguridad: mensajes que GHL nunca entregó al webhook (ver
+    // lib/agente/red-seguridad.ts). Aparte, por la misma razón que el SLA.
+    let redSeguridad: ResumenRed | { error: string } | undefined
+    if (!soloContacto) {
+      try {
+        redSeguridad = await correrRedSeguridad({ dry })
+      } catch (err) {
+        console.error('correrRedSeguridad error:', err)
+        redSeguridad = { error: 'error interno (ver logs)' }
+      }
+    }
+    return Response.json({ ok: true, ...resumen, slaHumano, redSeguridad })
   } catch (err) {
     console.error('correrVigilancia error:', err)
     return Response.json({ ok: false, error: 'error interno (ver logs)' }, { status: 500 })

@@ -14,6 +14,7 @@ import { buscarMiembro, equipo } from '@/lib/agente/equipo'
 import { nombreSeguro, textoAcotado } from '@/lib/agente/nombre'
 import { esFestivo } from '@/lib/agente/festivos'
 import { registrarTraspaso } from '@/lib/agente/sla-registro'
+import { ETAPAS_PREVIAS_A_CALIFICADO, moverANoCalificado } from '@/lib/agente/no-calificado'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   CAMPO_IA_NOMBRE,
@@ -580,7 +581,7 @@ async function moverSiCalificado({ contactId, decision }: EntradaCrm): Promise<s
     return 'calificado, pero sin oportunidad abierta en el pipeline principal (no se movió nada)'
   }
   if (abierta.pipelineStageId === PIPELINE.etapas.calificadoPorBot) return null
-  if (abierta.pipelineStageId !== PIPELINE.etapas.leadNuevo) {
+  if (!ETAPAS_PREVIAS_A_CALIFICADO.includes(abierta.pipelineStageId ?? '')) {
     return 'calificado, pero la oportunidad ya pasó de Lead Nuevo (territorio humano, no se toca)'
   }
 
@@ -601,6 +602,8 @@ async function programarSeguimiento(e: EntradaCrm): Promise<string | null> {
   const fecha = proximoSeguimientoValido(d)
 
   let fila: { estado: string; programado_para: string | null; nota: string | null }
+  /** Sol agotó o abandonó los seguimientos sin calificarlo → 🧊 No calificado. */
+  let sinCalificar = false
   if (d.accion === 'escalar') {
     fila = { estado: 'cerrado', programado_para: null, nota: 'escalado a una asesora' }
   } else if (listoParaAsesora(d)) {
@@ -615,12 +618,14 @@ async function programarSeguimiento(e: EntradaCrm): Promise<string | null> {
       programado_para: null,
       nota: `sin respuesta tras ${MAX_INTENTOS_SEGUIMIENTO} seguimientos`,
     }
+    sinCalificar = true
   } else if (d.venta) {
     // Sol v2: agenda el código. Lead vivo (no escaló, no pasó a L-01, no dijo
     // que no) = siempre tiene su siguiente intento; la IA solo aporta el ángulo.
     if (e.origen === 'seguimiento' && d.accion === 'callar') {
       // Releyendo, Sol vio que no vale insistir: se cierra (y no se gasta otra llamada mañana).
       fila = { estado: 'cerrado', programado_para: null, nota: `Sol decidió no insistir: ${d.motivo}` }
+      sinCalificar = true
     } else if (d.temperatura === 'no_aplica') {
       fila = { estado: 'cerrado', programado_para: null, nota: 'no es un cliente' }
     } else {
@@ -651,7 +656,11 @@ async function programarSeguimiento(e: EntradaCrm): Promise<string | null> {
   })
   if (error) throw new Error(error.message)
 
-  return fila.estado === 'pendiente'
-    ? `seguimiento programado para ${fila.programado_para}`
-    : `seguimiento: ${fila.estado}`
+  const resumen =
+    fila.estado === 'pendiente' ? `seguimiento programado para ${fila.programado_para}` : `seguimiento: ${fila.estado}`
+  if (!sinCalificar) return resumen
+  const movida = await moverANoCalificado(e.contactId, e.conversationId).catch(
+    err => `mover a No calificado falló: ${(err as Error).message}`
+  )
+  return movida ? `${resumen} · ${movida}` : resumen
 }

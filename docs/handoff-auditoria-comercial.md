@@ -99,6 +99,21 @@ Migraciones 040 y 041 **aplicadas en producción**.
    25 etapa/estado incoherentes): regenerar la lista; la de la sesión anterior estaba en el scratchpad.
 7. Estrategia de Meta Ads con la demanda real (ver memoria `estrategia-ads-pendiente`).
 
+## 5b. Sesión del 09-oct noche (sin publicar al cierre: esperaba "publica")
+
+- **🧊 No calificado** conectado (`lib/agente/no-calificado.ts`, etapa `7811ad09-…`): al dormir (despedida
+  fija v2 / tope v1) o "Sol decidió no insistir", la tarjeta pasa de Lead Nuevo a No calificado con tag
+  `no_calificado_rescate|silencioso`. Sol sube a Calificado desde ahí; el cron de etapas y la pausa también
+  la miran. `AGENTE_NO_CALIFICADO=off`. Sin backfill (9 dormidos viejos siguen en Lead Nuevo).
+- Sol: prompts v1/v2 sin promesas de tiempo y escalada al PRIMER reclamo de la cotización.
+- Dobles: filtro de webhook duplicado de GHL (mismo messageId + mismo `message.body`) en `eventos.ts`.
+- **Red de seguridad** (`lib/agente/red-seguridad.ts`, en el cron del vigilante): chats con mensaje del
+  cliente sin evento → se registra y pasa a Sol. Dry-run de 6 días: 2 de 305 (los 2 de Hawái), 0 falsos.
+  `AGENTE_RED_SEGURIDAD=off`.
+- Anuncios: `salidas-vencidas.ts` avisa a Sol de fechas ya pasadas en el texto del anuncio; "nunca digas
+  que no lo tenemos" para productos fuera del catálogo. Hawái/Disney siguen SIN ficha (falta contenido del
+  dueño) y sus anuncios tienen fechas vencidas (Disney 01 y 04-oct, Hawái "septiembre").
+
 ## 6. Datos útiles
 
 - GHL: location `RMFUo0i4KOVl7eZHEn7s`, token `GHL_TWC_PIT` en `.env.local`. Paginar oportunidades **por

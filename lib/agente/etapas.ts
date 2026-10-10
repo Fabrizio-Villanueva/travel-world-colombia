@@ -18,7 +18,7 @@ import {
  * puede hacerlo. Esta corrida periódica lo hace con dos reglas, que solo
  * avanzan (nunca regresan una tarjeta):
  *
- *  1. Tarjeta en Lead Nuevo / Calificado por Bot / Asignado a Agente cuyo chat
+ *  1. Tarjeta en Lead Nuevo / No calificado / Calificado por Bot / Asignado a Agente cuyo chat
  *     tiene un mensaje de una asesora → 📞 Contactado. Si no tenía asesor, se
  *     le asigna quien escribió. Se le quita `new_lead` al contacto.
  *  2. Tarjeta en Lead Nuevo que ya tiene asesor → 👤 Asignado a Agente.
@@ -34,6 +34,7 @@ const MAX_MOVIMIENTOS = 60
 
 const ETAPAS_TEMPRANAS = [
   PIPELINE.etapas.leadNuevo,
+  PIPELINE.etapas.noCalificado,
   PIPELINE.etapas.calificadoPorBot,
   PIPELINE.etapas.asignadoAAgente,
 ] as const

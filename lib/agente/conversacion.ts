@@ -146,7 +146,7 @@ async function asignarEnPausa(contactId: string): Promise<string> {
     const abierta = (await oportunidadesDe(contactId)).find(
       o => o.pipelineId === PIPELINE.id && o.status === 'open'
     )
-    if (abierta?.pipelineStageId === PIPELINE.etapas.leadNuevo) {
+    if (abierta?.pipelineStageId === PIPELINE.etapas.leadNuevo || abierta?.pipelineStageId === PIPELINE.etapas.noCalificado) {
       await moverYAsignarOportunidad(abierta.id, PIPELINE.id, PIPELINE.etapas.asignadoAAgente, PAUSA.asignarA)
       partes.push('tarjeta → Asignado a Agente')
     } else if (abierta) {
