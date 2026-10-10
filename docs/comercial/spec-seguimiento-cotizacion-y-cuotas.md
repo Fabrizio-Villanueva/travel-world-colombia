@@ -88,6 +88,8 @@ En 30 días, compara la conversión de las tarjetas que pasaron por Cotización 
 | 2 | `Cuota 2 - Importe` · `cuota_2__importe` | `Cuota 2 - Fecha de vencimiento` · `cuota_2__fecha_de_vencimiento` |
 | 3–6 | igual: `cuota_N__importe` | `cuota_N__fecha_de_vencimiento` |
 
+**Divisa (10-oct):** cada cuota tiene también `Cuota N - Divisa` (COP / USD) · `{{opportunity.cuota_N__divisa}}`. Por eso los mensajes dicen "{{opportunity.cuota_1__divisa}} {{opportunity.cuota_1__importe}}" y no "$…": una cuota en dólares no puede salir con signo de pesos.
+
 Otros campos: `{{opportunity.destino_de_inters}}` (Destino de interés) y `{{opportunity.fecha_confirmada_de_salida}}`.
 Los llena la asesora en el Generador de Contratos (Cuota 1–6). El contrato propio ya los imprime.
 
@@ -110,7 +112,7 @@ Los mensajes dicen el importe de **esa** cuota. GHL no deja saber cuál de vario
 | 6 | **SMS (WhatsApp)**, mensaje día 0 | Texto abajo. |
 | 7 | **Wait 2 días** (ventana hábil) | |
 | 8 | **If/Else**: etapa sigue en Contrato Firmado o En Pagos | No → End. |
-| 9 | **Add Task** → asignada a **Luisa Aguirre** | Título: "💳 Verificar pago de la cuota 1 de {{contact.name}}: ${{opportunity.cuota_1__importe}}, vencía {{opportunity.cuota_1__fecha_de_vencimiento}}". Descripción: "Revisa los Pagos en el Generador. Si llegó, ciérrala. Si no, llama o escribe al cliente y avisa a la asesora". Vence en 1 día. |
+| 9 | **Add Task** → asignada a **Luisa Aguirre** | Título: "💳 Verificar pago de la cuota 1 de {{contact.name}}: {{opportunity.cuota_1__divisa}} {{opportunity.cuota_1__importe}}, vencía {{opportunity.cuota_1__fecha_de_vencimiento}}". Descripción: "Revisa los Pagos en el Generador. Si llegó, ciérrala. Si no, llama o escribe al cliente y avisa a la asesora". Vence en 1 día. |
 | 10 | **Internal notification** a la asesora asignada | Mismo texto, para que esté al tanto. |
 
 El workflow **no mueve ninguna etapa**: eso lo hace el Generador al registrar el pago.
@@ -119,12 +121,12 @@ El workflow **no mueve ninguna etapa**: eso lo hace el Generador al registrar el
 
 **−3 días**
 ```
-Hola, {{contact.first_name}} 😊 Te recordamos que el {{opportunity.cuota_1__fecha_de_vencimiento}} vence tu cuota de ${{opportunity.cuota_1__importe}} del viaje a {{opportunity.destino_de_inters}}. Puedes pagar por PSE, Bre-B o transferencia aquí: travelworldcolombia.com/pagos. Al pagar, envíanos el comprobante por este chat. Si ya pagaste, ¡gracias! Ignora este mensaje.
+Hola, {{contact.first_name}} 😊 Te recordamos que el {{opportunity.cuota_1__fecha_de_vencimiento}} vence tu cuota de {{opportunity.cuota_1__divisa}} {{opportunity.cuota_1__importe}} del viaje a {{opportunity.destino_de_inters}}. Puedes pagar por PSE, Bre-B o transferencia aquí: travelworldcolombia.com/pagos. Al pagar, envíanos el comprobante por este chat. Si ya pagaste, ¡gracias! Ignora este mensaje.
 ```
 
 **Día 0**
 ```
-Hola, {{contact.first_name}}. Hoy vence tu cuota de ${{opportunity.cuota_1__importe}} del viaje a {{opportunity.destino_de_inters}}. Si ya la pagaste, envíanos el comprobante por aquí para registrarla. Medios de pago: travelworldcolombia.com/pagos. ¡Gracias!
+Hola, {{contact.first_name}}. Hoy vence tu cuota de {{opportunity.cuota_1__divisa}} {{opportunity.cuota_1__importe}} del viaje a {{opportunity.destino_de_inters}}. Si ya la pagaste, envíanos el comprobante por aquí para registrarla. Medios de pago: travelworldcolombia.com/pagos. ¡Gracias!
 ```
 
 ### Puntos a verificar al armarlo

@@ -129,12 +129,19 @@ function pasoDe(c: CampoCatalogo): string {
  * "ENVIAR CONTRATO?" (Preview / Enviar / Reenviar) disparaba las plantillas de
  * GHL Documents (C-02/C-03 viejos, archivados el 08-oct-2026): se oculta para
  * que no haya dos formas de enviar el contrato.
+ *
+ * "Pago N - Medio de Pago": lo reemplazó la Divisa (pedido del cliente,
+ * 10-oct-2026). El campo sigue en GHL con lo que ya tenía.
  */
 const CAMPOS_OCULTOS = new Set<string>([
   'TRM - Tarifa por pax',
   'TRM - Cantidad',
   'TRM - Tiquetes Aereos',
   'ENVIAR CONTRATO?',
+  'Pago 1 - Medio de Pago',
+  'Pago 2 - Medio de Pago',
+  'Pago 3 - Medio de Pago',
+  'Pago 4 - Medio de Pago',
 ])
 
 /**
@@ -155,14 +162,14 @@ const ORDEN_GENERALES = [
 ]
 
 /**
- * Orden de las columnas del "Registro de Pagos" tal como las imprime el
- * contrato: TRM, fecha, medio, total, abono, saldo. Tipo de Pago (solo existe
- * en Pago 1 y el contrato no lo tabula) va al final.
+ * Orden de los campos de cada pago: primero la divisa (de ella dependen los
+ * demás), luego fecha, TRM, total, abono y saldo. Tipo de Pago (el depósito
+ * mínimo, solo existe en Pago 1) va al final.
  */
 const ORDEN_PAGO = [
-  'TRM',
+  'Divisa',
   'Fecha de Pago',
-  'Medio de Pago',
+  'TRM',
   'Total Plan',
   'Abono',
   'Saldo en Pesos',
@@ -222,9 +229,9 @@ export async function catalogoResuelto(): Promise<{
       espejoExtraIds: (ESPEJOS_EXTRA[c.name] ?? [])
         .map(k => contactoPorKey.get(k)?.id)
         .filter((x): x is string => Boolean(x)),
-      // Las cuotas (oct-2026) nacieron en la oportunidad, sin campo viejo de
-      // contacto, pero el contrato sí las imprime.
-      enContrato: Boolean(c.sourceContactKey) || esCampoCuota(c.name),
+      // Las cuotas y las divisas (oct-2026) nacieron en la oportunidad, sin
+      // campo viejo de contacto, pero el contrato sí las imprime.
+      enContrato: Boolean(c.sourceContactKey) || esCampoCuota(c.name) || RE_DIVISA_PAGO.test(c.name),
     })
   }
 
@@ -281,12 +288,15 @@ export async function catalogoResuelto(): Promise<{
 }
 
 /**
- * Plan de pagos por cuotas (oct-2026): "Cuota N - Importe" y
- * "Cuota N - Fecha de vencimiento" (N = 1..6, scripts/ghl-crear-campos-cuotas.mjs).
- * El Generador los edita con un bloque propio (agregar / quitar cuotas) y el
- * contrato los imprime en una tabla bajo los pagos.
+ * Plan de pagos por cuotas (oct-2026): "Cuota N - Importe",
+ * "Cuota N - Fecha de vencimiento" (N = 1..6, scripts/ghl-crear-campos-cuotas.mjs)
+ * y "Cuota N - Divisa" (scripts/ghl-crear-campos-divisa.mjs). El Generador los
+ * edita con un bloque propio (agregar / quitar cuotas) y el contrato los
+ * imprime en una tabla bajo los pagos.
  */
-export const RE_CUOTA = /^Cuota (\d{1,2}) - (Importe|Fecha de vencimiento)$/
+export const RE_CUOTA = /^Cuota (\d{1,2}) - (Importe|Fecha de vencimiento|Divisa)$/
+/** "Pago N - Divisa" (COP / USD), 10-oct-2026. */
+export const RE_DIVISA_PAGO = /^Pago (\d) - Divisa$/
 export const esCampoCuota = (nombre: string) => RE_CUOTA.test(nombre)
 
 /** Valor de formulario: siempre serializable y simple. */

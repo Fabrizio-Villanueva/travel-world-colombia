@@ -1,6 +1,7 @@
 import { PIPELINE_RESERVACIONES } from '@/lib/agente/config'
 import { catalogoResuelto, normalizarValor, valorParaGhl } from '@/lib/admin/reservas'
-import { numeroCampo, valorPendiente } from '@/lib/agente/opp-reglas'
+import { numeroCampo, textoCampo, valorPendiente } from '@/lib/agente/opp-reglas'
+import { divisaDe } from '@/lib/contratos/divisa'
 import {
   actualizarCamposOportunidad,
   fijarValorOportunidad,
@@ -18,19 +19,19 @@ import {
  *
  * - "Total Pasajeros - Valor Total" → valor de la tarjeta (lo que suma el tablero).
  * - Primer abono registrado → 💳 En Pagos.
- * - Abono que deja el saldo en 0 → 📁 Pagada y Documentada.
+ * - Saldo en 0 en todas las divisas → 📁 Pagada y Documentada.
  *
  * Solo actúa en tarjetas de 🗂️ Reservaciones y solo AVANZA de etapa: una
  * tarjeta que ya va más adelante (Por Viajar, En Viaje…) o cancelada no se toca.
  */
 
 
-/** Plan de pagos de la oportunidad, en orden: abono y saldo de cada cuota. */
+/** Plan de pagos de la oportunidad, en orden: abono, saldo y divisa de cada pago. */
 const PAGOS = [
-  { abono: 'WF8YaiAWMWSTYP6ETaoI', saldo: 'SqC50UYeBvKM9KmBaMkT' }, // Pago 1
-  { abono: 'e9toIVVlRrLviMNLJk5H', saldo: 'sjgLOV456lH6vL2bSZIe' }, // Pago 2
-  { abono: '4bsIjvo10Z1Fwl4dmpif', saldo: 'gzVA4CQUBLxNlHjDE08e' }, // Pago 3
-  { abono: 'tilZL5wYDHmi5jVaNacL', saldo: 'l4hEjxajnvBuXoqqvBPB' }, // Pago 4
+  { abono: 'WF8YaiAWMWSTYP6ETaoI', saldo: 'SqC50UYeBvKM9KmBaMkT', divisa: '3CBniKT34LxvJxQxIjir' }, // Pago 1
+  { abono: 'e9toIVVlRrLviMNLJk5H', saldo: 'sjgLOV456lH6vL2bSZIe', divisa: 'nmkOk8HeId6TTXwL5eEb' }, // Pago 2
+  { abono: '4bsIjvo10Z1Fwl4dmpif', saldo: 'gzVA4CQUBLxNlHjDE08e', divisa: '08eKMWCC3gHH4e6uP96A' }, // Pago 3
+  { abono: 'tilZL5wYDHmi5jVaNacL', saldo: 'l4hEjxajnvBuXoqqvBPB', divisa: 'U1M12paxFdCCd0rv2mi4' }, // Pago 4
 ] as const
 
 /** Lee un campo numérico del GET por id (cada formato trae el valor en una llave distinta). */
@@ -38,11 +39,15 @@ const numero = (o: OportunidadDetalleGhl, campoId: string) => numeroCampo(o.cust
 
 /** Etapa a la que deben llevarla los abonos registrados, o null si aún no hay ninguno. */
 function etapaPorPagos(o: OportunidadDetalleGhl): string | null {
-  const cuotas = PAGOS.map(p => ({ abono: numero(o, p.abono), saldo: numero(o, p.saldo) }))
-  const conAbono = cuotas.filter(c => (c.abono ?? 0) > 0)
+  const conAbono = PAGOS.map(p => {
+    const abono = numero(o, p.abono)
+    return { abono, saldo: numero(o, p.saldo), divisa: divisaDe(textoCampo(o.customFields, p.divisa), abono) }
+  }).filter(c => (c.abono ?? 0) > 0)
   if (conAbono.length === 0) return null
-  const ultima = conAbono[conAbono.length - 1]
-  return ultima.saldo === 0
+  // Cada divisa lleva su propio saldo (10-oct-2026): está pagada cuando el
+  // último pago de CADA divisa deja el saldo en 0.
+  const ultimoPorDivisa = new Map(conAbono.map(c => [c.divisa, c]))
+  return [...ultimoPorDivisa.values()].every(c => c.saldo === 0)
     ? PIPELINE_RESERVACIONES.etapas.pagadaDocumentada
     : PIPELINE_RESERVACIONES.etapas.enPagos
 }

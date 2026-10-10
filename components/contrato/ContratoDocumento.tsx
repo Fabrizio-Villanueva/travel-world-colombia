@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { Check, X, Landmark, Monitor, Mail, QrCode, Plane } from 'lucide-react'
 import { CLAUSULA_DATOS, CLAUSULA_RESPONSABILIDAD, DECLARACION_FIRMA } from '@/lib/contratos/clausulas'
-import type { ContratoDatos, ContratoLiquidacionFila, ContratoPasajero } from '@/lib/contratos/tipos'
+import type { ContratoDatos, ContratoLiquidacionFila, ContratoPago, ContratoPasajero } from '@/lib/contratos/tipos'
+import { enDivisa, type Divisa } from '@/lib/contratos/divisa'
 import s from './ContratoDocumento.module.css'
 
 /**
@@ -55,6 +56,32 @@ const pesos = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP
 const numero = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 })
 
 const dinero = (v?: number) => (v == null ? '' : pesos.format(v))
+/** Monto en la divisa del pago o cuota (sin divisa, pesos: fotos anteriores al 10-oct-2026). */
+const enSu = (v: number | undefined, d?: Divisa) => (v == null ? '' : enDivisa(v, d ?? 'COP'))
+
+/**
+ * Saldo pendiente por divisa (10-oct-2026): el del último pago en cada una o,
+ * si falta, su total del plan menos sus abonos. Un pago en pesos no le resta
+ * al saldo en dólares. Sin pagos: el total del viaje.
+ */
+function saldosPorDivisa(pagos: ContratoPago[], totalViaje: number): { d: Divisa; saldo: number }[] {
+  if (pagos.length === 0) return [{ d: 'COP', saldo: totalViaje }]
+  const por = new Map<Divisa, { total?: number; abonado: number; saldo?: number }>()
+  for (const p of pagos) {
+    const d = p.divisa ?? 'COP'
+    const e = por.get(d) ?? { abonado: 0 }
+    if (p.totalPlan != null) e.total = p.totalPlan
+    e.abonado += p.abono ?? 0
+    const total = e.total ?? (d === 'COP' ? totalViaje : undefined)
+    e.saldo = p.saldo ?? (total != null ? total - e.abonado : undefined)
+    por.set(d, e)
+  }
+  const saldos = [...por].flatMap(([d, e]) => (e.saldo != null ? [{ d, saldo: e.saldo }] : []))
+  // Si una divisa ya quedó en cero y otra no, solo se muestra lo que se debe.
+  const pendientes = saldos.filter(x => x.saldo !== 0)
+  return pendientes.length ? pendientes : saldos.slice(0, 1)
+}
+
 const vacio = (v: unknown) => v == null || (typeof v === 'string' && v.trim() === '')
 
 /**
@@ -218,12 +245,16 @@ export function ContratoDocumento({
   const columnas = columnasPasajeros(datos.pasajeros)
   const conPlan = [...liq.aereos, ...liq.terrestre].some(f => f.valorPlan != null)
   const conTrm = datos.pagos.some(p => p.trm != null)
-  const ultimoPago = datos.pagos.at(-1)
-  const abonado = datos.pagos.reduce((t, p) => t + (p.abono ?? 0), 0)
-  const saldo = ultimoPago?.saldo ?? liq.total.valorTotal - abonado
+  // Desde el 10-oct-2026 cada pago trae divisa en vez de medio de pago; las
+  // fotos congeladas anteriores siguen mostrando el medio.
+  const conDivisa = datos.pagos.some(p => p.divisa)
+  const conMedio = datos.pagos.some(p => p.medio)
+  // Con pagos en dos divisas, el total del plan de cada uno explica su saldo.
+  const mixto = new Set(datos.pagos.map(p => p.divisa ?? 'COP')).size > 1
+  const saldos = saldosPorDivisa(datos.pagos, liq.total.valorTotal)
   // Fotos congeladas anteriores a oct-2026 no traen cuotas.
   const cuotas = datos.cuotas ?? []
-  const totalCuotas = cuotas.reduce((t, c) => t + c.importe, 0)
+  const totalCuotas = [...cuotas.reduce((m, c) => m.set(c.divisa ?? 'COP', (m.get(c.divisa ?? 'COP') ?? 0) + c.importe), new Map<Divisa, number>())]
   const v = datos.viaje
 
   let n = 0
@@ -269,7 +300,7 @@ export function ContratoDocumento({
         </div>
         <div className={s.resumenSaldo}>
           <span className={s.resumenEtiqueta}>Saldo pendiente</span>
-          <span className={s.resumenValor}>{dinero(saldo)}</span>
+          <span className={s.resumenValor}>{saldos.map(x => enDivisa(x.saldo, x.d)).join(' + ')}</span>
         </div>
       </div>
 
@@ -414,18 +445,22 @@ export function ContratoDocumento({
                 columnas={[
                   { titulo: '#' },
                   { titulo: 'Fecha' },
-                  { titulo: 'Medio de pago' },
+                  ...(conDivisa ? [{ titulo: 'Divisa' }] : []),
+                  ...(conMedio ? [{ titulo: 'Medio de pago' }] : []),
                   ...(conTrm ? [{ titulo: 'TRM', num: true }] : []),
+                  ...(mixto ? [{ titulo: 'Total', num: true }] : []),
                   { titulo: 'Abono', num: true },
                   { titulo: 'Saldo', num: true },
                 ]}
                 filas={datos.pagos.map((p, i) => [
                   i + 1,
                   fecha(p.fecha),
-                  p.medio ?? '',
+                  ...(conDivisa ? [p.divisa ?? 'COP'] : []),
+                  ...(conMedio ? [p.medio ?? ''] : []),
                   ...(conTrm ? [dinero(p.trm)] : []),
-                  <strong key="a">{dinero(p.abono)}</strong>,
-                  dinero(p.saldo),
+                  ...(mixto ? [enSu(p.totalPlan, p.divisa)] : []),
+                  <strong key="a">{enSu(p.abono, p.divisa)}</strong>,
+                  enSu(p.saldo, p.divisa),
                 ])}
               />
             )}
@@ -435,14 +470,16 @@ export function ContratoDocumento({
                 <span className={s.cuotasTitulo}>Cuotas pendientes</span>
                 <Tabla
                   columnas={[{ titulo: 'Cuota' }, { titulo: 'Importe', num: true }, { titulo: 'Fecha de vencimiento' }]}
-                  filas={cuotas.map(c => [c.numero, <strong key="i">{dinero(c.importe)}</strong>, fecha(c.vence)])}
+                  filas={cuotas.map(c => [c.numero, <strong key="i">{enSu(c.importe, c.divisa)}</strong>, fecha(c.vence)])}
                   pie={
                     <tfoot>
-                      <tr className={s.total}>
-                        <td>Total programado</td>
-                        <td className={s.num}>{dinero(totalCuotas)}</td>
-                        <td />
-                      </tr>
+                      {totalCuotas.map(([d, total]) => (
+                        <tr key={d} className={s.total}>
+                          <td>Total programado{totalCuotas.length > 1 ? ` en ${d}` : ''}</td>
+                          <td className={s.num}>{enDivisa(total, d)}</td>
+                          <td />
+                        </tr>
+                      ))}
                     </tfoot>
                   }
                 />

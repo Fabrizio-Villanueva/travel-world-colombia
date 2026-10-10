@@ -1,3 +1,5 @@
+import type { Divisa } from './divisa'
+
 /**
  * Datos de un contrato de servicios turísticos, ya listos para imprimir.
  * El documento (components/contrato/ContratoDocumento.tsx) solo muestra lo que
@@ -40,6 +42,9 @@ export interface ContratoLiquidacionFila {
 
 export interface ContratoPago {
   fecha?: string
+  /** Divisa del pago (10-oct-2026): total, abono y saldo van en ella. */
+  divisa?: Divisa
+  /** Medio de pago: solo lo traen las fotos congeladas antes del 10-oct-2026 (lo reemplazó la divisa). */
   medio?: string
   trm?: number
   totalPlan?: number
@@ -51,6 +56,8 @@ export interface ContratoPago {
 export interface ContratoCuota {
   numero: number
   importe: number
+  /** Divisa del importe (10-oct-2026; sin ella, pesos). */
+  divisa?: Divisa
   /** Fecha de vencimiento (AAAA-MM-DD). */
   vence?: string
 }

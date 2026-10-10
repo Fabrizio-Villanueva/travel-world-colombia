@@ -1045,6 +1045,96 @@
   "dataType": "DATE"
  },
  {
+  "folder": "Plan de Pagos",
+  "name": "Pago 1 - Divisa",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "COP",
+   "USD"
+  ]
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Pago 2 - Divisa",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "COP",
+   "USD"
+  ]
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Pago 3 - Divisa",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "COP",
+   "USD"
+  ]
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Pago 4 - Divisa",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "COP",
+   "USD"
+  ]
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 1 - Divisa",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "COP",
+   "USD"
+  ]
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 2 - Divisa",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "COP",
+   "USD"
+  ]
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 3 - Divisa",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "COP",
+   "USD"
+  ]
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 4 - Divisa",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "COP",
+   "USD"
+  ]
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 5 - Divisa",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "COP",
+   "USD"
+  ]
+ },
+ {
+  "folder": "Plan de Pagos",
+  "name": "Cuota 6 - Divisa",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "COP",
+   "USD"
+  ]
+ },
+ {
   "folder": "Inclusiones",
   "name": "Inclusiones",
   "dataType": "MULTIPLE_OPTIONS",

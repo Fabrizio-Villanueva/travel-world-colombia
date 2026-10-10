@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Loader2, Check, ChevronLeft, ChevronRight, FileSignature, Plus, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { RE_CUOTA, esCampoCuota, type CampoReserva, type ValorCampo } from '@/lib/admin/reservas'
+import { DIVISAS, divisaDe, enDivisa, type Divisa } from '@/lib/contratos/divisa'
 import { guardarReserva } from '../actions'
 
 /**
@@ -76,6 +77,7 @@ function sumarMeses(iso: string, meses: number): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10)
 }
 const pesos = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
+const MAX_PAGOS = 4
 const fechaCo = (iso: string) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso
@@ -180,19 +182,33 @@ function recalcular(
     ])
   )
 
-  // 4. Plan de pagos: el total del plan baja a cada pago y el saldo descuenta
-  //    los abonos acumulados hasta ese pago.
-  const totalPlan = leer('Total Pasajeros - Valor Total')
-  let abonado = 0
-  for (let n = 1; n <= 4; n++) {
-    poner(`Pago ${n} - Total Plan`, totalPlan)
-    const abono = leer(`Pago ${n} - Abono`)
-    if (abono !== null) abonado += abono
+  // 4. Plan de pagos, por divisa (10-oct-2026): cada pago hereda el total del
+  //    pago anterior en su misma divisa (el primero en pesos toma el total del
+  //    viaje; el primero en dólares, el valor en dólares de la TRM) y su saldo
+  //    descuenta solo los abonos de esa divisa: un pago en pesos no le resta
+  //    al saldo en dólares.
+  const totalPor: Record<Divisa, number | null> = {
+    COP: leer('Total Pasajeros - Valor Total'),
+    USD: leer('TRM - Valor Total'),
+  }
+  const abonadoPor: Record<Divisa, number> = { COP: 0, USD: 0 }
+  for (let n = 1; n <= MAX_PAGOS; n++) {
+    const d = divisaDe(texto(v, idDe(`Pago ${n} - Divisa`)), leer(`Pago ${n} - Abono`))
+    poner(`Pago ${n} - Total Plan`, totalPor[d])
     const total = leer(`Pago ${n} - Total Plan`)
-    poner(`Pago ${n} - Saldo en Pesos`, total !== null && abono !== null ? total - abonado : null)
+    if (total !== null) totalPor[d] = total
+    const abono = leer(`Pago ${n} - Abono`)
+    if (abono !== null) abonadoPor[d] += abono
+    poner(`Pago ${n} - Saldo en Pesos`, total !== null && abono !== null ? total - abonadoPor[d] : null)
   }
 
   return { valores: v, autos }
+}
+
+/** Texto de un campo (vacío → undefined). */
+function texto(v: Record<string, ValorCampo>, id: string | undefined): string | undefined {
+  const x = id ? v[id] : undefined
+  return typeof x === 'string' && x.trim() !== '' ? x : undefined
 }
 
 const card: React.CSSProperties = {
@@ -211,9 +227,33 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
   const porNombre = useMemo(() => new Map(campos.map(c => [c.name, c.ghlId])), [campos])
   const idDe = (nombre: string) => porNombre.get(nombre)
 
+  // Pagos y cuotas anteriores al 10-oct-2026 no tienen divisa: se infiere por
+  // el tamaño de los montos y se muestra como sugerida (amarillo) hasta que la
+  // asesora guarde el paso.
+  const prefillTodo = useMemo(() => {
+    const base = { ...prefill, ...valoresIniciales }
+    const monto = (nombre: string) => {
+      const x = texto(base, idDe(nombre))
+      const n = x === undefined ? NaN : Number(x)
+      return Number.isFinite(n) ? n : null
+    }
+    const inferidas: Record<string, ValorCampo> = {}
+    const inferir = (campoDivisa: string, montos: string[]) => {
+      const id = idDe(campoDivisa)
+      if (!id || texto(base, id) !== undefined) return
+      const valores = montos.map(monto)
+      if (valores.every(x => x === null)) return
+      inferidas[id] = divisaDe(undefined, ...valores)
+    }
+    for (let k = 1; k <= MAX_PAGOS; k++) inferir(`Pago ${k} - Divisa`, [`Pago ${k} - Abono`, `Pago ${k} - Total Plan`])
+    for (let k = 1; k <= MAX_CUOTAS; k++) inferir(`Cuota ${k} - Divisa`, [`Cuota ${k} - Importe`])
+    return { ...prefill, ...inferidas }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Estado inicial: valores guardados + prefill, con las autosumas ya corridas.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const inicial = useMemo(() => recalcular({ ...prefill, ...valoresIniciales }, new Set(), idDe), [])
+  const inicial = useMemo(() => recalcular({ ...prefillTodo, ...valoresIniciales }, new Set(), idDe), [])
 
   const [paso, setPaso] = useState(0)
   const [valores, setValores] = useState<Record<string, ValorCampo>>(inicial.valores)
@@ -223,7 +263,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
   // Ids cuyo valor vino sugerido del contacto y aún no se guarda: se pintan
   // distinto para que el representante los revise en vez de confiar a ciegas.
   const [sugeridos, setSugeridos] = useState<Set<string>>(
-    () => new Set(Object.keys(prefill).filter(id => valoresIniciales[id] === undefined))
+    () => new Set(Object.keys(prefillTodo).filter(id => valoresIniciales[id] === undefined))
   )
   const [guardando, setGuardando] = useState(false)
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null)
@@ -256,16 +296,17 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
   const [cuentaPago, setCuentaPago] = useState(() => conDatos.Pago)
 
   // ── Cuotas pendientes (plan de pagos por cuotas, oct-2026) ──
-  // Los campos "Cuota N - Importe / Fecha de vencimiento" viven en GHL como
-  // 6 ranuras fijas; aquí se ven como filas que se agregan y se quitan.
+  // Los campos "Cuota N - Importe / Fecha de vencimiento / Divisa" viven en
+  // GHL como 6 ranuras fijas; aquí se ven como filas que se agregan y se quitan.
   const cuotaIds = useMemo(() => {
-    const m = new Map<number, { importe?: string; vence?: string }>()
+    const m = new Map<number, { importe?: string; vence?: string; divisa?: string }>()
     for (const c of campos) {
       const r = RE_CUOTA.exec(c.name)
       if (!r) continue
       const n = Number(r[1])
       const e = m.get(n) ?? {}
       if (r[2] === 'Importe') e.importe = c.ghlId
+      else if (r[2] === 'Divisa') e.divisa = c.ghlId
       else e.vence = c.ghlId
       m.set(n, e)
     }
@@ -293,7 +334,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
     for (let i = k; i < cuentaCuotas; i++) {
       const actual = cuotaIds[i]
       const siguiente = i + 1 < cuentaCuotas ? cuotaIds[i + 1] : undefined
-      for (const campo of ['importe', 'vence'] as const) {
+      for (const campo of ['importe', 'vence', 'divisa'] as const) {
         const id = actual[campo]
         if (!id) continue
         const idSig = siguiente?.[campo]
@@ -397,7 +438,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
       const visibles = [...grupos.values()].flat().concat(sueltos)
       if (carpetaActual === PASO_PAGOS) {
         for (const e of cuotaIds.slice(0, cuentaCuotas)) {
-          for (const id of [e.importe, e.vence]) {
+          for (const id of [e.importe, e.vence, e.divisa]) {
             const c = campos.find(x => x.ghlId === id)
             if (c) visibles.push(c)
           }
@@ -407,6 +448,19 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
       for (const c of visibles) {
         const v = valores[c.ghlId]
         if (v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0)) lote[c.ghlId] = v
+      }
+      // La divisa que se ve en pantalla se guarda aunque nadie la haya tocado,
+      // en cada pago y cuota con datos: el contrato no tiene que adivinarla.
+      if (carpetaActual === PASO_PAGOS) {
+        for (let k = 1; k <= cuentaPago; k++) {
+          const id = idDe(`Pago ${k} - Divisa`)
+          const conDatos = [`Pago ${k} - Abono`, `Pago ${k} - Total Plan`, `Pago ${k} - Fecha de Pago`].some(n => texto(valores, idDe(n)))
+          if (id && conDatos && lote[id] === undefined) lote[id] = divisaPago(k)
+        }
+        for (const e of cuotaIds.slice(0, cuentaCuotas)) {
+          const conDatos = texto(valores, e.importe) || texto(valores, e.vence)
+          if (e.divisa && conDatos && lote[e.divisa] === undefined) lote[e.divisa] = divisaCuota(e)
+        }
       }
       // Los contadores (campos reales del contrato) viajan con cualquier paso:
       // el representante pudo ajustarlos desde el encabezado.
@@ -456,16 +510,101 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
     return Number.isFinite(n) ? n : null
   }
   const cuotasVisibles = cuotaIds.slice(0, cuentaCuotas)
-  const totalProgramado = cuotasVisibles.reduce((t, e) => t + Math.max(num(e.importe) ?? 0, 0), 0)
-  const totalPlan = num(idDe('Total Pasajeros - Valor Total'))
-  const abonado = [1, 2, 3, 4].reduce((t, n) => t + (num(idDe(`Pago ${n} - Abono`)) ?? 0), 0)
-  // Diferencia entre el total y lo cubierto (abonos ya hechos + cuotas): el
-  // depósito no se cuenta dos veces porque los abonos son los pagos reales.
-  const diferencia = totalPlan !== null ? Math.round((totalPlan - abonado - totalProgramado) * 100) / 100 : null
+
+  // Divisa de cada pago: la guardada o, si falta, la que dicen sus montos.
+  const divisaPago = (k: number): Divisa =>
+    divisaDe(texto(valores, idDe(`Pago ${k} - Divisa`)), num(idDe(`Pago ${k} - Abono`)), num(idDe(`Pago ${k} - Total Plan`)))
+
+  // Saldo por divisa: el del último pago visible en esa divisa (el campo Saldo
+  // o, si está vacío, total del plan menos sus abonos).
+  const saldoPor: Record<Divisa, number | null> = { COP: null, USD: null }
+  {
+    const totalPor: Record<Divisa, number | null> = { COP: null, USD: null }
+    const abonadoPor: Record<Divisa, number> = { COP: 0, USD: 0 }
+    for (let k = 1; k <= cuentaPago; k++) {
+      const t = num(idDe(`Pago ${k} - Total Plan`))
+      const a = num(idDe(`Pago ${k} - Abono`))
+      if (t === null && a === null) continue
+      const d = divisaPago(k)
+      if (t !== null) totalPor[d] = t
+      abonadoPor[d] += a ?? 0
+      const total = totalPor[d]
+      saldoPor[d] = num(idDe(`Pago ${k} - Saldo en Pesos`)) ?? (total !== null ? total - abonadoPor[d] : null)
+    }
+  }
+  // Una cuota nueva arranca en la divisa que todavía tiene saldo.
+  const divisaPendiente: Divisa = DIVISAS.find(d => (saldoPor[d] ?? 0) > 0) ?? 'COP'
+  const divisaCuota = (e: { divisa?: string }): Divisa => {
+    const guardada = texto(valores, e.divisa)
+    return guardada ? divisaDe(guardada) : divisaPendiente
+  }
+  // Cuadre por divisa: saldo pendiente = cuotas programadas en esa divisa.
+  const cuadre = DIVISAS.map(d => {
+    const programado = cuotasVisibles
+      .filter(e => divisaCuota(e) === d)
+      .reduce((t, e) => t + Math.max(num(e.importe) ?? 0, 0), 0)
+    const saldo = saldoPor[d]
+    const diferencia = saldo !== null ? Math.round((saldo - programado) * 100) / 100 : null
+    return { d, saldo, programado, diferencia }
+  }).filter(r => r.saldo !== null || r.programado > 0)
   const fechaIda = valores[idDe('Fecha confirmada de salida') ?? '']
   // Tope: un mes antes del viaje (aviso de saldos del contrato).
   const limiteCuotas = typeof fechaIda === 'string' && fechaIda ? sumarMeses(fechaIda, -1) : null
   const depositoMinimo = valores[idDe(NOMBRE_DEPOSITO_MINIMO) ?? '']
+
+  /**
+   * Un pago: la divisa manda. Total, abono y saldo se rotulan en esa divisa,
+   * la TRM solo aparece en dólares (o si ya traía una) y, en dólares, se ve
+   * cuánto son el abono y el saldo en pesos a la TRM de ese pago.
+   */
+  // Se llama como función (no como <Componente/>): definido aquí dentro, React
+  // lo remontaría en cada tecla y el campo perdería el foco.
+  function grupoPago(clave: string, n: number, items: CampoReserva[]) {
+    const d = divisaPago(n)
+    const trm = num(idDe(`Pago ${n} - TRM`))
+    const abono = num(idDe(`Pago ${n} - Abono`))
+    const saldo = num(idDe(`Pago ${n} - Saldo en Pesos`))
+    const sufijo = (c: CampoReserva) => c.name.replace(/^.+? - /, '')
+    const etiqueta: Record<string, string> = {
+      'Total Plan': `Total (${d})`,
+      Abono: `Abono (${d})`,
+      'Saldo en Pesos': `Saldo (${d})`,
+      TRM: 'TRM (pesos por dólar)',
+    }
+    const visibles = items.filter(c => !(sufijo(c) === 'TRM' && d === 'COP' && trm === null))
+    return (
+      <fieldset key={clave} className="mt-4 rounded-lg p-4" style={{ border: '1px solid var(--border)', background: 'var(--bg-alt)' }}>
+        <legend className="px-2 font-inter text-xs font-semibold" style={{ color: 'var(--orange)' }}>
+          Pago {n}
+        </legend>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {visibles.map(c => {
+            const esDivisa = sufijo(c) === 'Divisa'
+            return (
+              <Campo
+                key={c.ghlId}
+                campo={c}
+                valor={esDivisa ? (texto(valores, c.ghlId) ?? d) : valores[c.ghlId]}
+                sugerido={sugeridos.has(c.ghlId)}
+                auto={autos.has(c.ghlId)}
+                onChange={poner}
+                etiqueta={etiqueta[sufijo(c)]}
+                sinVacio={esDivisa}
+              />
+            )
+          })}
+        </div>
+        {d === 'USD' && trm !== null && (abono !== null || saldo !== null) && (
+          <p className="mt-3 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
+            A la TRM de este pago ({pesos.format(trm)}):
+            {abono !== null && <> abono = <strong style={{ color: 'var(--text-primary)' }}>{pesos.format(abono * trm)}</strong></>}
+            {abono !== null && saldo !== null && ' ·'}
+            {saldo !== null && <> saldo = <strong style={{ color: 'var(--text-primary)' }}>{pesos.format(saldo * trm)}</strong></>}
+          </p>
+        )}
+      </fieldset>
+    )
+  }
 
   // Los contadores de avance miran solo los campos que el contrato imprime:
   // el objetivo del wizard es un contrato completo, no llenar el catálogo TMS.
@@ -584,6 +723,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
           const rep = numeroRepetible(pref)
           // TRM es la tasa de cambio, no una fila de pasajeros: título claro.
           const titulo = rep ? `${SERIE_LABEL[rep.serie]} ${rep.n}` : pref === 'TRM' ? 'Tasa de cambio (TRM)' : pref
+          if (rep?.serie === 'Pago') return grupoPago(pref, rep.n, items)
           return (
             <fieldset
               key={pref}
@@ -618,10 +758,14 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
                   {typeof depositoMinimo === 'string' && depositoMinimo ? depositoMinimo : 'sin definir (campo del Pago 1)'}
                 </strong>
               </span>
-              <span>
-                Total programado en cuotas:{' '}
-                <strong style={{ color: 'var(--text-primary)' }}>{pesos.format(totalProgramado)}</strong>
-              </span>
+              {cuadre.some(r => r.programado > 0) && (
+                <span>
+                  Total programado en cuotas:{' '}
+                  <strong style={{ color: 'var(--text-primary)' }}>
+                    {cuadre.filter(r => r.programado > 0).map(r => enDivisa(r.programado, r.d)).join(' + ')}
+                  </strong>
+                </span>
+              )}
             </div>
 
             {cuentaCuotas === 0 && (
@@ -636,13 +780,32 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
                 const vence = e.vence ? valores[e.vence] : undefined
                 const importeMalo = importe !== null && importe <= 0
                 const tarde = typeof vence === 'string' && vence && limiteCuotas ? vence > limiteCuotas : false
+                const d = divisaCuota(e)
                 return (
-                  <div key={i} className="grid grid-cols-[auto_1fr_1fr_auto] items-end gap-3">
+                  <div key={i} className="grid grid-cols-[auto_6rem_1fr_1fr_auto] items-end gap-3">
                     <span className="pb-2 font-inter text-xs font-semibold" style={{ color: 'var(--text-dim)' }}>
                       Cuota {i + 1}
                     </span>
                     <label className="block">
-                      <span className="mb-1 block font-inter text-xs" style={{ color: 'var(--text-dim)' }}>Importe (COP)</span>
+                      <span className="mb-1 block font-inter text-xs" style={{ color: 'var(--text-dim)' }}>Divisa</span>
+                      <select
+                        value={d}
+                        onChange={ev => e.divisa && poner(e.divisa, ev.target.value)}
+                        disabled={!e.divisa}
+                        className="w-full rounded-md px-3 py-2 font-inter text-sm outline-none"
+                        style={{
+                          border: '1px solid var(--border)',
+                          color: 'var(--text-primary)',
+                          background: e.divisa && sugeridos.has(e.divisa) ? '#fffbeb' : 'white',
+                        }}
+                      >
+                        {DIVISAS.map(x => (
+                          <option key={x} value={x}>{x}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block font-inter text-xs" style={{ color: 'var(--text-dim)' }}>Importe ({d})</span>
                       <input
                         type="number"
                         min={1}
@@ -701,27 +864,35 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
               )}
             </div>
 
-            {totalPlan !== null && (cuentaCuotas > 0 || abonado > 0) && (
-              <p
-                className="mt-3 flex items-start gap-2 rounded-md px-3 py-2 font-inter text-xs"
-                style={
-                  diferencia === 0
-                    ? { background: '#ecfdf5', color: '#047857' }
-                    : { background: '#fffbeb', color: '#92400e' }
-                }
-              >
-                {diferencia === 0 ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" /> : <AlertTriangle size={14} className="mt-0.5 shrink-0" />}
-                <span>
-                  Total del viaje {pesos.format(totalPlan)} = abonos {pesos.format(abonado)} + cuotas {pesos.format(totalProgramado)}
-                  {diferencia === 0
-                    ? '. Las cuentas cuadran.'
-                    : diferencia !== null && diferencia > 0
-                      ? `. Faltan ${pesos.format(diferencia)} por programar.`
-                      : `. Las cuotas superan el saldo en ${pesos.format(Math.abs(diferencia ?? 0))}.`}
-                  {' '}Los importes no se ajustan solos: revísalos tú.
-                </span>
-              </p>
-            )}
+            {/* Un cuadre por divisa: el saldo en dólares se programa en
+                cuotas en dólares y el de pesos en cuotas en pesos. */}
+            {cuentaCuotas > 0 &&
+              cuadre.map(({ d, saldo, programado, diferencia }) => {
+                const ok = diferencia === 0
+                return (
+                  <p
+                    key={d}
+                    className="mt-3 flex items-start gap-2 rounded-md px-3 py-2 font-inter text-xs"
+                    style={ok ? { background: '#ecfdf5', color: '#047857' } : { background: '#fffbeb', color: '#92400e' }}
+                  >
+                    {ok ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" /> : <AlertTriangle size={14} className="mt-0.5 shrink-0" />}
+                    <span>
+                      <strong>{d}:</strong>{' '}
+                      {saldo === null
+                        ? `cuotas por ${enDivisa(programado, d)}, pero ningún pago en ${d} tiene total ni saldo.`
+                        : `saldo ${enDivisa(saldo, d)} · cuotas ${enDivisa(programado, d)}`}
+                      {diferencia === null
+                        ? ''
+                        : ok
+                          ? '. Las cuentas cuadran.'
+                          : diferencia > 0
+                            ? `. Faltan ${enDivisa(diferencia, d)} por programar.`
+                            : `. Las cuotas superan el saldo en ${enDivisa(Math.abs(diferencia), d)}.`}
+                      {!ok && ' Los importes no se ajustan solos: revísalos tú.'}
+                    </span>
+                  </p>
+                )
+              })}
             {porBorrar.size > 0 && (
               <p className="mt-2 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
                 Las cuotas quitadas se borran en GHL al guardar el paso.
@@ -810,18 +981,22 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
 
 /** Un campo del formulario, según su dataType de GHL. */
 function Campo({
-  campo, valor, sugerido, auto, onChange,
+  campo, valor, sugerido, auto, onChange, etiqueta: etiquetaFija, sinVacio,
 }: {
   campo: CampoReserva
   valor: ValorCampo | undefined
   sugerido: boolean
   auto: boolean
   onChange: (id: string, v: ValorCampo) => void
+  /** Etiqueta que depende del contexto (p. ej. "Abono (USD)"). */
+  etiqueta?: string
+  /** Lista sin la opción vacía "—" (la divisa siempre tiene valor). */
+  sinVacio?: boolean
 }) {
   // La etiqueta sin el prefijo del grupo ("P3 - Documento" → "Documento").
   // 'Destino de interés' se muestra como 'Destino' en el paso Contrato (el
   // nombre GHL no se toca: el catálogo TMS lo busca por nombre exacto).
-  const etiqueta = ETIQUETA_CAMPO[campo.name] ?? campo.name.replace(/^.+? - /, '')
+  const etiqueta = etiquetaFija ?? ETIQUETA_CAMPO[campo.name] ?? campo.name.replace(/^.+? - /, '')
   const base: React.CSSProperties = {
     border: '1px solid var(--border)',
     color: 'var(--text-primary)',
@@ -850,7 +1025,7 @@ function Campo({
           className={clase}
           style={base}
         >
-          <option value="">—</option>
+          {!sinVacio && <option value="">—</option>}
           {(campo.options ?? []).map(o => (
             <option key={o} value={o}>{o}</option>
           ))}

@@ -6,6 +6,7 @@ import type {
   ContratoPasajero,
   ContratoTrayecto,
 } from './tipos'
+import { divisaDe } from './divisa'
 
 /**
  * Arma el contrato a partir de los valores de la oportunidad (por NOMBRE del
@@ -182,11 +183,14 @@ export function armarContrato(e: EntradaContrato): ContratoDatos {
     const abono = numero(p('Abono'))
     const fecha = fechaIso(p('Fecha de Pago'))
     if (!abono && !fecha) continue
+    const totalPlan = numero(p('Total Plan'))
     pagos.push({
       fecha,
-      medio: texto(p('Medio de Pago')),
+      // La divisa reemplazó al medio de pago (10-oct-2026); sin divisa guardada
+      // (pagos anteriores) se infiere por el tamaño de los montos.
+      divisa: divisaDe(texto(p('Divisa')), abono, totalPlan),
       trm: numero(p('TRM')),
-      totalPlan: numero(p('Total Plan')),
+      totalPlan,
       abono,
       saldo: numero(p('Saldo en Pesos')),
     })
@@ -199,7 +203,12 @@ export function armarContrato(e: EntradaContrato): ContratoDatos {
     const importe = numero(o(`Cuota ${i} - Importe`))
     const vence = fechaIso(o(`Cuota ${i} - Fecha de vencimiento`))
     if ((importe == null || importe <= 0) && !vence) continue
-    cuotas.push({ numero: cuotas.length + 1, importe: importe != null && importe > 0 ? importe : 0, vence })
+    cuotas.push({
+      numero: cuotas.length + 1,
+      importe: importe != null && importe > 0 ? importe : 0,
+      divisa: divisaDe(texto(o(`Cuota ${i} - Divisa`)), importe),
+      vence,
+    })
   }
 
   const titular = texto(o('Titular de la Reserva')) ?? e.contacto.nombre ?? e.facturacion.nombre ?? ''

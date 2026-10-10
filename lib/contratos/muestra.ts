@@ -55,8 +55,8 @@ export const CONTRATO_MUESTRA: ContratoDatos = {
     total: { cantidad: 3, valorPlan: 5_910_000, valorTotal: 10_130_000 },
   },
   pagos: [
-    { fecha: '2026-10-07', medio: 'Transferencia Bancolombia', totalPlan: 10_130_000, abono: 3_000_000, saldo: 7_130_000 },
-    { fecha: '2026-11-07', medio: 'PSE', totalPlan: 10_130_000, abono: 3_500_000, saldo: 3_630_000 },
+    { fecha: '2026-10-07', divisa: 'COP', totalPlan: 10_130_000, abono: 3_000_000, saldo: 7_130_000 },
+    { fecha: '2026-11-07', divisa: 'COP', totalPlan: 10_130_000, abono: 3_500_000, saldo: 3_630_000 },
   ],
   // Lo pendiente (3.630.000) pactado en dos cuotas; la última vence un mes antes del viaje.
   cuotas: [
@@ -144,8 +144,8 @@ export function muestraConPasajeros(n: number): ContratoDatos {
     pasajeros,
     liquidacion: { aereos, terrestre, total: { cantidad: total, valorPlan, valorTotal } },
     pagos: [
-      { fecha: '2026-10-07', medio: 'Transferencia Bancolombia', totalPlan: valorTotal, abono: abono1, saldo: valorTotal - abono1 },
-      { fecha: '2026-11-07', medio: 'PSE', totalPlan: valorTotal, abono: abono2, saldo: valorTotal - abono1 - abono2 },
+      { fecha: '2026-10-07', divisa: 'COP', totalPlan: valorTotal, abono: abono1, saldo: valorTotal - abono1 },
+      { fecha: '2026-11-07', divisa: 'COP', totalPlan: valorTotal, abono: abono2, saldo: valorTotal - abono1 - abono2 },
     ],
     cuotas: [
       { numero: 1, importe: cuota1, vence: '2026-10-25' },
@@ -160,4 +160,21 @@ export function muestraSinCuotas(base: ContratoDatos = CONTRATO_MUESTRA): Contra
   void _c
   void _d
   return resto
+}
+
+/**
+ * La misma muestra con pagos en dos divisas (10-oct-2026): la porción
+ * terrestre en dólares y los tiquetes en pesos, con el saldo en dólares
+ * programado en una cuota en dólares.
+ */
+export function muestraDivisasMixtas(base: ContratoDatos = CONTRATO_MUESTRA): ContratoDatos {
+  return {
+    ...base,
+    pagos: [
+      { fecha: '2026-04-18', divisa: 'USD', trm: 3620, totalPlan: 9720, abono: 1657.45, saldo: 8062.55 },
+      { fecha: '2026-09-26', divisa: 'COP', totalPlan: 13_575_000, abono: 13_575_000, saldo: 0 },
+    ],
+    cuotas: [{ numero: 1, divisa: 'USD', importe: 8062.55, vence: '2026-11-12' }],
+    depositoMinimo: 'Porción terrestre',
+  }
 }
