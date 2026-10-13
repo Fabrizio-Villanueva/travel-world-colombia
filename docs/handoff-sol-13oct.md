@@ -87,3 +87,16 @@ Resumen de lo que se hizo, dónde quedó y qué falta. Todo está publicado en
    comparar leads de Sol 2 antes y después de esta regla.
 5. Vigilar en `agente_eventos` las notas "revisión: corrigió…" para ver qué
    errores sigue atrapando la guarda.
+
+## 6. Panel, evaluador y pruebas automáticas (13-oct, noche)
+
+- `/admin/sol/resultados` (solo superadmin) + evaluador IA de cada lead
+  (migración 042, cron `/api/agente/evaluador`). 6–13 oct: de 29 leads
+  pasados, 27 valían y 0 eran malos; mediana de respuesta humana 18 h.
+- Pruebas de Sol con promptfoo: `npm run eval:sol` (20 casos, v1 y v2,
+  ~1 min, centavos de dólar). Correrlo ANTES de publicar cualquier cambio del
+  prompt o las reglas. Primera corrida: 19/20; falla Sol 1 al no dar rango de
+  precio ante "¿cuánto vale San Andrés?" (Sol 2 sí lo da).
+- Langfuse: sin decidir (requiere cuenta o servidor propio y enviar
+  conversaciones de clientes a un tercero).
+- Re-evaluación de la regla `pide_cotizacion` programada el 20-oct 9:00.
