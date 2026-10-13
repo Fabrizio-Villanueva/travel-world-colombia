@@ -104,7 +104,7 @@ function estaCalificado(d: Decision['datos']): boolean {
  *    compra o sí al compromiso). Con datos completos pero sin intención, Sol
  *    sigue trabajándolo: es justo lo que pidió la dueña.
  */
-function listoParaAsesora(decision: Decision): boolean {
+export function listoParaAsesora(decision: Decision): boolean {
   if (decision.venta) return decision.venta.estado === 'listo_para_reservar'
   return estaCalificado(decision.datos)
 }
