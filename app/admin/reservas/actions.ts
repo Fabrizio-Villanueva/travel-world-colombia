@@ -196,7 +196,16 @@ export async function cargarReserva(opportunityId: string): Promise<ReservaCarga
  * (merge tags `{{contact.*}}`) imprima todo. GHL hace merge en ambos PUT.
  */
 export type ResultadoGuardado =
-  | { ok: true; guardados: number }
+  | {
+      ok: true
+      guardados: number
+      /**
+       * Valores que el servidor escribió por su cuenta (cumpleaños unificado),
+       * por ghlId: el Generador los pone en pantalla para que el otro paso no
+       * quede mostrando la fecha vieja y la devuelva al guardarlo.
+       */
+      sincronizados: Record<string, string>
+    }
   | { ok: false; error: string }
 
 export async function guardarReserva(
@@ -213,7 +222,7 @@ export async function guardarReserva(
   // lanzados en producción ("omitted in production builds") y el representante
   // se quedaba sin saber POR QUÉ no guardó.
   try {
-    return { ok: true, guardados: await guardar(opportunityId, valores, limpiar) }
+    return { ok: true, ...(await guardar(opportunityId, valores, limpiar)) }
   } catch (e) {
     console.error('guardarReserva:', e)
     return { ok: false, error: (e as Error).message }
@@ -224,7 +233,7 @@ async function guardar(
   opportunityId: string,
   valores: Record<string, ValorCampo>,
   limpiar: string[]
-): Promise<number> {
+): Promise<{ guardados: number; sincronizados: Record<string, string> }> {
   const { user } = await requireReservas()
 
   // El contacto dueño se deriva EN EL SERVIDOR de la oportunidad: el cliente
@@ -266,7 +275,7 @@ async function guardar(
     }
   }
 
-  await sincronizarNacimiento(oportunidad, contactId, campos, loteOportunidad, estandar)
+  const sincronizados = await sincronizarNacimiento(oportunidad, contactId, campos, loteOportunidad, estandar)
 
   // Vaciar explícito (quitar cuotas): solo campos de oportunidad del catálogo
   // que no vengan también con valor en este mismo lote.
@@ -280,7 +289,7 @@ async function guardar(
 
   const nEstandar = Object.keys(estandar).length
   const total = loteOportunidad.length + loteContacto.size + nEstandar
-  if (total === 0) return 0
+  if (total === 0) return { guardados: 0, sincronizados }
 
   if (loteOportunidad.length > 0) {
     // Al pedir el contrato: guardar las sugerencias amarillas aún sin guardar
@@ -337,7 +346,7 @@ async function guardar(
     )
   }
 
-  return total
+  return { guardados: total, sincronizados }
 }
 
 interface Duplicado {
@@ -376,7 +385,7 @@ function pasajerosConNacimiento(campos: CampoReserva[]): { nombre: string; fecha
  * cambia la fecha de un pasajero que ES el contacto, va también a la fecha
  * nativa del contacto; si cambia la nativa (paso Contacto), va al pasajero
  * que es el contacto. Si ambas vienen en el mismo lote, cada una se respeta.
- * Muta los lotes que `guardar` escribe después.
+ * Muta los lotes que `guardar` escribe después y devuelve lo que agregó.
  */
 async function sincronizarNacimiento(
   oportunidad: NonNullable<Awaited<ReturnType<typeof obtenerOportunidad>>>,
@@ -384,13 +393,14 @@ async function sincronizarNacimiento(
   campos: CampoReserva[],
   loteOportunidad: { id: string; field_value: string | number | string[] }[],
   estandar: Record<string, string>
-): Promise<void> {
-  if (!contactId) return
+): Promise<Record<string, string>> {
+  const agregados: Record<string, string> = {}
+  if (!contactId) return agregados
   const pasajeros = pasajerosConNacimiento(campos)
   const enLote = new Map(loteOportunidad.map(x => [x.id, x.field_value]))
   const fechaNueva = estandar.dateOfBirth
   const tocaPasajero = pasajeros.some(p => enLote.has(p.fecha) || enLote.has(p.nombre))
-  if (!fechaNueva && !tocaPasajero) return
+  if (!fechaNueva && !tocaPasajero) return agregados
 
   // Valores actuales de la oportunidad (para nombres que no vienen en el lote).
   // Crudos: las fechas pueden venir como epoch ms.
@@ -410,17 +420,20 @@ async function sincronizarNacimiento(
     const nombre = valorDe(p.nombre)
     return typeof nombre === 'string' && mismaPersona(nombre, nombreCliente)
   })
-  if (delContacto.length === 0) return
+  if (delContacto.length === 0) return agregados
 
   if (fechaNueva) {
     // Paso Contacto → pasajero(s) que son el contacto.
-    if (!fechaNacimientoValida(fechaNueva)) return
+    if (!fechaNacimientoValida(fechaNueva)) return agregados
     for (const p of delContacto) {
       if (enLote.has(p.fecha)) continue
       const hoy = fechaNacimientoIso(actual.get(p.fecha))
-      if (hoy !== fechaNueva) loteOportunidad.push({ id: p.fecha, field_value: fechaNueva })
+      if (hoy !== fechaNueva) {
+        loteOportunidad.push({ id: p.fecha, field_value: fechaNueva })
+        agregados[p.fecha] = fechaNueva
+      }
     }
-    return
+    return agregados
   }
 
   // Paso Pasajeros → fecha nativa del contacto.
@@ -428,5 +441,7 @@ async function sincronizarNacimiento(
   const fecha = p ? fechaNacimientoIso(enLote.get(p.fecha)) : null
   if (fechaNacimientoValida(fecha) && fecha !== fechaNacimientoIso(contacto?.dateOfBirth)) {
     estandar.dateOfBirth = fecha
+    agregados['std:dateOfBirth'] = fecha
   }
+  return agregados
 }

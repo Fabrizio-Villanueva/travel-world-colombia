@@ -476,9 +476,11 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
         return
       }
       if (limpiar.length > 0) setPorBorrar(new Set())
+      // Fechas de nacimiento que el servidor sincronizó (contacto ⇄ pasajero).
+      if (Object.keys(r.sincronizados).length > 0) setValores(v => ({ ...v, ...r.sincronizados }))
       setSugeridos(prev => {
         const s = new Set(prev)
-        for (const id of Object.keys(lote)) s.delete(id)
+        for (const id of [...Object.keys(lote), ...Object.keys(r.sincronizados)]) s.delete(id)
         return s
       })
       setAviso({ ok: true, texto: r.guardados ? `${r.guardados} campos guardados en GHL.` : 'Nada nuevo que guardar.' })
