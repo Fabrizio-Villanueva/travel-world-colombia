@@ -44,7 +44,7 @@ export async function enviarCopiaFirmada(opportunityId: string): Promise<{ canal
   if (c.telefono_ultimos4) {
     try {
       const conv = await conversacionDe(c.contact_id)
-      const mensajes = conv ? await ultimosMensajes(conv.id, 15) : []
+      const mensajes = conv ? await ultimosMensajes(conv.id, 40) : []
       const r = await enviarMensaje(c.contact_id, textoWhatsApp(nombre, c.reserva, url), rutaDeRespuesta(mensajes))
       // Registrado como envío del sistema: Sol no lo toma como mensaje de la asesora.
       if (r.messageId) await registrarEnviado(r.messageId, r.conversationId ?? conv?.id ?? '', c.contact_id)

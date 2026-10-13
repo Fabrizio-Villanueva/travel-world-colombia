@@ -32,6 +32,7 @@ const ETIQUETA: Record<EventoContrato['tipo'], string> = {
   anulado: 'Contrato anulado',
   descargado: 'PDF descargado',
   copia_reenviada: 'Copia firmada reenviada',
+  firma_fallida: 'Intento de firma fallido',
 }
 
 function hora(iso: string | null): string {
@@ -44,7 +45,7 @@ function hora(iso: string | null): string {
 }
 
 export function HojaEvidencia({ c }: { c: DatosEvidencia }) {
-  const eventos = c.eventos.filter(e => e.tipo !== 'pdf' && e.tipo !== 'descargado' && e.tipo !== 'copia_reenviada')
+  const eventos = c.eventos.filter(e => e.tipo !== 'pdf' && e.tipo !== 'descargado' && e.tipo !== 'copia_reenviada' && e.tipo !== 'firma_fallida')
   return (
     <section className={s.hoja} lang="es">
       <p className={s.eyebrow}>Travel World Colombia · VAMOS POR MÁS S.A.S.</p>

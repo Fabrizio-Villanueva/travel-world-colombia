@@ -126,7 +126,7 @@ export async function enviarCodigo(s: SolicitudRow, canal: CanalCodigo): Promise
     if (canal === 'whatsapp') {
       // Misma vía por la que responde Sol: el canal del último mensaje entrante.
       const conv = await conversacionDe(s.contact_id)
-      const mensajes = conv ? await ultimosMensajes(conv.id, 15) : []
+      const mensajes = conv ? await ultimosMensajes(conv.id, 40) : []
       const r = await enviarMensaje(s.contact_id, textoWhatsApp(codigo), rutaDeRespuesta(mensajes))
       // Registrado como envío "del sistema": Sol no lo toma como mensaje de la asesora.
       if (r.messageId) await registrarEnviado(r.messageId, r.conversationId ?? conv?.id ?? '', s.contact_id)

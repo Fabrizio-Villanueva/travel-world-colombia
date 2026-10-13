@@ -5,7 +5,7 @@ import { checkRateLimit } from '@/lib/security/rateLimit'
 import { tokenValido } from '@/lib/documentos/token'
 import { accesoContratoValido, firmarAccesoContrato, nombreCookieContrato } from '@/lib/contratos/acceso'
 import { enviarCodigoContrato, verificarCodigoContrato, type CanalCodigo, type EnvioCodigo } from '@/lib/contratos/codigo'
-import { contratoPorToken, estadoEnlaceContrato, firmarContrato, type ContratoRow } from '@/lib/contratos/registro'
+import { contratoPorToken, estadoEnlaceContrato, firmarContrato, registrarEvento, type ContratoRow } from '@/lib/contratos/registro'
 
 /**
  * Acciones de la página pública /contrato/<token>. El token se resuelve por
@@ -86,7 +86,12 @@ export async function firmar(
   const r = await abrir(token)
   if ('error' in r) return { ok: false, error: r.error }
   const cookie = (await cookies()).get(nombreCookieContrato(r.c.token_hash))?.value
+  // Los intentos fallidos quedan en el historial (no en la hoja de evidencia)
+  // para poder ver dónde se traba un cliente que dice "no me deja firmar".
+  const fallida = (detalle: string) =>
+    registrarEvento(r.c.id, { tipo: 'firma_fallida', ip, ua: ua.slice(0, 400), detalle: detalle.slice(0, 300) })
   if (!accesoContratoValido(cookie, r.c.id)) {
+    await fallida(cookie ? 'cookie de acceso inválida o vencida' : 'sin cookie de acceso')
     return { ok: false, error: 'Tu acceso venció. Recarga la página y vuelve a pedir el código.' }
   }
   if (!entrada.acepto) return { ok: false, error: 'Marca la casilla para aceptar el contrato.' }
@@ -94,6 +99,7 @@ export async function firmar(
     await firmarContrato(r.c, { ...entrada, ip, ua }, host)
     return { ok: true, datos: null }
   } catch (e) {
+    await fallida(e instanceof Error ? e.message : String(e))
     return fallo(e)
   }
 }

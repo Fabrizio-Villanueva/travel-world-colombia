@@ -109,8 +109,18 @@ export interface RutaMensaje {
  * silencio — GHL lo acepta pero no hay canal nativo que lo entregue
  * (verificado el 2026-08-04 con la primera respuesta en vivo de Sol).
  */
+const TIPOS_DE_CANAL = new Set([
+  'TYPE_CUSTOM_SMS', 'TYPE_CUSTOM_PROVIDER_SMS', 'TYPE_SMS', 'TYPE_INSTAGRAM', 'TYPE_FACEBOOK', 'TYPE_LIVE_CHAT',
+])
+
 export function rutaDeRespuesta(mensajes: MensajeGhl[]): RutaMensaje {
-  const entrante = mensajes.find(m => m.direction === 'inbound' && m.messageType)
+  // Si el último entrante quedó fuera de la ventana (p. ej. una ráfaga de
+  // códigos de contrato), se sale por el canal del último saliente conocido:
+  // caer en `WhatsApp` nativo falla con subscriptionNotActiveLocation porque
+  // la cuenta no tiene esa suscripción (caso TW-2783, 13-oct).
+  const entrante =
+    mensajes.find(m => m.direction === 'inbound' && m.messageType) ??
+    mensajes.find(m => m.direction === 'outbound' && TIPOS_DE_CANAL.has(m.messageType ?? ''))
   switch (entrante?.messageType) {
     case 'TYPE_CUSTOM_SMS':
       return { tipo: 'SMS', conversationProviderId: entrante.conversationProviderId }
