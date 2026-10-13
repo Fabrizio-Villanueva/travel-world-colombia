@@ -7,6 +7,25 @@
 > ⚠️ `app/admin/reservas/actions.ts` tiene WIP sin commitear de otra sesión (contactos
 > duplicados, ver pendiente 6): NO usar `git add -A`; stagear solo lo propio.
 
+## 🔄 CAMBIO 13-OCT — Recordatorios de viaje SIN cobro
+Clientes que ya habían pagado recibieron "aún tienes saldo pendiente" y otros recibieron los mensajes 2–3 veces.
+Causas (verificadas por API): pagos registrados en la tarjeta de 🎯 Leads con la de Reservaciones vacía (Martha
+Trujillo), abonos sin cargar en el Generador (Adelaida: Pago 3 de 1.920.000 del 05-oct; Mariana Marín) y clientes con
+DOS tarjetas ganadas en Reservaciones con las mismas fechas (Miguel Morales/"Ana Rosa", Pedro Rada y ~13 más entre
+oct y dic) → cada tarjeta dispara su mensaje. Además V-05 mandaba AL CLIENTE el texto interno "CLIENTE A 2 DÍAS…".
+
+**Decisión del usuario (aplicada y publicada en GHL el 13-oct):** V-01..V-05 quedan SOLO como avisos de que el viaje
+se acerca: sin condición pagó/no pagó, sin línea de saldo, sin tareas de cobro; V-05 con aviso interno corregido.
+Estructura: Recordatorio de fecha (Fecha confirmada de salida, "Antes de N días") → Find opportunity → Internal
+Notification → SMS → Update → 🧳 Por Viajar (ahora significa "sale en ≤45 días", no "pagó"). La cobranza la lleva otro
+departamento que NO usa el CRM: el saldo de GHL NO es fuente de verdad; no reintroducir mensajes de cobro.
+V-06/V-07 sin cambios.
+
+**Pendiente:** limpiar las tarjetas dobles en Reservaciones (y Leads abiertas duplicando una reserva); mientras
+existan, esos clientes reciben cada aviso dos veces. Primeros afectados: Jose Luis Carrillo (regreso 16-oct),
+Dayana Guali (22-oct). Pedro Rada recibió 3 "Bienvenido de regreso" (2 por tarjetas dobles; el 3º revisar si
+P-01/V-07 repiten texto).
+
 ## ▶️ PENDIENTES AL CIERRE DEL 02-OCT (empezar aquí)
 **Usuario / equipo, pronto**
 1. 3 clientes escalados que esperan persona: "😀" (reserva noviembre, 01-oct), Sandra Zapata (calificada 09-sep, nunca
@@ -92,8 +111,8 @@ el interior de un workflow: el usuario manda capturas.
 | 12 | C-03 · Preview → borrador | ✅ |
 | 13 | C-02 · Enviar contrato | ✅ (02-oct): ramas Enviar/Reenviar → If etapa = 📋 Reserva Creada → Update opp → 📤 Contrato Enviado ("mover a etapa anterior" apagado). Probado con opp de prueba MjJyGQv4hzJnmdcu4wJM (PRUEBA – Fabrizio): avanza, y no retrocede si el Generador ya la llevó a En Pagos |
 | 14 | C-04 (hoy "Notificación Contrato Firmado") | Renombrar; tras el bloqueo: Find + Update → ✍️ Contrato Firmado; ¿2 notificaciones iguales? · ⏸️ EN PAUSA por decisión del usuario (02-oct) |
-| 15 | V-01 · Salida −45 días → recordatorio + Por Viajar si pagó | ✅ (02-oct) modificado en el mismo wf. "Antes de X días" dispara EXACTO (verificado: 8/8 inscritos a 45 d) |
-| 16-19 | V-02..V-05 · 30/15/7/2 días | ✅ (02-oct) duplicados de V-01, textos nuevos con {{opportunity.fecha_confirmada_de_salida}}; V-04 crea tarea "Entregar vouchers" / "Cobrar saldo"; V-05 tarea cobro hoy; viejos apagados → ZZ |
+| 15 | V-01 · Salida −45 días → recordatorio + Por Viajar | ✅ (02-oct; 13-oct sin condición de pago, ver arriba) modificado en el mismo wf. "Antes de X días" dispara EXACTO (verificado: 8/8 inscritos a 45 d) |
+| 16-19 | V-02..V-05 · 30/15/7/2 días | ✅ (02-oct) duplicados de V-01, textos nuevos con {{opportunity.fecha_confirmada_de_salida}}; viejos apagados → ZZ. 13-oct: solo aviso de viaje, sin ramas de pago ni tareas de cobro |
 | 20 | V-06 · Día de salida → En Viaje | ✅ (02-oct) "Antes de 0 días" (GHL no tiene "después de"); pagados y con saldo → 🛫 En Viaje; None solo aviso. ⚠️ Confirmar en historial que 0 días dispara |
 | 21 | V-07 · Día de regreso → Completada | ✅ (02-oct) Fecha confirmada de REGRESO, 0 días → ✈️ Completada |
 | 22 | P-01 · Regreso +5 → pedir reseña | ✅ (02-oct) disparador = cambio de fase a ✈️ Completada (Reservaciones) → wait 5 d → ¿sigue en Completada? → SMS + correo → 🌟 Solicitar Review |
@@ -111,7 +130,7 @@ el interior de un workflow: el usuario manda capturas.
 2. **Find opportunity** (Reservaciones · Won · más reciente) — obligatorio: GHL no cuenta el
    recordatorio por fecha como disparador de oportunidad y sin él no hay condiciones de
    etapa ni Update.
-3. Condición por **Pipeline stage**: "Pago completo" = Pagada y Documentada **OR** Por
+3. ~~Condición por **Pipeline stage**~~ (QUITADA el 13-oct en V-01..V-05: solo aviso de viaje): "Pago completo" = Pagada y Documentada **OR** Por
    Viajar; "Saldo pendiente" = Reserva Creada / Contrato Enviado / Contrato Firmado /
    En Pagos; None = solo alerta interna (sin SMS: ahí caen canceladas).
 4. Pago completo → Update → 🧳 Por Viajar (en todos los V-01..V-05). V-04 + tarea
