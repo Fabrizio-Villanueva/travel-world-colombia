@@ -66,11 +66,37 @@ function habil(fecha: Date): boolean {
 }
 
 /**
- * Minutos que se espera antes de que Sol cubra: el plazo largo solo si el
- * mensaje llegó en horario Y seguimos en horario; si no, nadie va a contestar.
+ * Minutos que se espera antes de que Sol cubra. Plazo largo (`minEnHorario`)
+ * si AHORA estamos en horario o si la asesora está activa en el chat; si no,
+ * el corto: fuera de horario y sin nadie atendiendo, nadie va a contestar.
+ *
+ * Antes miraba si el mensaje LLEGÓ en horario: un "Todo normal" de las 8:53
+ * contaba como fuera de horario y a las 9:10 Sol se metía encima de la asesora
+ * que había escrito a las 8:52 (Mariana Marín 10-oct, Julián Joya 13-oct).
  */
-function esperaRespaldoMin(llegada: Date, ahora: Date): number {
-  return habil(llegada) && habil(ahora) ? RESPALDO.minEnHorario : RESPALDO.minFueraHorario
+function esperaRespaldoMin(ahora: Date, asesoraActiva: boolean): number {
+  return habil(ahora) || asesoraActiva ? RESPALDO.minEnHorario : RESPALDO.minFueraHorario
+}
+
+/** Ventana en la que un mensaje de una persona del equipo cuenta como "la asesora está en el chat". */
+const ASESORA_ACTIVA_MIN = 60
+
+/**
+ * ¿Una persona del equipo escribió en la hora previa al mensaje del cliente?
+ * Cuenta solo salientes escritos por alguien: ni los de Sol ni los de
+ * workflows. `mensajes` llega del más reciente al más antiguo.
+ */
+async function asesoraActiva(mensajes: MensajeGhl[], llegada: Date): Promise<boolean> {
+  const desde = llegada.getTime() - ASESORA_ACTIVA_MIN * 60_000
+  for (const m of mensajes) {
+    if (m.direction !== 'outbound' || !esReal(m) || !m.dateAdded) continue
+    if (m.source === 'workflow' || m.source === 'bulk_actions' || m.source === 'campaign') continue
+    const t = new Date(m.dateAdded).getTime()
+    if (t > llegada.getTime()) continue
+    if (t < desde) break
+    if (!(await esDeSol(m.id))) return true
+  }
+  return false
 }
 
 /**
@@ -292,7 +318,9 @@ export async function correrVigilancia(
         RESPALDO.activo &&
         !solEnPausa(ahora) &&
         tags.includes(TAGS.stopBot) &&
-        (Boolean(prueba) || edadEntranteMin >= esperaRespaldoMin(llegada, ahora))
+        (Boolean(prueba) ||
+          (edadEntranteMin >= RESPALDO.minFueraHorario &&
+            edadEntranteMin >= esperaRespaldoMin(ahora, await asesoraActiva(mensajes, llegada))))
       if (!tocaRespaldo) continue
       // Sol ya evaluó este mensaje y decidió no contestar ("te confirmo el
       // sábado", "quedo atenta"): no se le vuelve a preguntar cada 10 minutos.
