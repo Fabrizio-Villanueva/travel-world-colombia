@@ -7,6 +7,7 @@ import type {
   ContratoTrayecto,
 } from './tipos'
 import { divisaDe } from './divisa'
+import { mismaPersona } from './nacimiento'
 
 /**
  * Arma el contrato a partir de los valores de la oportunidad (por NOMBRE del
@@ -32,7 +33,7 @@ export interface EntradaContrato {
     telefono?: string
   }
   /** Nombre del contacto (respaldo si falta "Titular de la Reserva"). */
-  contacto: { nombre?: string; telefono?: string }
+  contacto: { nombre?: string; telefono?: string; fechaNacimiento?: string }
   agente?: string
   /** Hoy (AAAA-MM-DD), respaldo si falta "Fecha del contrato". */
   hoy: string
@@ -143,7 +144,11 @@ export function armarContrato(e: EntradaContrato): ContratoDatos {
     pasajeros.push({
       nombre,
       documento: documento(o(`P${i} - Tipo de documento`), o(`P${i} - Documento`)),
-      fechaNacimiento: fechaIso(o(`P${i} - Fecha de Nacimiento`)),
+      // Si al pasajero que ES el contacto le falta la fecha, la nativa del
+      // contacto (cumpleaños unificado, lib/contratos/nacimiento.ts).
+      fechaNacimiento:
+        fechaIso(o(`P${i} - Fecha de Nacimiento`)) ??
+        (mismaPersona(nombre, e.contacto.nombre) ? e.contacto.fechaNacimiento : undefined),
       pasaporte: texto(o(`P${i} - Pasaporte`)),
       vencePasaporte: fechaIso(o(`P${i} - Vencimiento Pasaporte`)),
       telefono: texto(o(`P${i} - Telefono`)),

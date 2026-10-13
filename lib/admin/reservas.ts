@@ -262,6 +262,9 @@ export async function catalogoResuelto(): Promise<{
     { folder: 'Contacto', name: 'Apellidos', dataType: 'TEXT', ghlId: 'std:lastName', model: 'contact', enContrato: true },
     { folder: 'Contacto', name: 'Correo electrónico', dataType: 'EMAIL', ghlId: 'std:email', model: 'contact', enContrato: true },
     { folder: 'Contacto', name: 'Teléfono', dataType: 'PHONE', ghlId: 'std:phone', model: 'contact', enContrato: true },
+    // Cumpleaños del cliente = campo nativo de GHL (lib/contratos/nacimiento.ts).
+    // Se sincroniza con el pasajero P{n} que tenga el mismo nombre.
+    { folder: 'Contacto', name: 'Fecha de nacimiento', dataType: 'DATE', ghlId: 'std:dateOfBirth', model: 'contact', enContrato: true },
   )
 
   // Orden final: por paso y, dentro de Generales, calcando el contrato.

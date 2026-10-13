@@ -1,4 +1,16 @@
-import { actualizarCamposOportunidad, listarCamposTodosLosModelos } from '@/lib/agente/ghl'
+import {
+  actualizarCamposOportunidad,
+  actualizarContacto,
+  listarCamposTodosLosModelos,
+  obtenerContacto,
+  obtenerOportunidad,
+} from '@/lib/agente/ghl'
+import {
+  fechaNacimientoIso,
+  fechaNacimientoValida,
+  mismaPersona,
+  nombreContacto,
+} from '@/lib/contratos/nacimiento'
 import type { TipoDocumento } from '@/lib/documentos/config'
 import type { DatosDocumento } from '@/lib/documentos/tipos'
 import { SITE } from '@/lib/site'
@@ -101,7 +113,32 @@ export async function escribirViajeroEnGhl(
     .filter((c): c is { id: string; field_value: string } => c !== null)
   if (campos.length === 0) return 0
   await actualizarCamposOportunidad(opportunityId, campos)
+  if (tipo !== 'visa') await nacimientoAlContacto(opportunityId, datos)
   return campos.length
+}
+
+/**
+ * Cumpleaños unificado (lib/contratos/nacimiento.ts): si el viajero ES el
+ * contacto (mismo nombre), su fecha de nacimiento confirmada va también al
+ * campo nativo del contacto. Nunca hace fallar la confirmación del documento.
+ */
+async function nacimientoAlContacto(opportunityId: string, d: DatosDocumento): Promise<void> {
+  const fecha = (d.fecha_nacimiento ?? '').trim()
+  const nombre = nombreCompleto(d)
+  if (!fechaNacimientoValida(fecha) || !nombre) return
+  try {
+    const opp = (await obtenerOportunidad(opportunityId)) as
+      | { contactId?: string; contact?: { id?: string } }
+      | null
+    const contactId = opp?.contactId ?? opp?.contact?.id
+    if (!contactId) return
+    const contacto = await obtenerContacto(contactId)
+    if (!mismaPersona(nombre, nombreContacto(contacto))) return
+    if (fechaNacimientoIso(contacto?.dateOfBirth) === fecha) return
+    await actualizarContacto(contactId, { dateOfBirth: fecha })
+  } catch (e) {
+    console.warn('[documentos] no se pudo copiar la fecha de nacimiento al contacto:', e)
+  }
 }
 
 /** Valor de un campo P{n} por nombre (para precargar nombres en el portal). */

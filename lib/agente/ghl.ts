@@ -50,6 +50,8 @@ export interface ContactoGhl {
   tags?: string[]
   /** Usuario (asesora) dueño del contacto. */
   assignedTo?: string
+  /** Campo nativo "Fecha de nacimiento" (AAAA-MM-DD o epoch ms). Ver lib/contratos/nacimiento.ts. */
+  dateOfBirth?: string | number | null
   customFields?: { id: string; value?: unknown }[]
 }
 

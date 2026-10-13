@@ -25,6 +25,12 @@ import {
   esClienteRepetido,
   prepararEnvioContrato,
 } from '@/lib/admin/reservas-automatizacion'
+import {
+  fechaNacimientoIso,
+  fechaNacimientoValida,
+  mismaPersona,
+  nombreContacto,
+} from '@/lib/contratos/nacimiento'
 
 export interface ClienteEncontrado {
   id: string
@@ -130,6 +136,8 @@ export async function cargarReserva(opportunityId: string): Promise<ReservaCarga
     if (contacto.email) valores['std:email'] = contacto.email
     if (contacto.phone) valores['std:phone'] = contacto.phone
   }
+  const nacimiento = fechaNacimientoIso(contacto?.dateOfBirth)
+  if (nacimiento) valores['std:dateOfBirth'] = nacimiento
 
   // Prefill: el valor que ya vive en el CONTACTO (campos viejos / calificación
   // de Sol), solo para campos aún vacíos en la oportunidad. No a clientes que
@@ -140,6 +148,20 @@ export async function cargarReserva(opportunityId: string): Promise<ReservaCarga
     if (!campo.prefillContactId || valores[campo.ghlId] !== undefined) continue
     const v = normalizarValor(contactoPorId.get(campo.prefillContactId), campo.dataType)
     if (v !== null) prefill[campo.ghlId] = v
+  }
+
+  // Cumpleaños unificado: el pasajero que ES el contacto (mismo nombre) y la
+  // fecha nativa del contacto se sugieren entre sí cuando a uno le falta.
+  // Va también para clientes que repiten: la fecha de nacimiento no cambia.
+  const nombreCliente = nombreContacto(contacto)
+  for (const p of pasajerosConNacimiento(campos)) {
+    const nombre = valores[p.nombre] ?? prefill[p.nombre]
+    if (typeof nombre !== 'string' || !mismaPersona(nombre, nombreCliente)) continue
+    const fecha = valores[p.fecha]
+    if (fecha === undefined && nacimiento) prefill[p.fecha] = nacimiento
+    if (!nacimiento && typeof fecha === 'string' && fechaNacimientoValida(fecha)) {
+      prefill['std:dateOfBirth'] = fecha
+    }
   }
 
   const p = pipelines.find(x => x.id === oportunidad.pipelineId)
@@ -244,6 +266,8 @@ async function guardar(
     }
   }
 
+  await sincronizarNacimiento(oportunidad, contactId, campos, loteOportunidad, estandar)
+
   // Vaciar explícito (quitar cuotas): solo campos de oportunidad del catálogo
   // que no vengan también con valor en este mismo lote.
   for (const ghlId of new Set(limpiar)) {
@@ -332,5 +356,77 @@ function leerDuplicado(e: unknown): Duplicado | null {
     campo,
     contactId: /"contactId":"([^"]+)"/.exec(msg)?.[1],
     nombre: /"contactName":"([^"]+)"/.exec(msg)?.[1],
+  }
+}
+
+/** Ids de "P{n} - Nombre y Apellido" y "P{n} - Fecha de Nacimiento" de cada pasajero. */
+function pasajerosConNacimiento(campos: CampoReserva[]): { nombre: string; fecha: string }[] {
+  const id = (nombre: string) => campos.find(c => c.name === nombre && c.model === 'opportunity')?.ghlId
+  const out: { nombre: string; fecha: string }[] = []
+  for (let n = 1; n <= 20; n++) {
+    const nombre = id(`P${n} - Nombre y Apellido`)
+    const fecha = id(`P${n} - Fecha de Nacimiento`)
+    if (nombre && fecha) out.push({ nombre, fecha })
+  }
+  return out
+}
+
+/**
+ * Cumpleaños unificado (lib/contratos/nacimiento.ts): si en este guardado
+ * cambia la fecha de un pasajero que ES el contacto, va también a la fecha
+ * nativa del contacto; si cambia la nativa (paso Contacto), va al pasajero
+ * que es el contacto. Si ambas vienen en el mismo lote, cada una se respeta.
+ * Muta los lotes que `guardar` escribe después.
+ */
+async function sincronizarNacimiento(
+  oportunidad: NonNullable<Awaited<ReturnType<typeof obtenerOportunidad>>>,
+  contactId: string | undefined,
+  campos: CampoReserva[],
+  loteOportunidad: { id: string; field_value: string | number | string[] }[],
+  estandar: Record<string, string>
+): Promise<void> {
+  if (!contactId) return
+  const pasajeros = pasajerosConNacimiento(campos)
+  const enLote = new Map(loteOportunidad.map(x => [x.id, x.field_value]))
+  const fechaNueva = estandar.dateOfBirth
+  const tocaPasajero = pasajeros.some(p => enLote.has(p.fecha) || enLote.has(p.nombre))
+  if (!fechaNueva && !tocaPasajero) return
+
+  // Valores actuales de la oportunidad (para nombres que no vienen en el lote).
+  // Crudos: las fechas pueden venir como epoch ms.
+  const actual = new Map<string, unknown>()
+  for (const cf of oportunidad.customFields ?? []) {
+    actual.set(cf.id, cf.fieldValue ?? cf.field_value ?? cf.fieldValueString ?? cf.fieldValueDate)
+  }
+  const valorDe = (id: string) => (enLote.has(id) ? String(enLote.get(id)) : actual.get(id))
+
+  const contacto = await obtenerContacto(contactId)
+  const nombreCliente =
+    [estandar.firstName ?? contacto?.firstName, estandar.lastName ?? contacto?.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim()
+  const delContacto = pasajeros.filter(p => {
+    const nombre = valorDe(p.nombre)
+    return typeof nombre === 'string' && mismaPersona(nombre, nombreCliente)
+  })
+  if (delContacto.length === 0) return
+
+  if (fechaNueva) {
+    // Paso Contacto → pasajero(s) que son el contacto.
+    if (!fechaNacimientoValida(fechaNueva)) return
+    for (const p of delContacto) {
+      if (enLote.has(p.fecha)) continue
+      const hoy = fechaNacimientoIso(actual.get(p.fecha))
+      if (hoy !== fechaNueva) loteOportunidad.push({ id: p.fecha, field_value: fechaNueva })
+    }
+    return
+  }
+
+  // Paso Pasajeros → fecha nativa del contacto.
+  const p = delContacto.find(x => enLote.has(x.fecha))
+  const fecha = p ? fechaNacimientoIso(enLote.get(p.fecha)) : null
+  if (fechaNacimientoValida(fecha) && fecha !== fechaNacimientoIso(contacto?.dateOfBirth)) {
+    estandar.dateOfBirth = fecha
   }
 }

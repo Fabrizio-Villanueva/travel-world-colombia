@@ -5,6 +5,7 @@ import {
   obtenerOportunidad,
 } from '@/lib/agente/ghl'
 import { armarContrato, type Valor } from './armar'
+import { fechaNacimientoIso } from './nacimiento'
 import type { ContratoDatos } from './tipos'
 
 /**
@@ -80,6 +81,7 @@ export async function contratoDesdeGhl(opportunityId: string): Promise<ContratoD
     contacto: {
       nombre: [contacto?.firstName, contacto?.lastName].filter(Boolean).join(' ') || undefined,
       telefono: contacto?.phone,
+      fechaNacimiento: fechaNacimientoIso(contacto?.dateOfBirth) ?? undefined,
     },
     agente: agente ?? undefined,
     hoy: hoyBogota(),
