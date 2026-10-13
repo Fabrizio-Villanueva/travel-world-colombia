@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getAdminSession } from '@/lib/admin/guard'
+import { isSuperadmin } from '@/lib/admin/allowlist'
 import { GHL } from '@/lib/agente/config'
 import { cargarResultados, resumir, type FilaLead } from '@/lib/agente/resultados'
 
@@ -45,11 +46,12 @@ function filtrarVista(filas: FilaLead[], vista: Vista): FilaLead[] {
   }
 }
 
-/** Resultados de Sol: del primer mensaje a la venta, con la evidencia detrás de cada número. SOLO admin. */
+/** Resultados de Sol: del primer mensaje a la venta, con la evidencia detrás de cada número. SOLO superadmin. */
 export default async function ResultadosPage({ searchParams }: { searchParams: Promise<{ p?: string; v?: string; ver?: string }> }) {
   const session = await getAdminSession()
   if (!session) redirect('/admin/login')
-  if (session.rol !== 'admin') redirect('/admin')
+  // Solo el superadmin (ADMIN_EMAILS): por ahora no lo ven los demás admins.
+  if (!isSuperadmin(session.user.email)) redirect('/admin')
 
   const q = await searchParams
   const periodo: Periodo = q.p && q.p in PERIODOS ? (q.p as Periodo) : '30'

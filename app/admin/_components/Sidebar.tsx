@@ -11,13 +11,13 @@ import {
 import { signOut } from '../actions'
 import type { Role } from '@/lib/admin/allowlist'
 
-const NAV: { href: string; label: string; Icon: typeof Plane; exact?: boolean; soloAdmin?: boolean }[] = [
+const NAV: { href: string; label: string; Icon: typeof Plane; exact?: boolean; soloAdmin?: boolean; soloSuperadmin?: boolean }[] = [
   { href: '/admin',             label: 'Dashboard',    Icon: LayoutDashboard, exact: true },
   { href: '/admin/viajes',      label: 'Viajes',       Icon: Plane },
   { href: '/admin/catalogo',    label: 'Salud del catálogo', Icon: HeartPulse },
   { href: '/admin/categorias',  label: 'Categorías',   Icon: Tags },
   { href: '/admin/anuncios',    label: 'Anuncios',     Icon: Megaphone },
-  { href: '/admin/sol/resultados', label: 'Resultados de Sol', Icon: TrendingUp, soloAdmin: true },
+  { href: '/admin/sol/resultados', label: 'Resultados de Sol', Icon: TrendingUp, soloAdmin: true, soloSuperadmin: true },
   { href: '/admin/sol',         label: 'Sol: reglas comerciales', Icon: Bot, soloAdmin: true, exact: true },
   { href: '/admin/sol/laboratorio', label: 'Laboratorio de Sol', Icon: FlaskConical, soloAdmin: true },
   { href: '/admin/sol/ab',      label: 'Sol: prueba A/B', Icon: Split, soloAdmin: true },
@@ -31,15 +31,16 @@ const NAV: { href: string; label: string; Icon: typeof Plane; exact?: boolean; s
   { href: '/admin/actividad',   label: 'Actividad',    Icon: Activity },
 ]
 
-export function Sidebar({ email, rol, alertasCatalogo = 0 }: { email: string; rol: Role; alertasCatalogo?: number }) {
+export function Sidebar({ email, rol, superadmin = false, alertasCatalogo = 0 }: { email: string; rol: Role; superadmin?: boolean; alertasCatalogo?: number }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
   // El representante solo ve Reservas (el proxy además lo redirige ahí);
   // el lector ve el panel pero no Reservas (la sección escribe en el CRM).
   // Las secciones de Sol (reglas comerciales y laboratorio) son solo de admin.
+  // Resultados de Sol: solo el superadmin (ADMIN_EMAILS), decisión del 13-oct.
   const nav = NAV.filter(item =>
-    item.soloAdmin && rol !== 'admin'
+    (item.soloSuperadmin && !superadmin) || (item.soloAdmin && rol !== 'admin')
       ? false
       : rol === 'representante'
       ? item.href === '/admin/reservas'

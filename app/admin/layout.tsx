@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { getAdminSession } from '@/lib/admin/guard'
+import { isSuperadmin } from '@/lib/admin/allowlist'
 import { Sidebar } from './_components/Sidebar'
 import { contarGraves } from '@/lib/catalogo/salud'
 
@@ -25,6 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <Sidebar
         email={session.user.email ?? ''}
         rol={session.rol}
+        superadmin={isSuperadmin(session.user.email)}
         alertasCatalogo={session.rol === 'representante' ? 0 : await contarGraves()}
       />
       <div className="md:pl-60">
