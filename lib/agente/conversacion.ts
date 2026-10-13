@@ -315,7 +315,8 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
       }
     },
     extras,
-    nombresEquipo
+    nombresEquipo,
+    mensajes
   )
   const decision = turno.decision
   marcarFuenteAnuncio(decision, anuncio)
@@ -541,7 +542,8 @@ export async function atenderRespaldo(
       }),
     }),
     extras,
-    miembros.filter(m => m.asignable).map(m => m.nombre)
+    miembros.filter(m => m.asignable).map(m => m.nombre),
+    mensajes
   )
   const decision = turno.decision
 

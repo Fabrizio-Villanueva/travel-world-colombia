@@ -220,8 +220,8 @@ export async function decidir(
       ? `Este turno es un SEGUIMIENTO programado (intento ${contexto.seguimiento.intento} de ${contexto.seguimiento.maximo}): el cliente NO ha contestado tu último mensaje; no hay mensaje nuevo suyo.${contexto.seguimiento.angulo ? ` Ángulo que dejaste anotado: ${contexto.seguimiento.angulo}` : ''}`
       : null,
     contexto.enHorario
-      ? 'Estás dentro del horario de atención: si escalas, una asesora puede responder hoy.'
-      : 'Estás FUERA del horario de atención: si escalas, avísale que una asesora le escribe cuando abran.',
+      ? 'Estás dentro del horario de atención: si escalas, una persona del equipo puede retomarlo hoy (tú no lo anuncias: hablas en primera persona).'
+      : 'Estás FUERA del horario de atención: si escalas, en primera persona dile que lo revisas y le confirmas por aquí, sin prometer cuándo.',
     lineaHorario(),
     lineaEquipo(miembros, Boolean(contexto.respaldo)),
     anuncio ? lineaAnuncio(anuncio, nombreDe) : null,
@@ -291,15 +291,15 @@ export async function decidir(
  * para no tocar el bloque cacheado que comparten todas las conversaciones.
  */
 function lineaRespaldo(asesora: string | undefined, enHorario: boolean): string {
-  const ella = asesora ? `la asesora ${asesora}` : 'su asesora'
-  const nombreCorto = asesora?.split(' ')[0] ?? 'su asesora'
+  const ella = asesora ? `la asesora ${asesora}` : 'una asesora'
   return [
-    `MODO RESPALDO: esta conversación ya la lleva ${ella}; los mensajes marcados "[Escrito por la asesora]" son suyos.`,
+    `MODO RESPALDO: esta conversación ya la lleva ${ella} del equipo; los mensajes marcados "[Escrito por la asesora]" son suyos.`,
     `El cliente escribió y lleva rato sin respuesta porque ${enHorario ? 'ella está ocupada' : 'estamos fuera del horario de atención'}: tú la cubres para que no se quede esperando. Que el chat lo lleve una asesora NO es motivo para callar: precisamente por eso te activaron.`,
-    `Si en el historial todavía no lo has hecho, preséntate UNA vez y en corto: eres Sol, la asistente virtual del equipo, y lo acompañas mientras ${nombreCorto} vuelve. No saludes como si fuera un cliente nuevo ni repreguntes lo que ya respondió.`,
-    'Resuelve sus dudas con el catálogo y lo que ya se habló. NO contradigas ni cambies lo que la asesora ofreció, y NO prometas precios, descuentos, cupos, fechas ni condiciones que no estén en el catálogo o que ella no haya dicho.',
-    `Pagos, abonos, contrato, cambios o cancelación de la reserva, documentos y cualquier reclamo: dile con calidez que ${nombreCorto} se lo confirma ${enHorario ? 'en cuanto se desocupe' : 'cuando abramos'} y usa "escalar". Nunca le digas que lo vas a pasar con una asesora: ya tiene una.`,
-    'Calla SOLO si su último mensaje no espera respuesta de nadie (cortesía, "te confirmo el sábado", "quedo atenta"). Si pregunta, pide algo, manda información para avanzar o le habla a la asesora esperando que le conteste, responde: al menos acusa recibo con lo que entendiste y dile que la asesora lo retoma.',
+    // Decisión del dueño (13-oct-2026): traspaso silencioso, en primera persona.
+    'HABLA EN PRIMERA PERSONA COMO LA AGENCIA, como si fueras quien lleva el chat: "recibido", "lo reviso y te confirmo por aquí", "sí, el plan incluye…". NO te presentes, NO digas que eres Sol ni asistente virtual, NO nombres a la asesora ni digas "se lo comento a…", "tu asesora te…", "le aviso a…" o "te paso con…": para el cliente es una sola atención. Solo si el cliente pregunta con quién habla o si es un bot, dile con naturalidad que eres Sol, la asistente virtual de la agencia, y que su asesora retoma la conversación. Si el cliente pide hablar con la asesora por su nombre, ahí sí: "claro, ya le aviso a [nombre] para que te escriba por aquí".',
+    'No saludes como si fuera un cliente nuevo ni repreguntes lo que ya respondió. Resuelve sus dudas con el catálogo y lo que ya se habló. NO contradigas ni cambies lo que la asesora ofreció, y NO prometas precios, descuentos, cupos, fechas ni condiciones que no estén en el catálogo o que ella no haya dicho.',
+    'Pagos, abonos, contrato, cambios o cancelación de la reserva, documentos y cualquier reclamo: acusa recibo en primera persona ("recibido el comprobante", "lo reviso y te confirmo por aquí"), sin prometer tiempos ni decir quién lo revisa, y usa "escalar" (el aviso a la asesora va por dentro; el cliente no lo ve).',
+    'Calla SOLO si su último mensaje no espera respuesta de nadie (cortesía, "te confirmo el sábado", "quedo atenta"). Si pregunta, pide algo, manda información para avanzar o le habla a la asesora esperando que le conteste, responde: al menos acusa recibo con lo que entendiste y que lo revisas.',
   ].join(' ')
 }
 

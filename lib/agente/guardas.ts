@@ -140,7 +140,7 @@ const REPREGUNTAS: Array<[keyof Decision['datos'], RegExp, string]> = [
   ['destino', /(que|cual) destino tienes en mente|a donde (te gustaria|quieres|quisieras|tienen pensado)/, 'el destino'],
 ]
 
-const PROMESAS = /\b(muy pronto|en breve|enseguida|en seguida|en unos minutos|en un momento|en un ratito|hoy mismo|sin falta|ya mismo)\b/
+const PROMESAS = /\b(muy pronto|en breve|enseguida|en seguida|en unos minutos|en un momento|en un ratito|hoy mismo|sin falta|ya mismo|dame un momento|dame un minuto|un momentico)\b/
 
 /**
  * Problemas detectables en el mensaje que Sol va a enviar. Vacío = se envía.
@@ -153,6 +153,10 @@ export function revisarMensaje(
     previos?: Partial<Decision['datos']>
     /** Nombres de las personas del equipo (lista vigente, ver equipo.ts). */
     equipo?: string[]
+    /** Últimos mensajes del cliente: si pidió una persona o preguntó si es un bot, nombrar o presentarse es válido. */
+    textoCliente?: string
+    /** Nombre del cliente (puede coincidir con el de alguien del equipo). */
+    nombreCliente?: string
     ahora?: Date
   }
 ): string[] {
@@ -199,6 +203,34 @@ export function revisarMensaje(
     }
   }
 
+  // 5. Traspaso silencioso (decisión del 13-oct-2026): Sol habla en primera
+  //    persona como la agencia; no se presenta como asistente ni nombra a
+  //    quien lleva el chat, salvo que el cliente lo pida o lo pregunte.
+  const cliente = sinTildes(opciones.textoCliente ?? '')
+  const pidioPersona = /\b(bot|robot|maquina|inteligencia artificial|eres (una )?persona|eres real|con quien hablo|quien (me )?(habla|escribe|eres)|humano|asesor|asesora|alguien del equipo)\b/.test(cliente)
+  const intermediaria = plano.match(
+    /\b(asistente virtual|soy sol\b|(la|tu|una|un|el) asesora?\b|te paso con|te comunico con|(se lo|le) (comento|paso|aviso|cuento|digo) a|ya le (aviso|comento|paso) a)/
+  )
+  // Si el cliente nombró a alguien del equipo, le está pidiendo a esa persona.
+  const nombroEquipo = (opciones.equipo ?? []).some(n => {
+    const pila = sinTildes(n).split(/[^a-zñ]+/).filter(Boolean)[0]
+    return Boolean(pila) && new RegExp(String.raw`\b${pila}\b`).test(cliente)
+  })
+  if (intermediaria && !pidioPersona && !nombroEquipo && !/hablar con/.test(cliente)) {
+    problemas.push(`hablas como intermediaria («${intermediaria[0]}»): escribe en primera persona como la agencia ("lo reviso y te confirmo por aquí"), sin presentarte ni nombrar a nadie del equipo.`)
+  }
+  if (opciones.equipo?.length) {
+    const propios = new Set(sinTildes(opciones.nombreCliente ?? '').split(/[^a-zñ]+/).filter(Boolean))
+    const pilas = [...new Set(opciones.equipo.map(n => sinTildes(n).split(/[^a-zñ]+/).filter(Boolean)[0]).filter(Boolean))]
+    for (const pila of pilas) {
+      if (propios.has(pila) || cliente.includes(pila)) continue
+      if (new RegExp(String.raw`\b${pila}\b`).test(plano) && !problemas.some(p => p.includes('intermediaria'))) {
+        problemas.push(`nombras a «${pila}» del equipo sin que el cliente la haya mencionado: habla en primera persona y no nombres a nadie del equipo.`)
+        break
+      }
+    }
+  }
+
   return problemas
 }
 
@@ -223,19 +255,29 @@ export async function prepararExtras(contactId: string, mensajes: MensajeGhl[]):
 export async function conRevision<T extends { decision: Decision }>(
   llamar: (extras: Extras) => Promise<T>,
   extras: Extras,
-  equipo: string[]
+  equipo: string[],
+  /** Mensajes del cliente (del más reciente al más antiguo o texto plano): para la revisión 5. */
+  mensajesCliente?: MensajeGhl[] | string
 ): Promise<T & { nota?: string }> {
+  const textoCliente =
+    typeof mensajesCliente === 'string'
+      ? mensajesCliente
+      : (mensajesCliente ?? []).filter(m => m.direction === 'inbound').slice(0, 4).map(m => m.body ?? '').join(' ')
+  const revisar = (d: Decision) =>
+    revisarMensaje(d.mensaje, {
+      previos: extras.datosPrevios,
+      equipo,
+      textoCliente,
+      nombreCliente: d.datos?.nombre ?? extras.datosPrevios?.nombre,
+    })
   const primero = await llamar(extras)
   const habla = primero.decision.accion !== 'callar' && primero.decision.mensaje.trim() !== ''
   if (!habla) return primero
-  const problemas = revisarMensaje(primero.decision.mensaje, { previos: extras.datosPrevios, equipo })
+  const problemas = revisar(primero.decision)
   if (problemas.length === 0) return primero
 
   const segundo = await llamar({ ...extras, correccion: problemas })
-  const quedan =
-    segundo.decision.accion !== 'callar'
-      ? revisarMensaje(segundo.decision.mensaje, { previos: extras.datosPrevios, equipo })
-      : []
+  const quedan = segundo.decision.accion !== 'callar' ? revisar(segundo.decision) : []
   return {
     ...segundo,
     nota: `revisión: corrigió ${problemas.length} problema(s)${quedan.length ? ` (quedan ${quedan.length})` : ''}: ${problemas.join(' | ')}`,

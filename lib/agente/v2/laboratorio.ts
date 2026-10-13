@@ -116,7 +116,8 @@ async function turnoSol(
       return { decision: r.decision }
     },
     { datosPrevios },
-    nombresEquipo
+    nombresEquipo,
+    mensajes
   )
   const decision = turno.decision
   const habla = decision.accion !== 'callar' && decision.mensaje.trim() !== ''

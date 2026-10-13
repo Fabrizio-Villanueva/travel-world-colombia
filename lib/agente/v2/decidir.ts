@@ -109,7 +109,7 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
     lineaHorario(),
     anuncio ? lineaAnuncio(anuncio, nombreDe) : null,
     ctx.respaldo
-      ? `MODO RESPALDO: esta conversación la lleva ${ctx.respaldo.asesora ? `la asesora ${ctx.respaldo.asesora}` : 'una asesora'}; los mensajes "[Escrito por la asesora]" son suyos. La cubres porque el cliente lleva rato sin respuesta. Preséntate una vez como Sol, del equipo. No contradigas lo que ella ofreció ni prometas nada fuera del catálogo; pagos, contrato, cambios y reclamos → "escalar" diciendo que ella se lo confirma por aquí (sin prometer tiempos).`
+      ? `MODO RESPALDO: esta conversación la lleva ${ctx.respaldo.asesora ? `la asesora ${ctx.respaldo.asesora}` : 'una asesora'}; los mensajes "[Escrito por la asesora]" son suyos. La cubres porque el cliente lleva rato sin respuesta. Habla en primera persona como la agencia, como si fueras quien lleva el chat: no te presentes ni la nombres (solo si el cliente pregunta con quién habla o si es un bot, dices que eres Sol, la asistente virtual, y que su asesora retoma). No contradigas lo que ella ofreció ni prometas nada fuera del catálogo; pagos, contrato, cambios y reclamos → acusa recibo ("lo reviso y te confirmo por aquí", sin prometer tiempos) y "escalar".`
       : null,
     ...lineasExtra(ctx.extras),
   ]

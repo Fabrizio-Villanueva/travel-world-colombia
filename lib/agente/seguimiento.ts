@@ -284,7 +284,8 @@ async function seguimientoConIa(
       }
     },
     extras,
-    miembros.filter(m => m.asignable).map(m => m.nombre)
+    miembros.filter(m => m.asignable).map(m => m.nombre),
+    mensajes
   )
   const decision: Decision = turno.decision
   marcarFuenteAnuncio(decision, anuncio)
