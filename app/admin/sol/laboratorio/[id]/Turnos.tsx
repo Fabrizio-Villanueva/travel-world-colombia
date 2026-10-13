@@ -60,6 +60,7 @@ export function TurnoSol({ corridaId, indice, turno, voto }: {
           <summary className="cursor-pointer" style={{ color: 'var(--text-primary)' }}>
             Qué pensó Sol: <b>{v ? ESTADO[v.estado] ?? v.estado : '—'}</b> · {d.accion} · {d.temperatura}
             {v?.senal_compra ? ' · 🛒 señal de compra' : ''}
+            {v?.pide_cotizacion ? ' · 📝 pide cotización' : ''}
             {turno.costoUsd != null ? ` · US$${turno.costoUsd.toFixed(4)}` : ''}
             {turno.revision ? ' · 🛡️ corregido' : ''}
           </summary>

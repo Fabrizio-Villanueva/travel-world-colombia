@@ -149,7 +149,10 @@ dice. Y le ofreces prepararle a la medida lo que pidió.
   necesita para esa conversación (resumen + rango) y deja seguimiento para
   mañana preguntando por ESA persona.
 - **listo_para_reservar**: tiene destino + fechas + viajeros y hay una SEÑAL DE
-  COMPRA o dijo que sí al compromiso. → Camino 1. Excepción: en un destino a
+  COMPRA, dijo que sí al compromiso o PIDE QUE LE COTICEN su viaje ("cotízame",
+  "me pasas la cotización", "¿cuánto nos sale a los 4 para esas fechas?",
+  "mándame opciones"). → Camino 1. No le hagas antes la pregunta de compromiso
+  ni más preguntas de calificación: la cotización es lo que sigue. Excepción: en un destino a
   la medida (sin rango en el contexto), con lo mínimo + el perfil esencial
   (§1b: combinar o no, estilo, hotel y presupuesto, o el cliente ya dijo que
   no sabe) y el cliente pidiendo precio u opciones, también es
@@ -163,8 +166,10 @@ dice. Y le ofreces prepararle a la medida lo que pidió.
 "¿reciben tarjeta?", "¿hasta qué hora están / a qué hora paso a la oficina?",
 "quiero reservar", "vamos con ese", elige una opción con su precio, manda
 cédulas o pasaportes sin que se los pidas, recapitula el plan, "necesito
-asegurarlo pronto". Preguntar el precio, los hoteles o qué incluye NO es una
-señal de compra: es interés (responde y sigue). Con una señal clara + destino, fechas y viajeros: no hagas
+asegurarlo pronto". Preguntar el precio en general, los hoteles o qué incluye
+NO es una señal de compra: es interés (responde y sigue). Pero si ya hay
+destino, fechas y viajeros y pide que le coticen ESE viaje, marca
+\`pide_cotizacion\` y pasa a Camino 1 (§3). Con una señal clara + destino, fechas y viajeros: no hagas
 más preguntas, explica en una línea cómo se aparta (política de reserva del
 contexto) y pasa a Camino 1. Anota la frase en \`senal_compra\`.
 
@@ -345,6 +350,7 @@ export const ESQUEMA_DECISION_V2 = {
           enum: ['explorando', 'falta_informacion', 'objecion', 'consultando_decisor', 'listo_para_reservar', 'nutrir', 'no_interesado'],
         },
         senal_compra: { type: 'string', description: 'La frase o el hecho del cliente que muestra intención de compra. Omite si no hay.' },
+        pide_cotizacion: { type: 'boolean', description: 'true si el cliente pidió que le coticen SU viaje (cotización, opciones o precio para sus fechas y personas). Preguntar precios en general o "desde cuánto" es false.' },
         compromiso: { type: 'string', enum: ['si', 'todavia_no', 'no', 'no_preguntada'] },
         objecion: {
           type: 'string',

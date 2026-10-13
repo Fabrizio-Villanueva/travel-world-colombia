@@ -47,6 +47,12 @@ export interface Decision {
   borrador?: string
 }
 
+/** Calificado = lo mínimo para que una asesora cotice sin re-preguntar (destino + fechas + viajeros). */
+export function datosMinimos(d: Decision['datos']): boolean {
+  const pax = (d.adultos ?? 0) + (d.ninos ?? 0)
+  return Boolean(d.destino?.trim() && d.fechas?.trim() && pax > 0)
+}
+
 export type EstadoComercial =
   | 'explorando'
   | 'falta_informacion'
@@ -60,6 +66,8 @@ export interface VentaV2 {
   estado: EstadoComercial
   /** Frase o hecho concreto del cliente que muestra intención de compra. */
   senal_compra?: string
+  /** El cliente pidió que le coticen SU viaje (no un precio general). Con los datos mínimos, pasa el lead. */
+  pide_cotizacion?: boolean
   compromiso?: 'si' | 'todavia_no' | 'no' | 'no_preguntada'
   objecion?: 'precio' | 'fechas' | 'decisor' | 'confianza' | 'forma_de_pago' | 'comparando' | 'documentos_visa' | 'solo_mirando' | 'otra' | 'ninguna'
   quien_decide?: string

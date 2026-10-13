@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { aHistorial, lineaAnuncio, type Decision, type EstadoComercial } from '@/lib/agente/claude'
+import { aHistorial, datosMinimos, lineaAnuncio, type Decision, type EstadoComercial } from '@/lib/agente/claude'
 import { construirConocimiento } from '@/lib/agente/conocimiento'
 import { resolverAudios } from '@/lib/agente/transcribir'
 import { cargarReglas, reglasParaPrompt, type ReglasComerciales } from '@/lib/agente/reglas'
@@ -170,6 +170,18 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
   const texto = respuesta.content.find(b => b.type === 'text')
   if (!texto || texto.type !== 'text') throw new Error('La respuesta del modelo no trae texto')
   const decision = JSON.parse(texto.text) as Decision
+
+  // Regla del 13-oct (A/B): destino + fechas + viajeros + pide cotización =
+  // pasa, aunque el modelo lo haya dejado en otro estado. Así el borrador, el
+  // CRM y el foco del próximo turno quedan coherentes.
+  const v = decision.venta
+  if (
+    decision.accion === 'responder' && v?.pide_cotizacion && datosMinimos(decision.datos)
+    && v.estado !== 'listo_para_reservar' && v.estado !== 'no_interesado'
+  ) {
+    decision.motivo = `${decision.motivo} · pasa por regla: pidió cotización con datos mínimos (estaba en ${v.estado})`
+    v.estado = 'listo_para_reservar'
+  }
 
   // Borrador de cotización: lo arma el código solo cuando el lead quedó listo
   // para reservar (en una escalada —reclamo, post-venta— no aplica).

@@ -78,6 +78,12 @@ Resumen de lo que se hizo, dónde quedó y qué falta. Todo está publicado en
 3. Respuesta del equipo: la meta propuesta es 1 hora hábil para el primer
    mensaje humano; el aviso de SLA podría decir qué está pendiente (propuesto,
    sin construir).
-4. Decidir la regla nueva de traspaso para Sol 2 y seguir el A/B.
+4. Regla nueva de traspaso para Sol 2: PUBLICADA (13-oct, noche). Re-evaluar el 20-oct en /admin/sol/resultados (filtro Sol 2):
+   Sol 2 pasa también con destino + fechas + viajeros + **pide que le coticen
+   su viaje** (campo `venta.pide_cotizacion`; `decidirV2` sube el estado a
+   `listo_para_reservar` y `crm.ts` lo usa de red). Preguntar precios en
+   general sigue sin pasar. Probado con 4 conversaciones. **Seguir el A/B
+   (50 %, activo) hasta ~27-oct** midiendo ventas y primera respuesta humana;
+   comparar leads de Sol 2 antes y después de esta regla.
 5. Vigilar en `agente_eventos` las notas "revisión: corrigió…" para ver qué
    errores sigue atrapando la guarda.

@@ -28,7 +28,7 @@ import {
   PIPELINES_POSTVENTA,
   TAGS,
 } from '@/lib/agente/config'
-import type { Decision } from '@/lib/agente/claude'
+import { datosMinimos, type Decision } from '@/lib/agente/claude'
 
 /**
  * Fase 3: la mano de Sol sobre el CRM.
@@ -90,23 +90,21 @@ export async function sincronizarCrm(e: EntradaCrm): Promise<string[]> {
   return notas
 }
 
-/** Calificado = lo mínimo para que una asesora cotice sin re-preguntar. */
-function estaCalificado(d: Decision['datos']): boolean {
-  const pax = (d.adultos ?? 0) + (d.ninos ?? 0)
-  return Boolean(d.destino?.trim() && d.fechas?.trim() && pax > 0)
-}
-
 /**
  * ¿Se le pasa el lead a la asesora (tag sol_calificado, brief, etapa
  * "Calificado por Bot", fin del seguimiento de Sol)?
  *  - Sol v1: con los datos mínimos (destino + fechas + viajeros).
- *  - Sol v2: SOLO cuando el cliente quedó "listo para reservar" (señal de
- *    compra o sí al compromiso). Con datos completos pero sin intención, Sol
- *    sigue trabajándolo: es justo lo que pidió la dueña.
+ *  - Sol v2: cuando el cliente quedó "listo para reservar": señal de compra,
+ *    sí al compromiso o (regla del 13-oct, tras el A/B) datos mínimos + pidió
+ *    que le coticen. Con datos completos pero sin intención, Sol sigue
+ *    trabajándolo. decidirV2 ya sube el estado en ese caso; esto es la red.
  */
 export function listoParaAsesora(decision: Decision): boolean {
-  if (decision.venta) return decision.venta.estado === 'listo_para_reservar'
-  return estaCalificado(decision.datos)
+  if (decision.venta) {
+    return decision.venta.estado === 'listo_para_reservar'
+      || (decision.venta.pide_cotizacion === true && decision.venta.estado !== 'no_interesado' && datosMinimos(decision.datos))
+  }
+  return datosMinimos(decision.datos)
 }
 
 async function guardarCalificacion(e: EntradaCrm): Promise<string | null> {
