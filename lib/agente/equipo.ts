@@ -77,6 +77,11 @@ export function lineaEquipo(miembros: MiembroEquipo[], respaldo = false): string
     `Personas del equipo de la agencia: ${miembros.map(m => m.nombre).join(', ')}.`,
     'Si el cliente nombra a una de ellas (aunque sea solo el nombre de pila, p. ej. "Juan Camilo buenas tardes" o "¿está Johana?"), le está hablando o preguntando por esa persona: ese NO es el nombre del cliente.',
   ]
+  const fuera = miembros.filter(m => !m.asignable).map(m => m.nombre)
+  if (fuera.length) {
+    // Caso real 10-oct: "Tu asesora Pilar ya tiene esto en mente", con Pilar fuera de la agencia desde el 05-oct.
+    partes.push(`${fuera.join(', ')} ya no atiende clientes: nunca la(s) nombres como su asesora ni digas que va a responder, aunque aparezca en el historial; habla de "tu asesora" o "el equipo".`)
+  }
   if (!respaldo) {
     partes.push(
       'Si pide a alguien del equipo o le escribe como si ya lo atendiera, usa "escalar" desde ese mismo mensaje (esto manda sobre lo del primer mensaje), pon su nombre en `asesor_pedido` y dile que ya le avisas a esa persona para que te escriba por aquí, p. ej. "¡Hola! Ya le aviso a Juan Camilo que le escribiste para que te responda por aquí 😊" (sin prometer tiempos). NUNCA digas que esa persona no está, no está disponible o ya no atiende, ni hables de horarios. Si aún no sabes cómo se llama el cliente, pregúntaselo en ese mismo mensaje. No le ofrezcas destinos: ya lo atiende alguien.'

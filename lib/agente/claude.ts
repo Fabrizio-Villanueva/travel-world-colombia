@@ -7,6 +7,7 @@ import { equipo, lineaEquipo } from '@/lib/agente/equipo'
 import { lineaHorario } from '@/lib/agente/horario'
 import { nombreSeguro } from '@/lib/agente/nombre'
 import { salidasVencidas } from '@/lib/agente/salidas-vencidas'
+import { lineasExtra, type Extras } from '@/lib/agente/guardas'
 import type { MensajeGhl } from '@/lib/agente/ghl'
 import type { AnuncioContexto } from '@/lib/agente/anuncios'
 
@@ -162,6 +163,8 @@ export async function decidir(
      * envió Sol; los demás salientes se marcan como de la asesora.
      */
     respaldo?: { asesora?: string; idsSol: Set<string> }
+    /** Guardas: lo ya sabido del cliente, reserva en curso, demora y corrección (lib/agente/guardas.ts). */
+    extras?: Extras
   }
 ): Promise<Decision> {
   // Las notas de voz llegan como audio; Claude no lo lee, así que se transcriben
@@ -223,6 +226,7 @@ export async function decidir(
     lineaEquipo(miembros, Boolean(contexto.respaldo)),
     anuncio ? lineaAnuncio(anuncio, nombreDe) : null,
     contexto.respaldo ? lineaRespaldo(contexto.respaldo.asesora, contexto.enHorario) : null,
+    ...lineasExtra(contexto.extras),
   ]
     .filter(Boolean)
     .join(' ')

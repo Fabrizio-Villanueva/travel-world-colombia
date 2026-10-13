@@ -61,9 +61,11 @@ export function TurnoSol({ corridaId, indice, turno, voto }: {
             Qué pensó Sol: <b>{v ? ESTADO[v.estado] ?? v.estado : '—'}</b> · {d.accion} · {d.temperatura}
             {v?.senal_compra ? ' · 🛒 señal de compra' : ''}
             {turno.costoUsd != null ? ` · US$${turno.costoUsd.toFixed(4)}` : ''}
+            {turno.revision ? ' · 🛡️ corregido' : ''}
           </summary>
           <div className="mt-2 flex flex-col gap-1">
             <p><b>Motivo:</b> {d.motivo}</p>
+            {turno.revision && <p><b>🛡️ Revisión automática:</b> {turno.revision}</p>}
             {v?.senal_compra && <p><b>Señal de compra:</b> {v.senal_compra}</p>}
             {v && <p><b>Compromiso:</b> {v.compromiso} · <b>Objeción:</b> {v.objecion} · <b>Cierre preferido:</b> {v.canal_cierre}</p>}
             {v?.quien_decide && <p><b>Quién decide:</b> {v.quien_decide}</p>}

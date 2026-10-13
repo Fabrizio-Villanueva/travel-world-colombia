@@ -223,6 +223,13 @@ const VACIAS = new Set([
   'hijos', 'amigos', 'colombia', 'nacional', 'internacional', 'diciembre', 'enero', 'junio', 'julio',
 ])
 
+/**
+ * Palabras que suman puntos pero NO bastan para decir que un plan "va con lo
+ * que nos preguntaste": quien pidió el crucero Disney o Hawái no preguntó por
+ * el de Cartagena (casos reales 10/12-oct).
+ */
+const GENERICAS = new Set(['crucero', 'cruceros', 'playa', 'playas', 'caribe', 'islas', 'isla'])
+
 function palabrasDeInteres(i: Interes | null): string[] {
   if (!i) return []
   const fuente = [i.destino, i.motivoViaje].filter(Boolean).join(' ')
@@ -286,13 +293,15 @@ export function listaCorta(
       razon = 'anuncio'
     }
     let coincidencias = 0
+    let especifica = false
     for (const p of palabras) {
-      if (nombreSlug.includes(p)) coincidencias += 6
-      else if (lugar.includes(p)) coincidencias += 4
+      const pega = nombreSlug.includes(p) ? 6 : lugar.includes(p) ? 4 : 0
+      coincidencias += pega
+      if (pega && !GENERICAS.has(p)) especifica = true
     }
     if (coincidencias > 0) {
       puntos += Math.min(coincidencias, 12)
-      if (razon !== 'anuncio') razon = 'interes'
+      if (razon !== 'anuncio' && especifica) razon = 'interes'
     }
     const t = c.temporada
     if (d.salida_fin_ano) puntos += t.finDeAno
@@ -396,8 +405,14 @@ export function plantilla(c: {
 
   let razon: string
   let pregunta: string
+  // ¿Alguna ficha es de verdad lo que pidió? Si no (pidió Disney y mandamos
+  // Cartagena), el texto no puede sugerir que lo son.
+  const fichasDeSuInteres = elegidos.some(p => p.razon === 'interes' || p.razon === 'anuncio')
   if (c.capa === 1) {
-    if (c.segmento === 'rescate') {
+    if (c.segmento === 'rescate' && destino && !fichasDeSuInteres) {
+      razon = `Me quedé pensando en tu idea de ${/^crucero/i.test(destino) ? elPlan(destino) : `viajar a ${destino}`} 💛 Mientras la retomamos, te dejo ${opciones} parecida${dos ? 's' : ''} para que compares.`
+      pregunta = '¿Sigues con esa idea o te sirve alguna de estas?'
+    } else if (c.segmento === 'rescate') {
       razon = `Me quedé pensando en ${destino ? (/^crucero/i.test(destino) ? elPlan(destino) : `tu viaje a ${destino}`) : 'el viaje que me contaste'} 💛 Te dejo ${opciones} que te pueden servir para retomarlo.`
       pregunta = '¿Quieres que te arme la cotización con tus fechas?'
     } else {

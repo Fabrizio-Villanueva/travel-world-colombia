@@ -35,6 +35,8 @@ import {
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { costoUsd, decidirV2 } from '@/lib/agente/v2/decidir'
 import { enviarRespuestaV2, estadoPrevioV2, registrarTurnoAB, versionPara } from '@/lib/agente/v2/ab'
+import { conRevision, prepararExtras } from '@/lib/agente/guardas'
+import { equipo } from '@/lib/agente/equipo'
 
 /**
  * Tope de turnos de Sol por contacto por hora. Generoso para una conversación
@@ -102,6 +104,32 @@ async function sinMensajeMasNuevo(conversationId: string, recibidoEn: string): P
     return true
   }
   return (data?.length ?? 0) === 0
+}
+
+/**
+ * ¿Alguien (otro turno de Sol, la asesora) respondió después del último
+ * mensaje del cliente que este turno tenía a la vista? Relee los mensajes
+ * recientes justo antes de enviar. Ante un fallo de lectura, no frena.
+ */
+async function yaLoRespondieron(conversationId: string, base: MensajeGhl[]): Promise<boolean> {
+  const ultimoEntrante = base.find(m => m.direction === 'inbound' && !m.messageType?.startsWith('TYPE_ACTIVITY'))
+  if (!ultimoEntrante?.dateAdded) return false
+  try {
+    const ahora = await ultimosMensajes(conversationId, 6)
+    const desde = new Date(ultimoEntrante.dateAdded).getTime()
+    return ahora.some(
+      m =>
+        m.direction === 'outbound' &&
+        !m.messageType?.startsWith('TYPE_ACTIVITY') &&
+        m.source !== 'workflow' &&
+        m.id !== ultimoEntrante.id &&
+        m.dateAdded !== undefined &&
+        new Date(m.dateAdded).getTime() > desde &&
+        !base.some(b => b.id === m.id)
+    )
+  } catch {
+    return false
+  }
 }
 
 export interface ResultadoTurno {
@@ -250,29 +278,46 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   // Prueba A/B (paso 6): un lead nuevo se asigna a v1 o v2 y no cambia; las
   // conversaciones que ya venían siguen con v1. Ver lib/agente/v2/ab.ts.
   const version = await versionPara(e.contactId, e.tags, primerContacto, e.conversationId)
+  // Guardas (lib/agente/guardas.ts): lo ya sabido, reserva en curso y demora
+  // van a la situación; el mensaje se revisa y, si hace falta, se corrige una vez.
+  const [extras, miembros, estadoPrevio] = await Promise.all([
+    prepararExtras(e.contactId, mensajes),
+    equipo(),
+    version === 'v2' ? estadoPrevioV2(e.contactId) : Promise.resolve(undefined),
+  ])
+  const nombresEquipo = miembros.filter(m => m.asignable).map(m => m.nombre)
   let costoV2: number | undefined
-  let decision: Decision
-  if (version === 'v2') {
-    const r = await decidirV2(mensajes, {
-      nombre: e.nombre,
-      nombreConfirmado: e.nombreConfirmado,
-      canal: e.canal,
-      primerContacto,
-      anuncio,
-      estadoPrevio: await estadoPrevioV2(e.contactId),
-    })
-    decision = r.decision
-    costoV2 = costoUsd(r.uso)
-  } else {
-    decision = await decidir(mensajes, {
-      nombre: e.nombre,
-      nombreConfirmado: e.nombreConfirmado,
-      canal: e.canal,
-      enHorario: enHorario(),
-      primerContacto,
-      anuncio,
-    })
-  }
+  const turno = await conRevision(
+    async x => {
+      if (version === 'v2') {
+        const r = await decidirV2(mensajes, {
+          nombre: e.nombre,
+          nombreConfirmado: e.nombreConfirmado,
+          canal: e.canal,
+          primerContacto,
+          anuncio,
+          estadoPrevio,
+          extras: x,
+        })
+        costoV2 = (costoV2 ?? 0) + costoUsd(r.uso)
+        return { decision: r.decision }
+      }
+      return {
+        decision: await decidir(mensajes, {
+          nombre: e.nombre,
+          nombreConfirmado: e.nombreConfirmado,
+          canal: e.canal,
+          enHorario: enHorario(),
+          primerContacto,
+          anuncio,
+          extras: x,
+        }),
+      }
+    },
+    extras,
+    nombresEquipo
+  )
+  const decision = turno.decision
   marcarFuenteAnuncio(decision, anuncio)
 
   // Re-chequeo de ráfaga, ya con la respuesta lista: GHL a veces entrega el
@@ -283,6 +328,9 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   // mensaje nuevo responde con toda la conversación a la vista.
   if (e.recibidoEn && !(await sinMensajeMasNuevo(e.conversationId, e.recibidoEn))) {
     return { actuo: false, decision, nota: 'descarta su respuesta: llegó otro mensaje mientras pensaba (ráfaga)' }
+  }
+  if (await yaLoRespondieron(e.conversationId, mensajes)) {
+    return { actuo: false, decision, nota: 'descarta su respuesta: otro turno ya respondió mientras pensaba' }
   }
 
   // Primero la voz, después la mano: el mensaje al cliente sale de inmediato y
@@ -368,6 +416,7 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
     decision,
     nota: [
       `[${version}${decision.venta ? ` · ${decision.venta.estado}` : ''}] ${habla ? decision.accion : 'callar'}: ${decision.motivo}`,
+      turno.nota,
       anuncio ? `anuncio: ${anuncio.nombre}${anuncio.slugs.length ? ` → ${anuncio.slugs.join(', ')}` : ' (sin producto en el catálogo)'}` : null,
       notaAsesor,
       notaSla,
@@ -449,7 +498,7 @@ export async function idsDeSol(mensajes: { id: string }[]): Promise<Set<string> 
  *   nota para la asesora. Si decide callar, no se marca nada (re-evalúa luego).
  */
 export async function atenderRespaldo(
-  e: Pick<Entrada, 'contactId' | 'conversationId' | 'nombre' | 'nombreConfirmado' | 'canal' | 'tags'>,
+  e: Pick<Entrada, 'contactId' | 'conversationId' | 'nombre' | 'nombreConfirmado' | 'canal' | 'tags' | 'recibidoEn'>,
   opciones: { inicio?: boolean } = {}
 ): Promise<ResultadoTurno> {
   const mensajes = await ultimosMensajes(e.conversationId, 20)
@@ -479,16 +528,37 @@ export async function atenderRespaldo(
     e.nombreConfirmado || (typeof iaNombre === 'string' && iaNombre.trim()) || nombreCrm || undefined
 
   const ahora = enHorario()
-  const decision = await decidir(mensajes, {
-    nombre: e.nombre,
-    nombreConfirmado,
-    canal: e.canal,
-    enHorario: ahora,
-    respaldo: { asesora, idsSol },
-  })
+  const [extras, miembros] = await Promise.all([prepararExtras(e.contactId, mensajes), equipo()])
+  const turno = await conRevision(
+    async x => ({
+      decision: await decidir(mensajes, {
+        nombre: e.nombre,
+        nombreConfirmado,
+        canal: e.canal,
+        enHorario: ahora,
+        respaldo: { asesora, idsSol },
+        extras: x,
+      }),
+    }),
+    extras,
+    miembros.filter(m => m.asignable).map(m => m.nombre)
+  )
+  const decision = turno.decision
 
   const habla = decision.accion !== 'callar' && decision.mensaje.trim() !== ''
   const notas: string[] = [`respaldo${asesora ? ` de ${asesora}` : ''} · ${habla ? decision.accion : 'callar'}: ${decision.motivo}`]
+  if (turno.nota) notas.push(turno.nota)
+
+  // Anti-duplicados (caso real 10-oct: dos o tres respuestas casi iguales en
+  // el mismo minuto en chats de respaldo). El camino normal ya re-chequeaba;
+  // el respaldo no: si mientras Sol pensaba llegó otro mensaje del cliente u
+  // otro turno ya respondió, este turno no envía.
+  if (habla && e.recibidoEn && !(await sinMensajeMasNuevo(e.conversationId, e.recibidoEn))) {
+    return { actuo: false, decision, nota: `${notas.join(' · ')} · descarta: llegó otro mensaje mientras pensaba (ráfaga)` }
+  }
+  if (habla && (await yaLoRespondieron(e.conversationId, mensajes))) {
+    return { actuo: false, decision, nota: `${notas.join(' · ')} · descarta: otro turno ya respondió` }
+  }
 
   if (habla) {
     const ruta = rutaDeRespuesta(mensajes)

@@ -3,7 +3,11 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { cargarReglas } from '@/lib/agente/reglas'
 import { costoUsd, decidirV2 } from '@/lib/agente/v2/decidir'
 import { extraerTarjetas, type Tarjeta } from '@/lib/agente/v2/ficha'
-import type { Decision, EstadoComercial } from '@/lib/agente/claude'
+import { decidir, type Decision, type EstadoComercial } from '@/lib/agente/claude'
+import { extraerFotos } from '@/lib/agente/conocimiento'
+import { equipo } from '@/lib/agente/equipo'
+import { conRevision, juntarDatos } from '@/lib/agente/guardas'
+import { enHorario } from '@/lib/agente/conversacion'
 import type { MensajeGhl } from '@/lib/agente/ghl'
 
 /**
@@ -19,12 +23,18 @@ export interface TurnoLab {
   decision?: Decision
   tarjetas?: Tarjeta['vista'][]
   costoUsd?: number
+  /** Qué corrigió la revisión de guardas en este turno (lib/agente/guardas.ts). */
+  revision?: string
 }
+
+/** Qué Sol responde en la corrida. Las corridas viejas (sin columna) son v2. */
+export type VersionLab = 'v1' | 'v2'
 
 export interface CorridaLab {
   id: string
   escenario_id: string | null
   tipo: 'escenario' | 'chat'
+  version?: VersionLab | null
   titulo: string | null
   turnos: TurnoLab[]
   estado: 'en_curso' | 'terminada' | 'error'
@@ -64,30 +74,69 @@ async function guardar(id: string, cambios: Partial<CorridaLab>) {
   if (error) throw new Error(`guardando la corrida: ${error.message}`)
 }
 
-export async function crearCorrida(tipo: CorridaLab['tipo'], titulo: string, por: string, escenarioId?: string): Promise<string> {
+export async function crearCorrida(
+  tipo: CorridaLab['tipo'],
+  titulo: string,
+  por: string,
+  escenarioId?: string,
+  version: VersionLab = 'v2'
+): Promise<string> {
   const { data, error } = await createAdminClient()
     .from('sol_lab_corridas')
-    .insert({ tipo, titulo, creado_por: por, escenario_id: escenarioId ?? null })
+    .insert({ tipo, titulo, creado_por: por, escenario_id: escenarioId ?? null, version })
     .select('id')
     .single()
   if (error) throw new Error(error.message)
   return data.id as string
 }
 
-/** Un turno de Sol v2 sobre la conversación acumulada. */
-async function turnoSol(turnos: TurnoLab[], reglas: Awaited<ReturnType<typeof cargarReglas>>): Promise<TurnoLab> {
+/**
+ * Un turno de Sol (v1 o v2) sobre la conversación acumulada, con las mismas
+ * guardas que en producción: lo ya sabido de turnos anteriores va a la
+ * situación y el mensaje pasa por la revisión (y una corrección si hace falta).
+ */
+async function turnoSol(
+  turnos: TurnoLab[],
+  reglas: Awaited<ReturnType<typeof cargarReglas>>,
+  version: VersionLab = 'v2'
+): Promise<TurnoLab> {
   const estadoPrevio = [...turnos].reverse().find(t => t.rol === 'sol' && t.decision?.venta)?.decision?.venta?.estado as EstadoComercial | undefined
   const primerContacto = !turnos.some(t => t.rol === 'sol')
-  const { decision, uso } = await decidirV2(comoMensajesGhl(turnos), { canal: 'WhatsApp', primerContacto, estadoPrevio, reglas })
+  const mensajes = comoMensajesGhl(turnos)
+  const datosPrevios = juntarDatos(turnos.filter(t => t.rol === 'sol').map(t => t.decision?.datos))
+  const nombresEquipo = (await equipo()).filter(m => m.asignable).map(m => m.nombre)
+  let costo = 0
+  const turno = await conRevision(
+    async extras => {
+      if (version === 'v1') {
+        return { decision: await decidir(mensajes, { canal: 'WhatsApp', enHorario: enHorario(), primerContacto, extras }) }
+      }
+      const r = await decidirV2(mensajes, { canal: 'WhatsApp', primerContacto, estadoPrevio, reglas, extras })
+      costo += costoUsd(r.uso)
+      return { decision: r.decision }
+    },
+    { datosPrevios },
+    nombresEquipo
+  )
+  const decision = turno.decision
   const habla = decision.accion !== 'callar' && decision.mensaje.trim() !== ''
-  const { texto, tarjetas } = habla ? await extraerTarjetas(decision.mensaje) : { texto: '', tarjetas: [] }
+  let texto = ''
+  let vistas: Tarjeta['vista'][] = []
+  if (habla && version === 'v2') {
+    const r = await extraerTarjetas(decision.mensaje)
+    texto = r.texto
+    vistas = r.tarjetas.map(t => t.vista)
+  } else if (habla) {
+    texto = (await extraerFotos(decision.mensaje.trim())).texto
+  }
   return {
     rol: 'sol',
     texto: habla ? texto : '(Sol decidió no responder)',
     en: new Date().toISOString(),
     decision,
-    tarjetas: tarjetas.map(t => t.vista),
-    costoUsd: costoUsd(uso),
+    tarjetas: vistas,
+    costoUsd: version === 'v2' ? costo : undefined,
+    revision: turno.nota,
   }
 }
 
@@ -98,7 +147,7 @@ export async function enviarMensajeChat(corridaId: string, texto: string): Promi
   const turnos = [...corrida.turnos, { rol: 'cliente' as const, texto: texto.slice(0, 2000), en: new Date().toISOString() }]
   await guardar(corridaId, { turnos })
   try {
-    turnos.push(await turnoSol(turnos, await cargarReglas()))
+    turnos.push(await turnoSol(turnos, await cargarReglas(), corrida.version ?? 'v2'))
     await guardar(corridaId, { turnos, estado: 'en_curso', error: null })
   } catch (err) {
     await guardar(corridaId, { turnos, estado: 'error', error: (err as Error).message })
@@ -142,7 +191,7 @@ async function turnoCliente(persona: string, turnos: TurnoLab[]): Promise<string
 }
 
 /** Corre un escenario completo: cliente simulado ↔ Sol v2, hasta [FIN] o 8 turnos. */
-export async function correrEscenario(escenarioId: string, por: string): Promise<string> {
+export async function correrEscenario(escenarioId: string, por: string, version: VersionLab = 'v2'): Promise<string> {
   const { data: esc, error } = await createAdminClient()
     .from('sol_lab_escenarios')
     .select('id, nombre, persona')
@@ -150,7 +199,7 @@ export async function correrEscenario(escenarioId: string, por: string): Promise
     .single()
   if (error || !esc) throw new Error('El escenario no existe.')
 
-  const corridaId = await crearCorrida('escenario', esc.nombre as string, por, escenarioId)
+  const corridaId = await crearCorrida('escenario', `${esc.nombre as string}${version === 'v1' ? ' · Sol v1' : ''}`, por, escenarioId, version)
   const turnos: TurnoLab[] = []
   const reglas = await cargarReglas()
   try {
@@ -158,7 +207,7 @@ export async function correrEscenario(escenarioId: string, por: string): Promise
       const msg = await turnoCliente(esc.persona as string, turnos)
       if (/^\[FIN\]/i.test(msg)) break
       turnos.push({ rol: 'cliente', texto: msg, en: new Date().toISOString() })
-      turnos.push(await turnoSol(turnos, reglas))
+      turnos.push(await turnoSol(turnos, reglas, version))
       await guardar(corridaId, { turnos })
     }
     await guardar(corridaId, { turnos, estado: 'terminada' })

@@ -44,10 +44,31 @@ function normalizar(s: string): string {
  * programa, le basta el índice ligero del bloque cacheado.
  */
 function aliasesDe(d: Destino): string[] {
-  return [d.nombre, d.nombre_local, d.slug?.replace(/-/g, ' ')]
+  // El nombre corto (antes de la coma o el guion): "Crucero Cartagena, Colombia"
+  // → "crucero cartagena"; nadie escribe el nombre completo de la ficha.
+  const corto = d.nombre?.split(/\s*[,·|(]\s*|\s+-\s+/)[0]
+  // El barco, si la ficha lo nombra: "a bordo del Norwegian Luna".
+  const barcos = [...`${d.frase_hero ?? ''} ${d.descripcion ?? ''}`.matchAll(/\b(?:norwegian|royal caribbean|msc|carnival|celebrity|disney)\s+[a-z]+/gi)].map(m => m[0])
+  return [d.nombre, d.nombre_local, d.slug?.replace(/-/g, ' '), corto, ...barcos]
     .filter((x): x is string => Boolean(x && x.trim()))
     .map(normalizar)
     .filter(a => a.length >= 4) // evita falsos positivos con palabras cortas
+}
+
+/** Palabras que no distinguen un crucero de otro. */
+const GENERICAS_CRUCERO = new Set(['crucero', 'cruceros', 'colombia', 'florida', 'caribe', 'desde', 'noches', 'dias'])
+
+/**
+ * Cruceros: "crucero desde Miami" o "el de La Romana" no traen el nombre de la
+ * ficha ("Crucero por el Caribe - Joyas de ensueño…"). Si la conversación habla
+ * de cruceros y nombra el puerto (palabra distintiva del slug), cuenta como
+ * mencionado. Devuelve la última posición o -1. Caso real 13-oct: Sol no veía
+ * la ficha del Norwegian Luna y no sabía su fecha de salida.
+ */
+function posCrucero(d: Destino, t: string): number {
+  if (!d.es_crucero || !t.includes('crucer')) return -1
+  const claves = (d.slug ?? '').split('-').filter(p => p.length >= 5 && !GENERICAS_CRUCERO.has(p))
+  return Math.max(-1, ...claves.map(c => t.lastIndexOf(c)))
 }
 
 /** Tope de destinos MENCIONADOS con detalle completo por turno (cada uno pesa ~500 tokens). */
@@ -55,12 +76,54 @@ const MAX_DETALLES = 4
 /** Tope total contando los programas del anuncio por el que llegó el cliente. */
 const MAX_DETALLES_TOTAL = 6
 
+const MES_CORTO: Record<string, number> = {
+  ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11,
+}
+const NOMBRE_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+
+/**
+ * "Vie 5 Mar" (fecha del día 1 del itinerario, sin año) → "5 de marzo de 2027":
+ * la próxima vez que cae esa fecha a partir de hoy.
+ */
+export function fechaConAnio(texto: string | undefined, hoy = new Date()): string | null {
+  const m = (texto ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().match(/(\d{1,2})\s*(?:de\s+)?([a-z]{3})/)
+  if (!m) return null
+  const mes = MES_CORTO[m[2]]
+  const dia = Number(m[1])
+  if (mes === undefined || dia < 1 || dia > 31) return null
+  const hoyIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(hoy)
+  let anio = Number(hoyIso.slice(0, 4))
+  const iso = (a: number) => `${a}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
+  if (iso(anio) < hoyIso) anio++
+  return `${dia} de ${NOMBRE_MES[mes]} de ${anio}`
+}
+
+/**
+ * Salidas del programa. Sin esto Sol no sabía cuándo sale nada (el itinerario
+ * le llegaba sin fechas): aplazaba "las fechas te las confirmo" o validaba
+ * meses sin salida (auditorías del 13-oct-2026).
+ */
+function lineaSalidas(d: Destino): string | null {
+  const textos = [d.frase_hero, d.autor_frase, d.cargo_autor, d.subtitulo, d.cta_titulo, d.cta_subtitulo]
+    .map(t => t?.replace(/\s+/g, ' ').trim())
+    .filter((t): t is string => Boolean(t && /salida|sale el|zarpa/i.test(t)))
+  const primerDia = fechaConAnio(d.itinerario?.[0]?.fecha)
+  const partes = [
+    ...textos.map(t => `«${recortar(t, 160)}»`),
+    primerDia ? `el itinerario de la ficha arranca el ${primerDia}${textos.length ? ' (es una de las salidas; no digas que es la única si el texto habla de varias)' : ''}` : null,
+  ].filter(Boolean)
+  return partes.length
+    ? `- salidas: ${partes.join(' · ')} (si el cliente pide otra fecha o mes, dile cuáles hay; no confirmes fechas que no estén aquí)`
+    : '- salidas: no publicadas en la ficha (si piden una fecha, se confirma en la cotización; no digas que "encaja")'
+}
+
 /** El detalle pesado de un destino (lo que NO va en el índice ligero). */
 function bloqueDetalle(d: Destino): string {
   const partes = [
     `### ${d.nombre}${d.nombre_local ? ` (${d.nombre_local})` : ''}`,
     d.precio_desde ? `- precio desde: ${d.precio_desde}` : '- precio: no publicado (se confirma en la cotización)',
     d.duracion ? `- duración: ${d.duracion}` : null,
+    lineaSalidas(d),
     d.descripcion ? `- descripción: ${recortar(d.descripcion, 320)}` : null,
     d.incluye?.length ? `- incluye: ${recortar(d.incluye.join(' · '), 400)}` : null,
     d.no_incluye?.length ? `- NO incluye: ${recortar(d.no_incluye.join(' · '), 200)}` : null,
@@ -144,7 +207,7 @@ ${preguntas}
     // Los mencionados más recientemente van primero: si la conversación pasó
     // por varios destinos, el tope se queda con los que están sobre la mesa.
     const mencionados = destinos
-      .map(d => ({ d, pos: Math.max(...aliasesDe(d).map(a => t.lastIndexOf(a))) }))
+      .map(d => ({ d, pos: Math.max(posCrucero(d, t), ...aliasesDe(d).map(a => t.lastIndexOf(a))) }))
       .filter(x => x.pos >= 0)
       .sort((a, b) => b.pos - a.pos)
       .slice(0, MAX_DETALLES)

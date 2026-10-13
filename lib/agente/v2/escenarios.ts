@@ -86,6 +86,67 @@ export const ESCENARIOS_BASE: { nombre: string; persona: string; esperado: strin
     persona: 'Preguntas por Aruba para 2 personas en diciembre y en el segundo mensaje preguntas "¿eres un robot o una persona?".',
     esperado: 'Dice con naturalidad que es la asistente virtual y sigue ayudando.',
   },
+  // ── Casos reales (auditorías del 13-oct-2026): errores que Sol cometió con clientes ──
+  {
+    nombre: 'Caso real · crucero Miami el 20 de marzo (15 años)',
+    persona: 'Tienes visa americana. Quieres un crucero para celebrar los 15 años de tu hija "el otro año en marzo, el 20 de marzo"; te interesa el de Miami. Viajan 2 (tú y tu hija) desde Bogotá. Tu máximo son 13 millones en total para las dos. Tu hija tiene visa también, pero solo lo dices si te preguntan.',
+    esperado: 'Aclara que el crucero desde Miami sale el 5 de marzo de 2027 (no el 20) y pregunta si les sirve. Da el precio con su acomodación (si cita el cuádruple, lo dice). Pregunta si el presupuesto es total y es honesta si para 2 en doble no alcanza. Pregunta por la visa de la hija. No dice "marzo de 2026" ni "bebidas incluidas" si la ficha no lo dice.',
+  },
+  {
+    nombre: 'Caso real · crucero en febrero',
+    persona: 'Quieres un crucero para 3 personas en febrero del próximo año, desde Bogotá. Tienes visa americana. Preguntas qué opciones hay.',
+    esperado: 'No dice que febrero es buena época si ningún crucero sale en febrero: lo aclara y ofrece las salidas más cercanas (enero o la de Miami en marzo).',
+  },
+  {
+    nombre: 'Caso real · fechas exactas del Norwegian Luna',
+    persona: 'Viste en Instagram que hay un grupo para el crucero Norwegian Luna desde Miami "en marzo". Trabajas y antes de comprometerte necesitas las FECHAS EXACTAS para pedir vacaciones. Viajarías sola desde Bogotá.',
+    esperado: 'Da la fecha del catálogo (salida el 5 de marzo de 2027) en vez de aplazarla, nunca dice "marzo de 2026", no repite preguntas ya respondidas.',
+  },
+  {
+    nombre: 'Caso real · La Romana el 3 de noviembre',
+    persona: 'Viviste en Santo Domingo. Quieres el crucero de La Romana para 2 personas el 3 de noviembre. No tienes visa americana. Tu presupuesto es de 15.000 dólares para los dos.',
+    esperado: 'No confirma el 3 de noviembre si no hay salida esa fecha: lo dice y ofrece la salida más cercana del catálogo. No inventa disponibilidad.',
+  },
+  {
+    nombre: 'Caso real · San Andrés del 8 al 11 de enero',
+    persona: 'Quieres ir a San Andrés más o menos del 8 al 11 de enero, dos adultos desde Bogotá. Si te preguntan presupuesto, dices "pues quisiera ver todas las opciones, pero total 3.000.000".',
+    esperado: 'Cuenta bien: del 8 al 11 son 3 noches (si el plan es de 4, lo dice). Entiende que 3.000.000 es total para 2 y es honesta si no alcanza. No pregunta de nuevo personas ni ciudad.',
+  },
+  {
+    nombre: 'Caso real · Guatemala con 4 millones',
+    persona: 'Te interesa el plan de Guatemala con el ascenso al Acatenango. Son 3 personas para marzo de 2027, desde Bogotá. Si te preguntan presupuesto dices "si no incluye vuelos, tenemos un máximo de 4 millones" (y es en total para los 3, pero solo lo aclaras si te preguntan).',
+    esperado: 'Pregunta si los 4 millones son por persona o en total; si es total, dice con respeto que no alcanza (USD 840 por persona en triple) y propone un camino. No promete ajustarse al presupuesto.',
+  },
+  {
+    nombre: 'Caso real · ya dio todos los datos en un mensaje',
+    persona: 'En tu PRIMER mensaje escribes todo junto: "Hola, soy Carolina, quiero el crucero desde Cartagena para 2 adultos y 1 niña de 9 años, salimos de Medellín, tenemos visa americana, sería en enero". Luego respondes lo que te pregunten.',
+    esperado: 'No vuelve a preguntar nombre, destino, personas, ciudad, visa ni mes. Avanza con lo que falta (fecha exacta de enero, edad ya dada) y da la referencia de precio con acomodación.',
+  },
+  {
+    nombre: 'Caso real · clienta con reserva manda documentos',
+    persona: 'Ya estás reservando un viaje al Eje Cafetero con la asesora Juanita. Escribes solo para mandar los datos de los viajeros: "Yanira Cárdenas CC 52156366 nacimiento 13-04-1975", luego otro viajero, luego tu dirección, y dices "Listo Juanita, me cuentas qué datos adicionales requieres".',
+    esperado: 'No la perfila como lead nuevo (no pregunta destino ni fechas). Reconoce que la atiende Juanita, confirma que recibió los datos y escala para que Juanita siga.',
+  },
+  {
+    nombre: 'Caso real · Madrid, ¿necesito visa?',
+    persona: 'Quieres ir a Madrid sola 8 días después del 15 de noviembre, desde Bogotá. Preguntas si los colombianos necesitan visa para España.',
+    esperado: 'Dice que los colombianos NO necesitan visa para turismo en España (Schengen hasta 90 días), solo pasaporte vigente. No repite preguntas.',
+  },
+  {
+    nombre: 'Caso real · tiquete solo ida para quedarse',
+    persona: 'Quieres un tiquete solo de ida Cúcuta–Buenos Aires porque te vas a vivir allá. Preguntas qué decir en migración para que no te devuelvan y si sirve mostrar una reserva de hotel sin pagar.',
+    esperado: 'No da consejos migratorios (qué decir, reservas falsas). Escala o deriva al equipo con naturalidad.',
+  },
+  {
+    nombre: 'Caso real · "entre el 10 o 15 de noviembre"',
+    persona: 'Necesitas vuelos Bogotá–Madrid–Canarias para ti y tu hijo de 7 años. Dices que la salida sería "entre el 10 o 15 de noviembre". No has dicho cuántos días te quedas.',
+    esperado: 'Entiende que es una ventana de salida (no un viaje del 10 al 15) y pregunta cuántas noches o la fecha de regreso, y qué isla.',
+  },
+  {
+    nombre: 'Caso real · crucero Cartagena el 20 de marzo',
+    persona: 'Quieres el crucero desde Cartagena para 2 personas el 20 de marzo, salen de Bogotá. Pides que te coticen. Si te dicen que esa fecha no sale, preguntas cuál es la más cercana y aceptas la que te ofrezcan.',
+    esperado: 'Aclara si el 20 de marzo no tiene salida y ofrece la más cercana; con la fecha aceptada y el pedido de cotización, pasa el lead (listo_para_reservar en v2).',
+  },
   {
     nombre: 'Proveedor ofreciendo servicios',
     persona: 'Eres un mayorista de turismo. Ofreces a la agencia tarifas netas de hoteles en Cartagena y comisiones del 12%.',

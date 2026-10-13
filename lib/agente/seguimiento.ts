@@ -18,6 +18,8 @@ import { registrarEvento } from '@/lib/agente/eventos'
 import { esFestivo } from '@/lib/agente/festivos'
 import { registrarTraspaso } from '@/lib/agente/sla-registro'
 import { moverANoCalificado } from '@/lib/agente/no-calificado'
+import { conRevision, prepararExtras } from '@/lib/agente/guardas'
+import { equipo } from '@/lib/agente/equipo'
 import { costoUsd, decidirV2 } from '@/lib/agente/v2/decidir'
 import { enviarRespuestaV2, estadoPrevioV2, registrarTurnoAB, versionPara } from '@/lib/agente/v2/ab'
 import { productoDeInteres } from '@/lib/agente/v2/ficha'
@@ -245,28 +247,46 @@ async function seguimientoConIa(
     ...(c.producto ? { producto: c.producto } : {}),
   }
   let costoV2: number | undefined
-  let decision: Decision
-  if (version === 'v2') {
-    const r = await decidirV2(mensajes, {
-      nombre: nombreWhatsapp,
-      nombreConfirmado,
-      canal: fila.canal ?? undefined,
-      seguimiento,
-      anuncio,
-      estadoPrevio: await estadoPrevioV2(fila.contact_id),
-    })
-    decision = r.decision
-    costoV2 = costoUsd(r.uso)
-  } else {
-    decision = await decidir(mensajes, {
-      nombre: nombreWhatsapp,
-      nombreConfirmado,
-      canal: fila.canal ?? undefined,
-      enHorario: enHorario(),
-      seguimiento,
-      anuncio,
-    })
-  }
+  // Guardas (lib/agente/guardas.ts): lo ya sabido del cliente va a la
+  // situación y el mensaje se revisa antes de salir. En un seguimiento no hay
+  // "demora" que disculpar: es Sol quien escribe primero.
+  const [extras, miembros, estadoPrevio] = await Promise.all([
+    prepararExtras(fila.contact_id, mensajes),
+    equipo(),
+    version === 'v2' ? estadoPrevioV2(fila.contact_id) : Promise.resolve(undefined),
+  ])
+  extras.demoraHoras = undefined
+  const turno = await conRevision(
+    async x => {
+      if (version === 'v2') {
+        const r = await decidirV2(mensajes, {
+          nombre: nombreWhatsapp,
+          nombreConfirmado,
+          canal: fila.canal ?? undefined,
+          seguimiento,
+          anuncio,
+          estadoPrevio,
+          extras: x,
+        })
+        costoV2 = (costoV2 ?? 0) + costoUsd(r.uso)
+        return { decision: r.decision }
+      }
+      return {
+        decision: await decidir(mensajes, {
+          nombre: nombreWhatsapp,
+          nombreConfirmado,
+          canal: fila.canal ?? undefined,
+          enHorario: enHorario(),
+          seguimiento,
+          anuncio,
+          extras: x,
+        }),
+      }
+    },
+    extras,
+    miembros.filter(m => m.asignable).map(m => m.nombre)
+  )
+  const decision: Decision = turno.decision
   marcarFuenteAnuncio(decision, anuncio)
 
   const habla = decision.accion !== 'callar' && decision.mensaje.trim() !== ''

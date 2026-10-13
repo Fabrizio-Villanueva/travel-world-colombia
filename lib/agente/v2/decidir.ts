@@ -7,6 +7,7 @@ import { HORARIO } from '@/lib/agente/config'
 import { equipo, lineaEquipo } from '@/lib/agente/equipo'
 import { lineaHorario } from '@/lib/agente/horario'
 import { nombreSeguro } from '@/lib/agente/nombre'
+import { lineasExtra, type Extras } from '@/lib/agente/guardas'
 import { armarBorrador } from '@/lib/agente/v2/borrador'
 import { EJEMPLOS, ESQUEMA_DECISION_V2, FOCO, METODO, NUCLEO } from '@/lib/agente/v2/prompt'
 import type { MensajeGhl } from '@/lib/agente/ghl'
@@ -39,6 +40,8 @@ export interface ContextoV2 {
   estadoPrevio?: EstadoComercial
   /** Reglas ya cargadas (el laboratorio las reusa entre turnos). */
   reglas?: ReglasComerciales
+  /** Guardas: lo ya sabido del cliente, reserva en curso, demora y corrección (lib/agente/guardas.ts). */
+  extras?: Extras
 }
 
 export interface ResultadoV2 {
@@ -108,6 +111,7 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
     ctx.respaldo
       ? `MODO RESPALDO: esta conversación la lleva ${ctx.respaldo.asesora ? `la asesora ${ctx.respaldo.asesora}` : 'una asesora'}; los mensajes "[Escrito por la asesora]" son suyos. La cubres porque el cliente lleva rato sin respuesta. Preséntate una vez como Sol, del equipo. No contradigas lo que ella ofreció ni prometas nada fuera del catálogo; pagos, contrato, cambios y reclamos → "escalar" diciendo que ella se lo confirma por aquí (sin prometer tiempos).`
       : null,
+    ...lineasExtra(ctx.extras),
   ]
     .filter(Boolean)
     .join(' ')

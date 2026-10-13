@@ -41,7 +41,7 @@ export default async function CorridaPage({ params }: { params: Promise<{ id: st
       <Link href="/admin/sol/laboratorio" className="font-inter text-xs underline" style={{ color: 'var(--orange)' }}>← Laboratorio</Link>
       <h1 className="mt-2 font-plus-jakarta text-2xl font-extrabold" style={{ color: 'var(--text-primary)' }}>{corrida.titulo}</h1>
       <p className="mt-1 font-inter text-xs" style={{ color: 'var(--text-muted)' }}>
-        {corrida.tipo === 'chat' ? 'Chat de prueba (tú eres el cliente)' : 'Escenario con cliente simulado'} · Sol v2 ·
+        {corrida.tipo === 'chat' ? 'Chat de prueba (tú eres el cliente)' : 'Escenario con cliente simulado'} · Sol {corrida.version ?? 'v2'} ·
         costo aprox. US${costo.toFixed(3)} · nada de esto salió por WhatsApp
       </p>
       {escenario && (
