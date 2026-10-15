@@ -18,6 +18,12 @@ import { PantallaFirmando } from './PantallaFirmando'
 /** Tiempo mínimo de la animación de firma, para que se vea completa. */
 const MIN_ANIMACION_MS = 2800
 
+/**
+ * Largo mínimo del trazo (px CSS) para aceptar la firma. Evita firmas de
+ * "puntitos": con mouse o touchpad hay clientes que dan clic sin arrastrar.
+ */
+const MIN_TINTA_PX = 120
+
 const NAVY = '#0D1E3C'
 const MUTED = '#6B7A90'
 const BORDER = 'rgba(13, 30, 60, 0.12)'
@@ -38,6 +44,8 @@ export function Firmar({
   const dibujando = useRef(false)
   const ultimo = useRef<{ x: number; y: number } | null>(null)
   const [trazos, setTrazos] = useState(0)
+  const tintaRef = useRef(0)
+  const [tinta, setTinta] = useState(0)
   const [nombre, setNombre] = useState(nombreInicial)
   const [documento, setDocumento] = useState(documentoInicial)
   const [acepto, setAcepto] = useState(false)
@@ -76,6 +84,8 @@ export function Firmar({
       ctx.lineWidth = 2.4
       ctx.strokeStyle = NAVY
       setTrazos(0)
+      tintaRef.current = 0
+      setTinta(0)
     }
     ajustar()
     window.addEventListener('resize', ajustar)
@@ -110,11 +120,15 @@ export function Firmar({
     ctx.moveTo(ultimo.current.x, ultimo.current.y)
     ctx.lineTo(p.x, p.y)
     ctx.stroke()
+    tintaRef.current += Math.hypot(p.x - ultimo.current.x, p.y - ultimo.current.y)
     ultimo.current = p
   }
 
   function terminar() {
-    if (dibujando.current) setTrazos(t => t + 1)
+    if (dibujando.current) {
+      setTrazos(t => t + 1)
+      setTinta(tintaRef.current)
+    }
     dibujando.current = false
     ultimo.current = null
   }
@@ -124,9 +138,12 @@ export function Firmar({
     if (!c) return
     c.getContext('2d')!.clearRect(0, 0, c.width, c.height)
     setTrazos(0)
+    tintaRef.current = 0
+    setTinta(0)
   }
 
-  const listo = trazos > 0 && acepto && nombre.trim().length >= 5 && documento.replace(/\D/g, '').length >= 5
+  const firmaCorta = trazos > 0 && tinta < MIN_TINTA_PX
+  const listo = trazos > 0 && !firmaCorta && acepto && nombre.trim().length >= 5 && documento.replace(/\D/g, '').length >= 5
 
   async function enviar() {
     if (!listo || enviando || !lienzo.current) return
@@ -221,11 +238,16 @@ export function Firmar({
             />
             {trazos === 0 && (
               <span className="pointer-events-none absolute inset-0 flex items-center justify-center font-inter text-[14px]" style={{ color: 'rgba(13,30,60,0.35)' }}>
-                Firma aquí con tu dedo
+                Firma aquí con tu dedo o el mouse
               </span>
             )}
             <span className="pointer-events-none absolute bottom-8 left-6 right-6 border-b" style={{ borderColor: 'rgba(13,30,60,0.18)' }} />
           </div>
+          {firmaCorta && (
+            <p className="mt-2 font-inter text-[12.5px]" style={{ color: '#B4232A' }}>
+              Tu firma quedó muy corta. Dibújala completa: con el mouse, mantén presionado el botón mientras firmas.
+            </p>
+          )}
         </div>
 
         <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl p-4" style={{ background: '#F4F7FB' }}>
