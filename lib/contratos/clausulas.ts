@@ -27,5 +27,66 @@ export const CLAUSULA_DATOS = {
   ],
 }
 
-export const DECLARACION_FIRMA =
-  'Declaro que entiendo y acepto las condiciones de mi tiquete aéreo, la cláusula de responsabilidad y condiciones del presente contrato y autorizo el tratamiento de mis datos personales; para constancia firmo a continuación:'
+/**
+ * Bloques de una cláusula larga con subtítulos y listas (pedido del cliente,
+ * 15-oct-2026). Cada texto admite **negrita**.
+ */
+export type BloqueClausula =
+  | { tipo: 'titulo'; texto: string }
+  | { tipo: 'parrafo'; texto: string }
+  | { tipo: 'lista'; items: string[] }
+  | { tipo: 'numerada'; items: string[] }
+
+export const CLAUSULA_RETRACTO: { titulo: string; bloques: BloqueClausula[] } = {
+  titulo: 'Cláusula de retracto y desistimiento',
+  bloques: [
+    { tipo: 'titulo', texto: 'Retracto' },
+    { tipo: 'parrafo', texto: 'De acuerdo con el Estatuto del Consumidor (**Ley 1480 de 2011**), el **Decreto 1499 de 2014** y la **Ley 2439 de 2024**, el cliente que contrate con Travel World Colombia o Travel World Mayorista (establecimientos de comercio de **Vamos Por Más S.A.S.**) por métodos no tradicionales o a distancia puede ejercer el derecho de retracto bajo estas condiciones:' },
+    { tipo: 'lista', items: [
+      '**Plazo:** cinco (5) días hábiles, contados desde la celebración del contrato.',
+      '**Requisito:** que el servicio, por su naturaleza, no deba consumirse o no haya comenzado a ejecutarse antes de esos cinco (5) días.',
+    ] },
+    { tipo: 'titulo', texto: 'Procedimiento para ejercer el retracto' },
+    { tipo: 'numerada', items: [
+      '**Solicitud por escrito.** El cliente debe enviar su solicitud al correo **contacto@travelworldcolombia.com** dentro del plazo de cinco (5) días hábiles. Debe indicar nombre completo, número de identificación, número de reserva o contrato y medio de pago utilizado.',
+      '**Confirmación de recibo.** La agencia confirma por escrito la recepción de la solicitud.',
+      '**Verificación y liquidación.** La agencia verifica qué servicios se han gestionado, reservado, emitido o pagado a los proveedores antes de la solicitud, y elabora la liquidación correspondiente.',
+      '**Comunicación al cliente.** La agencia informa por escrito el resultado de la liquidación, con el detalle de los valores reconocidos y los valores a devolver.',
+      '**Devolución.** El reembolso se realiza por el mismo medio de pago utilizado, o por el medio que las partes acuerden.',
+    ] },
+    { tipo: 'titulo', texto: 'Costos administrativos y reconocimiento de servicios prestados' },
+    { tipo: 'parrafo', texto: 'Al ejercer el retracto, el cliente reconoce y acepta que:' },
+    { tipo: 'lista', items: [
+      'Se descuentan los costos administrativos de la gestión realizada por la agencia, equivalentes al **veinte por ciento (20 %)** del valor pagado, según lo establecido en las cláusulas de cancelaciones y reembolsos de este contrato.',
+      'Se reconocen los servicios prestados antes de la solicitud de retracto. Esto incluye las reservas, gestiones, emisión de tiquetes y servicios pagados a los proveedores, así como las penalidades o cargos no reembolsables que estos apliquen, según sus propias políticas.',
+      'La agencia solo devuelve el valor que los proveedores le reintegren efectivamente.',
+    ] },
+    { tipo: 'titulo', texto: 'Plazo de devolución' },
+    { tipo: 'parrafo', texto: 'La devolución no podrá exceder **quince (15) días calendario** desde que el cliente ejerció el derecho y cumplió sus obligaciones. Este plazo se entiende sin perjuicio de los tiempos propios de los operadores, aerolíneas y demás proveedores con los que se toma el servicio. Cuando el reembolso dependa de ellos, la agencia lo hará una vez el proveedor reintegre el dinero, según los plazos y la forma de reembolso que establezca la norma aplicable a cada servicio.' },
+    { tipo: 'titulo', texto: 'Casos en que no aplica el retracto' },
+    { tipo: 'numerada', items: [
+      'Contratos de prestación de servicios cuya ejecución haya comenzado con el acuerdo del consumidor.',
+      'Contratos de suministro de bienes o servicios cuyo precio dependa de fluctuaciones de coeficientes del mercado financiero que el proveedor no pueda controlar.',
+    ] },
+    { tipo: 'titulo', texto: 'Retracto en tiquetes aéreos (RAC 3, numeral 3.10.1.8.2)' },
+    { tipo: 'parrafo', texto: 'Para la venta de tiquetes aéreos a distancia aplica el **Reglamento Aeronáutico Colombiano (RAC) 3** de la Aeronáutica Civil, norma especial para agencias de viajes, **numeral 3.10.1.8.2**, que establece, entre otras condiciones, que el retracto se ejerce dentro de las **cuarenta y ocho (48) horas** siguientes a la compra y con una anterioridad mínima de **ocho (8) días calendario** al vuelo nacional o **quince (15) días calendario** al vuelo internacional. En cuanto al reembolso, el RAC 3 dispone:' },
+    { tipo: 'parrafo', texto: '(g) La aerolínea o agente de viajes que vendió el tiquete, deberá reembolsar el dinero al pasajero en un plazo máximo de treinta (30) días calendario a partir de la comunicación del retracto.' },
+    { tipo: 'parrafo', texto: '(h) Si el pasajero ejerce su derecho de retracto ante la agencia de viajes que realizó la venta del tiquete como intermediario, esta procederá al reembolso del dinero a que haya lugar, una vez la aerolínea ponga a su disposición el monto correspondiente, sin perjuicio del plazo de treinta (30) días previsto en el inciso anterior para que el reembolso del dinero al pasajero se haga efectivo.' },
+    { tipo: 'parrafo', texto: 'Para más información sobre los numerales completos del RAC 3, los plazos y la forma de reembolso según cada servicio, puede visitar nuestra página web, donde encontrará la información completa.' },
+    { tipo: 'titulo', texto: 'Desistimiento en transporte aéreo' },
+    { tipo: 'parrafo', texto: 'De acuerdo con la **Resolución 1375 de 2015** de la Aeronáutica Civil y el RAC, el cliente puede desistir del servicio antes de que inicie, avisando con mínimo **veinticuatro (24) horas** de antelación al vuelo.' },
+    { tipo: 'lista', items: [
+      'No aplica en tarifas promocionales.',
+      'Se aplican las penalidades y descuentos de la aerolínea o del proveedor.',
+      'La tasa administrativa no es reembolsable.',
+      'El transportador puede retener hasta el 10 % del valor de la tarifa, sin incluir tasas e impuestos.',
+    ] },
+    { tipo: 'parrafo', texto: 'Como intermediarias del contrato de transporte aéreo, Travel World Colombia y Travel World Mayorista reembolsan el dinero una vez la aerolínea lo reintegre, sin perjuicio del plazo de treinta (30) días calendario contados desde la comunicación del cliente.' },
+  ],
+}
+
+/** Declaración sobre las firmas (texto del cliente, 15-oct-2026); un párrafo por elemento. */
+export const DECLARACION_FIRMA = [
+  'Declaro que he leído, comprendido y acepto las condiciones y restricciones de mi tiquete aéreo, la cláusula de responsabilidad y las condiciones establecidas en el presente contrato. Asimismo, autorizo el tratamiento de mis datos personales conforme a la política de protección de datos personales de la agencia y manifiesto conocer y aceptar las condiciones aplicables al derecho de retracto y al desistimiento del servicio, de acuerdo con la normativa vigente.',
+  'Para constancia de mi aceptación, firmo a continuación.',
+]

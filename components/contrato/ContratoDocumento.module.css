@@ -471,6 +471,31 @@
 .clausulaTexto p {
   margin: 0 0 6px;
 }
+.clausulaSubtitulo {
+  margin: 8px 0 3px;
+  font-size: 1em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--navy);
+  break-after: avoid;
+}
+.clausulaSubtitulo:first-child {
+  margin-top: 0;
+}
+.clausulaLista {
+  margin: 0 0 6px;
+  padding-left: 16px;
+}
+.clausulaLista li {
+  margin-bottom: 2px;
+}
+ul.clausulaLista {
+  list-style: disc;
+}
+ol.clausulaLista {
+  list-style: decimal;
+}
 
 /* ── Firmas ── */
 .firmaSeccion {
@@ -487,6 +512,12 @@
   font-style: italic;
   font-weight: 600;
   color: var(--navy);
+}
+.declaracion p {
+  margin: 0;
+}
+.declaracion p + p {
+  margin-top: 6px;
 }
 .firmas {
   display: grid;
@@ -540,8 +571,9 @@
     display: none;
   }
   /*
-   * Hoja legal: cláusulas 08 y 09 + declaración + firmas, siempre en una
-   * hoja propia y completa. Tipografía ajustada para que quepa en carta.
+   * Hojas legales: validez + cláusulas + declaración + firmas, desde una
+   * hoja nueva. Las cláusulas pueden seguir en la hoja siguiente; la
+   * declaración y las firmas nunca se separan (.firmaSeccion).
    */
   /*
    * Pagos y condiciones: cada sección entera (sin cortarse), pero pueden
@@ -552,10 +584,6 @@
   .juntos > .seccion {
     break-inside: avoid;
   }
-  /* La cláusula de validez va pegada a las condiciones (nunca sola arriba de una hoja). */
-  .validez {
-    break-before: avoid;
-  }
   /* Filas un poco más bajas en papel: 20 pasajeros caben en una hoja. */
   .tabla td {
     padding-top: 5px;
@@ -563,9 +591,8 @@
   }
   .hojaLegal {
     break-before: page;
-    break-inside: avoid;
   }
-  .hojaLegal > .seccion:first-child {
+  .hojaLegal > .validez:first-child {
     margin-top: 0;
   }
   .hojaLegal .seccion {

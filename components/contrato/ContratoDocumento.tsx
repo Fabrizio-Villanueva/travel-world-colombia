@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Check, X, Landmark, Monitor, Mail, QrCode, Plane } from 'lucide-react'
-import { CLAUSULA_DATOS, CLAUSULA_RESPONSABILIDAD, DECLARACION_FIRMA } from '@/lib/contratos/clausulas'
+import { CLAUSULA_DATOS, CLAUSULA_RESPONSABILIDAD, CLAUSULA_RETRACTO, DECLARACION_FIRMA, type BloqueClausula } from '@/lib/contratos/clausulas'
 import type { ContratoDatos, ContratoLiquidacionFila, ContratoPago, ContratoPasajero } from '@/lib/contratos/tipos'
 import { enDivisa, type Divisa } from '@/lib/contratos/divisa'
 import s from './ContratoDocumento.module.css'
@@ -126,6 +126,27 @@ function Parrafo({ texto }: { texto: string }) {
   )
 }
 
+/** Texto con **negrita** (sin envolver en párrafo). */
+function ConNegrita({ texto }: { texto: string }) {
+  return (
+    <>
+      {texto.split(/(\*\*[^*]+\*\*)/).map((t, i) =>
+        t.startsWith('**') ? <strong key={i}>{t.slice(2, -2)}</strong> : t
+      )}
+    </>
+  )
+}
+
+/** Cláusula larga con subtítulos y listas. */
+function Bloques({ bloques }: { bloques: BloqueClausula[] }) {
+  return bloques.map((b, i) =>
+    b.tipo === 'titulo' ? <h3 key={i} className={s.clausulaSubtitulo}>{b.texto}</h3>
+    : b.tipo === 'parrafo' ? <Parrafo key={i} texto={b.texto} />
+    : b.tipo === 'lista' ? <ul key={i} className={s.clausulaLista}>{b.items.map((x, j) => <li key={j}><ConNegrita texto={x} /></li>)}</ul>
+    : <ol key={i} className={s.clausulaLista}>{b.items.map((x, j) => <li key={j}><ConNegrita texto={x} /></li>)}</ol>
+  )
+}
+
 function Seccion({ n, titulo, children, className }: { n: number; titulo: string; children: ReactNode; className?: string }) {
   return (
     <section className={`${s.seccion} ${className ?? ''}`}>
@@ -245,8 +266,8 @@ export function ContratoDocumento({
   const columnas = columnasPasajeros(datos.pasajeros)
   const conPlan = [...liq.aereos, ...liq.terrestre].some(f => f.valorPlan != null)
   const conTrm = datos.pagos.some(p => p.trm != null)
-  // Desde el 10-oct-2026 cada pago trae divisa en vez de medio de pago; las
-  // fotos congeladas anteriores siguen mostrando el medio.
+  // Cada columna sale solo si algún pago la trae (las fotos anteriores al
+  // 10-oct-2026 no tienen divisa).
   const conDivisa = datos.pagos.some(p => p.divisa)
   const conMedio = datos.pagos.some(p => p.medio)
   // Con pagos en dos divisas, el total del plan de cada uno explica su saldo.
@@ -540,17 +561,17 @@ export function ContratoDocumento({
           )}
         </div>
 
-        {/* Cláusula de validez (pedido del cliente 08-oct-2026): bloque propio,
-            sin número, después de las observaciones y antes de la hoja legal.
-            Se imprime completo en una sola página. */}
-        <section className={s.validez} aria-label={CLAUSULA_VALIDEZ.titulo}>
-          <span className={s.validezTitulo}>{CLAUSULA_VALIDEZ.titulo}</span>
-          <p>{CLAUSULA_VALIDEZ.texto}</p>
-        </section>
-
-        {/* Hoja legal: las dos cláusulas, la declaración y las firmas van
-            SIEMPRE juntas en una hoja propia (nunca se cortan). */}
+        {/* Hojas legales (pedido del cliente 15-oct-2026): todo el texto legal
+            empieza en una hoja aparte de los datos del cliente y los pagos.
+            Con el retracto ya no cabe en una hoja: las cláusulas corren por
+            las hojas que necesiten y la declaración va pegada a las firmas. */}
         <div className={s.hojaLegal}>
+          {/* Cláusula de validez (08-oct-2026): bloque propio, sin número. */}
+          <section className={s.validez} aria-label={CLAUSULA_VALIDEZ.titulo}>
+            <span className={s.validezTitulo}>{CLAUSULA_VALIDEZ.titulo}</span>
+            <p>{CLAUSULA_VALIDEZ.texto}</p>
+          </section>
+
           <Seccion n={sig()} titulo={CLAUSULA_RESPONSABILIDAD.titulo} className={s.clausula}>
             <div className={s.clausulaTexto}>
               {CLAUSULA_RESPONSABILIDAD.parrafos.map((p, i) => <Parrafo key={i} texto={p} />)}
@@ -563,8 +584,16 @@ export function ContratoDocumento({
             </div>
           </Seccion>
 
+          <Seccion n={sig()} titulo={CLAUSULA_RETRACTO.titulo} className={s.clausula}>
+            <div className={s.clausulaTexto}>
+              <Bloques bloques={CLAUSULA_RETRACTO.bloques} />
+            </div>
+          </Seccion>
+
           <section className={s.firmaSeccion}>
-            <p className={s.declaracion}>{DECLARACION_FIRMA}</p>
+            <div className={s.declaracion}>
+              {DECLARACION_FIRMA.map(t => <p key={t}>{t}</p>)}
+            </div>
             <div className={s.firmas}>
               <div className={s.firma}>
                 <div className={s.firmaTrazo}>{firma}</div>
