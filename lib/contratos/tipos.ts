@@ -44,7 +44,7 @@ export interface ContratoPago {
   fecha?: string
   /** Divisa del pago (10-oct-2026): total, abono y saldo van en ella. */
   divisa?: Divisa
-  /** Medio de pago: solo lo traen las fotos congeladas antes del 10-oct-2026 (lo reemplazó la divisa). */
+  /** Medio de pago (transferencia, efectivo, tarjeta…). Oculto del 10 al 14-oct-2026. */
   medio?: string
   trm?: number
   totalPlan?: number

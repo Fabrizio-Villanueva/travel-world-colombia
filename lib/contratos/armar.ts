@@ -194,6 +194,8 @@ export function armarContrato(e: EntradaContrato): ContratoDatos {
       // La divisa reemplazó al medio de pago (10-oct-2026); sin divisa guardada
       // (pagos anteriores) se infiere por el tamaño de los montos.
       divisa: divisaDe(texto(p('Divisa')), abono, totalPlan),
+      // Volvió junto a la divisa (pedido del equipo, 14-oct-2026).
+      medio: texto(p('Medio de Pago')) || undefined,
       trm: numero(p('TRM')),
       totalPlan,
       abono,

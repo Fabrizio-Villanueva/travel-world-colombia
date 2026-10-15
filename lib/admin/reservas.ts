@@ -129,19 +129,12 @@ function pasoDe(c: CampoCatalogo): string {
  * "ENVIAR CONTRATO?" (Preview / Enviar / Reenviar) disparaba las plantillas de
  * GHL Documents (C-02/C-03 viejos, archivados el 08-oct-2026): se oculta para
  * que no haya dos formas de enviar el contrato.
- *
- * "Pago N - Medio de Pago": lo reemplazó la Divisa (pedido del cliente,
- * 10-oct-2026). El campo sigue en GHL con lo que ya tenía.
  */
 const CAMPOS_OCULTOS = new Set<string>([
   'TRM - Tarifa por pax',
   'TRM - Cantidad',
   'TRM - Tiquetes Aereos',
   'ENVIAR CONTRATO?',
-  'Pago 1 - Medio de Pago',
-  'Pago 2 - Medio de Pago',
-  'Pago 3 - Medio de Pago',
-  'Pago 4 - Medio de Pago',
 ])
 
 /**
@@ -163,11 +156,12 @@ const ORDEN_GENERALES = [
 
 /**
  * Orden de los campos de cada pago: primero la divisa (de ella dependen los
- * demás), luego fecha, TRM, total, abono y saldo. Tipo de Pago (el depósito
+ * demás) y la forma de pago, luego fecha, TRM, total, abono y saldo. Tipo de Pago (el depósito
  * mínimo, solo existe en Pago 1) va al final.
  */
 const ORDEN_PAGO = [
   'Divisa',
+  'Medio de Pago',
   'Fecha de Pago',
   'TRM',
   'Total Plan',

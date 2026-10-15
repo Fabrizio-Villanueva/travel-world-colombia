@@ -65,6 +65,12 @@ const ETIQUETA_CAMPO: Record<string, string> = {
 const PLACEHOLDER_CAMPO: Record<string, string> = {
   'Pago 1 - Tipo de Pago': 'Ej.: 30% · 3.000.000 · 100% de los tiquetes',
 }
+/**
+ * Campos de texto en GHL que en el Generador se eligen de una lista (pedido
+ * del equipo, 14-oct-2026). Si ya tenían otro valor, se conserva como opción.
+ */
+const OPCIONES_TEXTO = (nombre: string): string[] | undefined =>
+  /^Pago \d - Medio de Pago$/.test(nombre) ? ['Transferencia', 'Efectivo', 'Tarjeta de crédito'] : undefined
 const NOMBRE_DEPOSITO_MINIMO = 'Pago 1 - Tipo de Pago'
 const MAX_CUOTAS = 6
 const PASO_PAGOS = 'Plan de Pagos'
@@ -1005,6 +1011,7 @@ function Campo({
     background: auto ? '#eff6ff' : sugerido ? '#fffbeb' : 'white',
   }
   const clase = 'w-full rounded-md px-3 py-2 font-inter text-sm outline-none'
+  const opcionesTexto = campo.dataType === 'TEXT' ? OPCIONES_TEXTO(campo.name) : undefined
 
   return (
     <label className="block">
@@ -1029,6 +1036,18 @@ function Campo({
         >
           {!sinVacio && <option value="">—</option>}
           {(campo.options ?? []).map(o => (
+            <option key={o} value={o}>{o}</option>
+          ))}
+        </select>
+      ) : opcionesTexto ? (
+        <select
+          value={(valor as string) ?? ''}
+          onChange={e => onChange(campo.ghlId, e.target.value)}
+          className={clase}
+          style={base}
+        >
+          <option value="">—</option>
+          {(typeof valor === 'string' && valor && !opcionesTexto.includes(valor) ? [valor, ...opcionesTexto] : opcionesTexto).map(o => (
             <option key={o} value={o}>{o}</option>
           ))}
         </select>
