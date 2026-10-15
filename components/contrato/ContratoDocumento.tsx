@@ -43,6 +43,11 @@ const MEDIOS_DE_PAGO = [
  */
 const AVISO_CARGOS_LOCALES =
   'PUEDEN APLICAR CARGOS O IMPUESTOS LOCALES EN DESTINO QUE HASTA LA FECHA NO HAN SIDO ESPECIFICADOS POR EL HOTEL - HEMOS INCLUIDO TODOS LOS CONCEPTOS A PAGAR HASTA EL MOMENTO.'
+const AVISO_SALDOS_EXTRANJERA = [
+  'Se debe confirmar el valor final con su asesor, ya que el saldo se liquida el día en que se recibe el pago, a la TRM determinada por nuestro banco intermediario.',
+  'El precio en pesos se toma como referencia con la TRM del día del contrato.',
+  'Liquidación completa en la factura de venta.',
+]
 const AVISO_SALDOS_PENDIENTES =
   'LOS SALDOS PENDIENTES PUEDEN REALIZARSE SEGÚN LO INFORMADO POR SU ASESOR. PAGO TOTAL DEBE ESTAR REALIZADO MÁXIMO UN MES ANTES DE LA FECHA DE VIAJE PARA EVITAR PENALIDADES O CANCELACIONES.'
 const CLAUSULA_VALIDEZ = {
@@ -272,6 +277,7 @@ export function ContratoDocumento({
   const conMedio = datos.pagos.some(p => p.medio)
   // Con pagos en dos divisas, el total del plan de cada uno explica su saldo.
   const mixto = new Set(datos.pagos.map(p => p.divisa ?? 'COP')).size > 1
+  const conExtranjera = [...datos.pagos, ...(datos.cuotas ?? [])].some(x => x.divisa === 'USD' || x.divisa === 'EUR')
   const saldos = saldosPorDivisa(datos.pagos, liq.total.valorTotal)
   // Fotos congeladas anteriores a oct-2026 no traen cuotas.
   const cuotas = datos.cuotas ?? []
@@ -516,6 +522,15 @@ export function ContratoDocumento({
               <span>Saldos pendientes</span>
               <p>{AVISO_SALDOS_PENDIENTES}</p>
             </div>
+            {/* Pedido del cliente (15-oct-2026): solo si algún pago o cuota va en dólares o euros. */}
+            {conExtranjera && (
+              <div className={`${s.aviso} ${s.avisoSaldos}`}>
+                <span>Saldos en dólares o euros</span>
+                <ul className={s.avisoLista}>
+                  {AVISO_SALDOS_EXTRANJERA.map(t => <li key={t}>{t}</li>)}
+                </ul>
+              </div>
+            )}
 
             <div className={s.medios}>
               <span className={s.mediosTitulo}>Medios de pago autorizados</span>

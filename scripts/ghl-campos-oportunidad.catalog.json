@@ -1050,7 +1050,8 @@
   "dataType": "SINGLE_OPTIONS",
   "options": [
    "COP",
-   "USD"
+   "USD",
+   "EUR"
   ]
  },
  {
@@ -1059,7 +1060,8 @@
   "dataType": "SINGLE_OPTIONS",
   "options": [
    "COP",
-   "USD"
+   "USD",
+   "EUR"
   ]
  },
  {
@@ -1068,7 +1070,8 @@
   "dataType": "SINGLE_OPTIONS",
   "options": [
    "COP",
-   "USD"
+   "USD",
+   "EUR"
   ]
  },
  {
@@ -1077,7 +1080,8 @@
   "dataType": "SINGLE_OPTIONS",
   "options": [
    "COP",
-   "USD"
+   "USD",
+   "EUR"
   ]
  },
  {
@@ -1086,7 +1090,8 @@
   "dataType": "SINGLE_OPTIONS",
   "options": [
    "COP",
-   "USD"
+   "USD",
+   "EUR"
   ]
  },
  {
@@ -1095,7 +1100,8 @@
   "dataType": "SINGLE_OPTIONS",
   "options": [
    "COP",
-   "USD"
+   "USD",
+   "EUR"
   ]
  },
  {
@@ -1104,7 +1110,8 @@
   "dataType": "SINGLE_OPTIONS",
   "options": [
    "COP",
-   "USD"
+   "USD",
+   "EUR"
   ]
  },
  {
@@ -1113,7 +1120,8 @@
   "dataType": "SINGLE_OPTIONS",
   "options": [
    "COP",
-   "USD"
+   "USD",
+   "EUR"
   ]
  },
  {
@@ -1122,7 +1130,8 @@
   "dataType": "SINGLE_OPTIONS",
   "options": [
    "COP",
-   "USD"
+   "USD",
+   "EUR"
   ]
  },
  {
@@ -1131,7 +1140,8 @@
   "dataType": "SINGLE_OPTIONS",
   "options": [
    "COP",
-   "USD"
+   "USD",
+   "EUR"
   ]
  },
  {

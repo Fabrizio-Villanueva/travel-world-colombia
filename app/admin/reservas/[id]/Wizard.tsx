@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Loader2, Check, ChevronLeft, ChevronRight, FileSignature, Plus, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { RE_CUOTA, esCampoCuota, type CampoReserva, type ValorCampo } from '@/lib/admin/reservas'
-import { DIVISAS, divisaDe, enDivisa, type Divisa } from '@/lib/contratos/divisa'
+import { DIVISAS, UNIDAD_TRM, divisaDe, enDivisa, type Divisa } from '@/lib/contratos/divisa'
 import { guardarReserva } from '../actions'
 
 /**
@@ -196,8 +196,10 @@ function recalcular(
   const totalPor: Record<Divisa, number | null> = {
     COP: leer('Total Pasajeros - Valor Total'),
     USD: leer('TRM - Valor Total'),
+    // La liquidación no tiene valor en euros: el primer pago en EUR lo escribe la asesora.
+    EUR: null,
   }
-  const abonadoPor: Record<Divisa, number> = { COP: 0, USD: 0 }
+  const abonadoPor: Record<Divisa, number> = { COP: 0, USD: 0, EUR: 0 }
   for (let n = 1; n <= MAX_PAGOS; n++) {
     const d = divisaDe(texto(v, idDe(`Pago ${n} - Divisa`)), leer(`Pago ${n} - Abono`))
     poner(`Pago ${n} - Total Plan`, totalPor[d])
@@ -525,10 +527,10 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
 
   // Saldo por divisa: el del último pago visible en esa divisa (el campo Saldo
   // o, si está vacío, total del plan menos sus abonos).
-  const saldoPor: Record<Divisa, number | null> = { COP: null, USD: null }
+  const saldoPor: Record<Divisa, number | null> = { COP: null, USD: null, EUR: null }
   {
-    const totalPor: Record<Divisa, number | null> = { COP: null, USD: null }
-    const abonadoPor: Record<Divisa, number> = { COP: 0, USD: 0 }
+    const totalPor: Record<Divisa, number | null> = { COP: null, USD: null, EUR: null }
+    const abonadoPor: Record<Divisa, number> = { COP: 0, USD: 0, EUR: 0 }
     for (let k = 1; k <= cuentaPago; k++) {
       const t = num(idDe(`Pago ${k} - Total Plan`))
       const a = num(idDe(`Pago ${k} - Abono`))
@@ -562,8 +564,8 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
 
   /**
    * Un pago: la divisa manda. Total, abono y saldo se rotulan en esa divisa,
-   * la TRM solo aparece en dólares (o si ya traía una) y, en dólares, se ve
-   * cuánto son el abono y el saldo en pesos a la TRM de ese pago.
+   * la TRM solo aparece en dólares o euros (o si ya traía una) y, en esas
+   * divisas, se ve cuánto son el abono y el saldo en pesos a la TRM del pago.
    */
   // Se llama como función (no como <Componente/>): definido aquí dentro, React
   // lo remontaría en cada tecla y el campo perdería el foco.
@@ -577,7 +579,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
       'Total Plan': `Total (${d})`,
       Abono: `Abono (${d})`,
       'Saldo en Pesos': `Saldo (${d})`,
-      TRM: 'TRM (pesos por dólar)',
+      TRM: `TRM (${UNIDAD_TRM[d]})`,
     }
     const visibles = items.filter(c => !(sufijo(c) === 'TRM' && d === 'COP' && trm === null))
     return (
@@ -591,7 +593,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
             return (
               <Campo
                 key={c.ghlId}
-                campo={c}
+                campo={esDivisa ? { ...c, options: [...DIVISAS] } : c}
                 valor={esDivisa ? (texto(valores, c.ghlId) ?? d) : valores[c.ghlId]}
                 sugerido={sugeridos.has(c.ghlId)}
                 auto={autos.has(c.ghlId)}
@@ -602,7 +604,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
             )
           })}
         </div>
-        {d === 'USD' && trm !== null && (abono !== null || saldo !== null) && (
+        {d !== 'COP' && trm !== null && (abono !== null || saldo !== null) && (
           <p className="mt-3 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
             A la TRM de este pago ({pesos.format(trm)}):
             {abono !== null && <> abono = <strong style={{ color: 'var(--text-primary)' }}>{pesos.format(abono * trm)}</strong></>}

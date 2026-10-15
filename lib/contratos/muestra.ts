@@ -167,6 +167,19 @@ export function muestraSinCuotas(base: ContratoDatos = CONTRATO_MUESTRA): Contra
  * terrestre en dólares y los tiquetes en pesos, con el saldo en dólares
  * programado en una cuota en dólares.
  */
+/** Pagos en euros y en pesos (`?divisas=eur`): euros desde el 15-oct-2026. */
+export function muestraEuros(base: ContratoDatos = CONTRATO_MUESTRA): ContratoDatos {
+  return {
+    ...base,
+    pagos: [
+      { fecha: '2026-04-18', divisa: 'EUR', trm: 4310, totalPlan: 6200, abono: 2000, saldo: 4200 },
+      { fecha: '2026-09-26', divisa: 'COP', totalPlan: 13_575_000, abono: 13_575_000, saldo: 0 },
+    ],
+    cuotas: [{ numero: 1, divisa: 'EUR', importe: 4200, vence: '2026-11-12' }],
+    depositoMinimo: 'Porción terrestre',
+  }
+}
+
 export function muestraDivisasMixtas(base: ContratoDatos = CONTRATO_MUESTRA): ContratoDatos {
   return {
     ...base,
