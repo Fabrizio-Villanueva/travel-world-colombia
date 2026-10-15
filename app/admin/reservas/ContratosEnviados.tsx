@@ -33,7 +33,7 @@ export function ContratosEnviados({
   verTodos: boolean
 }) {
   return (
-    <section className="mt-10">
+    <section id="contratos-enviados" className="mt-10 scroll-mt-6">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 font-inter text-lg font-bold" style={{ color: 'var(--text-primary)' }}>

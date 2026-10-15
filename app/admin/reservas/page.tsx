@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getAdminSession } from '@/lib/admin/guard'
 import { listarContratos, type FiltroListado } from '@/lib/contratos/listado'
+import { embudoContratos, embudoDocumentos, type Embudo } from '@/lib/admin/embudos'
+import { EmbudoCard } from '../_components/EmbudoCard'
 import { Buscador } from './Buscador'
 import { ContratosEnviados } from './ContratosEnviados'
 
@@ -18,10 +20,13 @@ export default async function ReservasPage({ searchParams }: { searchParams: Pro
   const { f } = await searchParams
   const filtro: FiltroListado = f === 'pendientes' || f === 'firmados' ? f : 'todos'
   const verTodos = session.rol === 'admin'
-  const contratos = await listarContratos({ email: session.user.email ?? '', verTodos, filtro }).catch(e => {
-    console.error('[reservas] contratos enviados:', e)
-    return null
-  })
+  const email = session.user.email ?? ''
+  const vacio: Embudo = { etapas: [], aparte: [] }
+  const [contratos, embContratos, embDocumentos] = await Promise.all([
+    listarContratos({ email, verTodos, filtro }).catch(e => (console.error('[reservas] contratos enviados:', e), null)),
+    embudoContratos(email, verTodos).catch(e => (console.error('[reservas] embudo contratos:', e), vacio)),
+    embudoDocumentos(email, verTodos).catch(e => (console.error('[reservas] embudo documentos:', e), vacio)),
+  ])
 
   return (
     <div>
@@ -36,6 +41,22 @@ export default async function ReservasPage({ searchParams }: { searchParams: Pro
       </header>
 
       <Buscador />
+
+      {/* Embudos (15-oct-2026): cómo van los contratos y los documentos. */}
+      <section className="mt-8">
+        <p className="mb-3 font-inter text-xs" style={{ color: 'var(--text-dim)' }}>
+          {verTodos ? 'Todo el equipo' : 'Lo que enviaste tú'} · cada reserva cuenta una vez (su último envío) · el porcentaje es sobre lo enviado.
+        </p>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <EmbudoCard titulo="Contratos" href="#contratos-enviados" embudo={embContratos} />
+          <EmbudoCard
+            titulo="Recolección de documentos"
+            // La página de documentos no está abierta al rol representante.
+            href={session.rol === 'representante' ? undefined : '/admin/documentos'}
+            embudo={embDocumentos}
+          />
+        </div>
+      </section>
 
       {contratos ? (
         <ContratosEnviados contratos={contratos} filtro={filtro} verTodos={verTodos} />
