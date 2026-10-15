@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { SITE } from '@/lib/site'
+import { GHL } from '@/lib/agente/config'
 import {
   actualizarCamposOportunidad,
   crearNota,
@@ -191,6 +192,7 @@ export async function crearYEnviarContrato(opportunityId: string, creadoPor: str
     .from('contratos')
     .insert({
       opportunity_id: opportunityId,
+      location_id: GHL.locationId,
       contact_id: contactId,
       token_hash: hashToken(token),
       datos,
