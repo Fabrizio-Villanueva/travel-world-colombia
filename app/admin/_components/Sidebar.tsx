@@ -24,7 +24,7 @@ const NAV: { href: string; label: string; Icon: typeof Plane; exact?: boolean; s
   { href: '/admin/resenas',     label: 'Reseñas',      Icon: Star },
   { href: '/admin/faqs',        label: 'Preguntas',    Icon: HelpCircle },
   { href: '/admin/textos',      label: 'Textos del sitio', Icon: Type },
-  { href: '/admin/paginas',     label: 'Pie de página', Icon: Scale },
+  { href: '/admin/paginas',     label: 'Políticas y términos y condiciones', Icon: Scale },
   { href: '/admin/usuarios',    label: 'Usuarios',     Icon: Users },
   { href: '/admin/actividad',   label: 'Actividad',    Icon: Activity },
 ]

@@ -19,7 +19,7 @@ export default async function PaginasPage() {
     <>
       <div className="mb-8">
         <h1 className="font-plus-jakarta text-2xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
-          Páginas del pie de página
+          Políticas y términos y condiciones
         </h1>
         <p className="mt-1 max-w-2xl font-inter text-sm" style={{ color: 'var(--text-dim)' }}>
           Información de la compañía y textos legales que se enlazan desde el pie de página de la web.
