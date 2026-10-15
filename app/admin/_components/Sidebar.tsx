@@ -6,22 +6,19 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Plane, Star, HelpCircle, Users, Activity, Globe, LogOut, Menu, X,
-  ClipboardList, Tags, Megaphone, Type, FileCheck, HeartPulse, Bot, FlaskConical, Split, RefreshCw, TrendingUp,
+  ClipboardList, Tags, Megaphone, Type, FileCheck, HeartPulse, Bot,
 } from 'lucide-react'
 import { signOut } from '../actions'
 import type { Role } from '@/lib/admin/allowlist'
 
-const NAV: { href: string; label: string; Icon: typeof Plane; exact?: boolean; soloAdmin?: boolean; soloSuperadmin?: boolean }[] = [
+const NAV: { href: string; label: string; Icon: typeof Plane; exact?: boolean; soloAdmin?: boolean }[] = [
   { href: '/admin',             label: 'Dashboard',    Icon: LayoutDashboard, exact: true },
   { href: '/admin/viajes',      label: 'Viajes',       Icon: Plane },
   { href: '/admin/catalogo',    label: 'Salud del catálogo', Icon: HeartPulse },
   { href: '/admin/categorias',  label: 'Categorías',   Icon: Tags },
   { href: '/admin/anuncios',    label: 'Anuncios',     Icon: Megaphone },
-  { href: '/admin/sol/resultados', label: 'Resultados de Sol', Icon: TrendingUp, soloAdmin: true, soloSuperadmin: true },
-  { href: '/admin/sol',         label: 'Sol: reglas comerciales', Icon: Bot, soloAdmin: true, exact: true },
-  { href: '/admin/sol/laboratorio', label: 'Laboratorio de Sol', Icon: FlaskConical, soloAdmin: true },
-  { href: '/admin/sol/ab',      label: 'Sol: prueba A/B', Icon: Split, soloAdmin: true },
-  { href: '/admin/sol/reactivacion', label: 'Sol: reactivación A/B', Icon: RefreshCw, soloAdmin: true },
+  // Una sola entrada: resultados, reglas, A/B, reactivación y laboratorio van en pestañas.
+  { href: '/admin/sol',         label: 'Sol',          Icon: Bot, soloAdmin: true },
   { href: '/admin/reservas',    label: 'Generador de Contratos', Icon: ClipboardList },
   { href: '/admin/documentos',  label: 'Documentos de viajeros', Icon: FileCheck },
   { href: '/admin/resenas',     label: 'Reseñas',      Icon: Star },
@@ -37,10 +34,10 @@ export function Sidebar({ email, rol, superadmin = false, alertasCatalogo = 0 }:
 
   // El representante solo ve Reservas (el proxy además lo redirige ahí);
   // el lector ve el panel pero no Reservas (la sección escribe en el CRM).
-  // Las secciones de Sol (reglas comerciales y laboratorio) son solo de admin.
-  // Resultados de Sol: solo el superadmin (ADMIN_EMAILS), decisión del 13-oct.
+  // La sección Sol es solo de admin; su pestaña Resultados, solo del superadmin
+  // (ADMIN_EMAILS, decisión del 13-oct), y por eso él entra directo a ella.
   const nav = NAV.filter(item =>
-    (item.soloSuperadmin && !superadmin) || (item.soloAdmin && rol !== 'admin')
+    item.soloAdmin && rol !== 'admin'
       ? false
       : rol === 'representante'
       ? item.href === '/admin/reservas'
@@ -79,7 +76,7 @@ export function Sidebar({ email, rol, superadmin = false, alertasCatalogo = 0 }:
             return (
               <li key={href}>
                 <Link
-                  href={href}
+                  href={href === '/admin/sol' && superadmin ? '/admin/sol/resultados' : href}
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 rounded-md px-3 py-2.5 font-inter text-sm transition-colors"
                   style={{
