@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { MapPin, Phone, Mail, Clock, Lock } from 'lucide-react'
 import { SITE, SOCIALS, WHATSAPP, NAV_LINKS, whatsappUrl } from '@/lib/site'
 import { NuevaPestana, NUEVA_PESTANA } from '@/components/ui/NuevaPestana'
+import { COLUMNAS, PAGINAS_INFO, enlacePagina, getPaginasPublicadas } from '@/lib/paginas-info'
 
 type IconProps = { size?: number }
 
@@ -45,7 +46,18 @@ const socialLinks = [
   { href: SOCIALS.tiktok, label: 'TikTok', Icon: TikTokIcon },
 ]
 
-export function Footer() {
+export async function Footer() {
+  // Columnas de información (15-oct-2026): cada página aparece cuando tiene
+  // texto publicado en el panel o ya existía en el sitio.
+  const publicadas = await getPaginasPublicadas()
+  const columnas = COLUMNAS.map(col => ({
+    ...col,
+    enlaces: PAGINAS_INFO.filter(p => p.columna === col.id).flatMap(p => {
+      const href = enlacePagina(p, publicadas)
+      return href ? [{ href, label: p.titulo }] : []
+    }),
+  })).filter(col => col.enlaces.length > 0)
+
   return (
     <footer
       className="border-t"
@@ -135,24 +147,44 @@ export function Footer() {
         </div>
       </div>
 
+      {/* Información de la compañía y legal (editable en el panel) */}
+      {columnas.length > 0 && (
+        <nav
+          aria-label="Información de la compañía y legal"
+          className="border-t"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <div className="mx-auto grid max-w-7xl gap-8 px-6 py-10 sm:grid-cols-3">
+            {columnas.map(col => (
+              <div key={col.id}>
+                <h3 className="font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase text-orange">
+                  {col.titulo}
+                </h3>
+                <ul className="mt-4 space-y-2">
+                  {col.enlaces.map(link => (
+                    <li key={link.href}>
+                      <Link href={link.href} className="font-inter text-[13px] transition-colors hover:text-orange">
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </nav>
+      )}
+
       {/* Barra inferior */}
       <div className="border-t" style={{ borderColor: 'var(--border)' }}>
-        {/* Enlaces legales */}
         <nav
           aria-label="Enlaces legales"
           className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-1 px-6 pt-5 font-inter text-[12px]"
           style={{ color: 'var(--text-muted)' }}
         >
-          {[
-            { href: '/terminos-y-condiciones', label: 'Términos y condiciones' },
-            { href: '/privacidad', label: 'Privacidad' },
-            { href: '/sostenibilidad', label: 'Sostenibilidad' },
-            { href: '/codigo-de-conducta', label: 'Turista responsable' },
-          ].map(link => (
-            <Link key={link.href} href={link.href} className="transition-colors hover:text-orange">
-              {link.label}
-            </Link>
-          ))}
+          <Link href="/codigo-de-conducta" className="transition-colors hover:text-orange">
+            Turista responsable
+          </Link>
         </nav>
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-6 py-5 font-inter text-[12px] md:flex-row">
           <p>© {new Date().getFullYear()} {SITE.nombre}. Todos los derechos reservados.</p>

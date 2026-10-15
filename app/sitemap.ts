@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { getDestinos } from '@/lib/destinos'
 import { SITE } from '@/lib/site'
+import { getPaginasPublicadas } from '@/lib/paginas-info'
 
 export const revalidate = 3600
 
@@ -58,5 +59,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: d.destacado ? 0.85 : 0.75,
   }))
 
-  return [...staticRoutes, ...destinoRoutes]
+  // Páginas del pie de página con texto publicado en el panel.
+  const infoRoutes: MetadataRoute.Sitemap = [...(await getPaginasPublicadas()).values()].map(p => ({
+    url: `${base}/info/${p.slug}`,
+    lastModified: new Date(p.actualizado_en),
+    changeFrequency: 'yearly' as const,
+    priority: 0.3,
+  }))
+
+  return [...staticRoutes, ...destinoRoutes, ...infoRoutes]
 }

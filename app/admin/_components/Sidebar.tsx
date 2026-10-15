@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Plane, Star, HelpCircle, Users, Activity, Globe, LogOut, Menu, X,
-  ClipboardList, Tags, Megaphone, Type, FileCheck, HeartPulse, Bot,
+  ClipboardList, Tags, Megaphone, Type, FileCheck, HeartPulse, Bot, Scale,
 } from 'lucide-react'
 import { signOut } from '../actions'
 import type { Role } from '@/lib/admin/allowlist'
@@ -24,6 +24,7 @@ const NAV: { href: string; label: string; Icon: typeof Plane; exact?: boolean; s
   { href: '/admin/resenas',     label: 'Reseñas',      Icon: Star },
   { href: '/admin/faqs',        label: 'Preguntas',    Icon: HelpCircle },
   { href: '/admin/textos',      label: 'Textos del sitio', Icon: Type },
+  { href: '/admin/paginas',     label: 'Pie de página', Icon: Scale },
   { href: '/admin/usuarios',    label: 'Usuarios',     Icon: Users },
   { href: '/admin/actividad',   label: 'Actividad',    Icon: Activity },
 ]
