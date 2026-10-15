@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { tokenValido } from '@/lib/documentos/token'
 import { accesoContratoValido, nombreCookieContrato } from '@/lib/contratos/acceso'
 import { asegurarPdf, contratoPorToken, registrarEvento, urlFirmadaContrato } from '@/lib/contratos/registro'
+import { nombreArchivoContrato } from '@/lib/contratos/nombre-archivo'
 
 // Si el PDF no se alcanzó a generar al firmar, se genera aquí.
 export const maxDuration = 60
@@ -22,6 +23,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
     tipo: 'descargado',
     ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? undefined,
   })
-  const nombre = `Contrato-TW-${(c.reserva ?? 'TWC').replace(/[^\w-]/g, '')}.pdf`
+  const nombre = nombreArchivoContrato({ reserva: c.reserva, titular: c.titular, destino: c.datos.destino })
   return NextResponse.redirect(await urlFirmadaContrato(listo.pdf_ruta!, nombre))
 }

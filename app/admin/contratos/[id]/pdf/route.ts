@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { getAdminSession } from '@/lib/admin/guard'
 import { registrarActividad } from '@/lib/admin/audit'
 import { asegurarPdf, contratoPorId, urlFirmadaContrato } from '@/lib/contratos/registro'
+import { nombreArchivoContrato } from '@/lib/contratos/nombre-archivo'
 
 export const maxDuration = 60
 
@@ -27,5 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     slug: c.opportunity_id,
     nombre: `TW-${c.reserva}`,
   })
-  return NextResponse.redirect(await urlFirmadaContrato(listo.pdf_ruta!))
+  // Se descarga con nombre legible (TW-2836 - Titular - Destino.pdf), 15-oct-2026.
+  const nombre = nombreArchivoContrato({ reserva: c.reserva, titular: c.titular, destino: c.datos.destino })
+  return NextResponse.redirect(await urlFirmadaContrato(listo.pdf_ruta!, nombre))
 }
