@@ -36,7 +36,16 @@ const ESTADO: Record<NonNullable<EstadoContratoPanel['ultimo']>['estado'], { tex
 const fechaHora = (iso: string) =>
   new Date(iso).toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'medium', timeStyle: 'short' })
 
-export function ContratoPanel({ opportunityId, inicial }: { opportunityId: string; inicial: EstadoContratoPanel }) {
+export function ContratoPanel({
+  opportunityId,
+  inicial,
+  esAdmin,
+}: {
+  opportunityId: string
+  inicial: EstadoContratoPanel
+  /** Solo un administrador puede anular un contrato ya firmado (el servidor también lo exige). */
+  esAdmin: boolean
+}) {
   const router = useRouter()
   const [ocupado, setOcupado] = useState<null | 'enviar' | 'reenviar' | 'copia' | 'anular'>(null)
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
@@ -79,7 +88,15 @@ export function ContratoPanel({ opportunityId, inicial }: { opportunityId: strin
 
   async function correr(accion: 'enviar' | 'reenviar' | 'anular') {
     if (accion === 'enviar' && vigente && !confirm('Se enviará una versión NUEVA con los datos actuales y el enlace anterior dejará de servir. ¿Continuar?')) return
-    if (accion === 'anular' && !confirm('¿Anular este contrato? El enlace del cliente dejará de servir.')) return
+    if (
+      accion === 'anular' &&
+      !confirm(
+        u?.estado === 'firmado'
+          ? '¿Anular este contrato FIRMADO? Quedará anulado (el PDF firmado se conserva para el equipo) y podrás enviar uno nuevo para firma.'
+          : '¿Anular este contrato? El enlace del cliente dejará de servir.'
+      )
+    )
+      return
     setOcupado(accion)
     setMensaje(null)
     try {
@@ -182,6 +199,12 @@ export function ContratoPanel({ opportunityId, inicial }: { opportunityId: strin
               {ocupado === 'copia' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               Reenviar copia firmada
             </button>
+            {esAdmin && (
+              <button type="button" onClick={() => correr('anular')} disabled={ocupado !== null} className={boton} style={{ border: '1px solid #FECDD3', color: '#BE123C' }}>
+                {ocupado === 'anular' ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+                Anular
+              </button>
+            )}
           </>
         ) : (
           <button

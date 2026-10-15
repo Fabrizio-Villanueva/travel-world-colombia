@@ -89,7 +89,7 @@ export default async function ReservaPage({ params }: { params: Promise<{ id: st
         titulo="Envío del contrato"
         descripcion="Revisa la vista previa y envía el contrato para firma electrónica."
       >
-        <ContratoPanel opportunityId={reserva.oportunidad.id} inicial={contrato} />
+        <ContratoPanel opportunityId={reserva.oportunidad.id} inicial={contrato} esAdmin={session.rol === 'admin'} />
       </PasoFlujo>
 
       <section>
