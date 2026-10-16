@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Cinzel, Inter } from 'next/font/google'
 import './globals.css'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
+import { PopupSeguridad } from '@/components/layout/PopupSeguridad'
 import { WhatsAppButton } from '@/components/ui/WhatsAppButton'
 import { PublicOnly } from '@/components/layout/PublicOnly'
 import { Analytics, AnalyticsNoScript } from '@/components/analytics/Analytics'
@@ -11,6 +12,7 @@ import { SITE, WHATSAPP, SOCIALS } from '@/lib/site'
 import { jsonLd } from '@/lib/seo/jsonLd'
 import { getDestinos } from '@/lib/destinos'
 import { menuDestinos } from '@/lib/menuDestinos'
+import { AVISO_VISTA_PREVIA, getAvisoSeguridad, numeroLegible } from '@/lib/aviso-seguridad'
 
 const schemaOrg = {
   '@context': 'https://schema.org',
@@ -108,8 +110,9 @@ export const metadata: Metadata = {
     type: 'website',
     url: '/',
     title: 'Agencia de Viajes Fusagasugá | Travel World Colombia',
-    description:
-      `Agencia de viajes en Fusagasugá con más de ${SITE.reseñas} reseñas ⭐⭐⭐⭐⭐ Paquetes a todo el mundo. Cotiza gratis ✈️ RNT 27287.`,
+    // La vista previa del enlace (WhatsApp, Facebook) abre con el número oficial:
+    // si un estafador manda la web como "prueba", la víctima ve el número real ahí.
+    description: `${AVISO_VISTA_PREVIA} Agencia de viajes en Fusagasugá · RNT 27287.`,
     images: [
       {
         url: '/og-image.jpg',
@@ -141,6 +144,7 @@ export default async function RootLayout({
   // /destinos: sin cruceros). getDestinos está cacheado por request, así que en
   // las páginas que ya lo consultan no agrega viajes extra a Supabase.
   const destinosMenu = menuDestinos((await getDestinos()).filter(d => !d.es_crucero))
+  const aviso = await getAvisoSeguridad()
 
   return (
     <html
@@ -171,10 +175,16 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLd(schemaOrg) }}
         />
-        <PublicOnly><Navbar destinosMenu={destinosMenu} /></PublicOnly>
+        <PublicOnly>
+          <Navbar
+            destinosMenu={destinosMenu}
+            aviso={aviso.activo ? { mensaje: aviso.mensaje, numero: numeroLegible(aviso.numeros[0]) } : null}
+          />
+        </PublicOnly>
         <main id="contenido">{children}</main>
         <PublicOnly><Footer /></PublicOnly>
         <PublicOnly><WhatsAppButton /></PublicOnly>
+        {aviso.popup && <PublicOnly><PopupSeguridad numero={numeroLegible(aviso.numeros[0])} /></PublicOnly>}
       </body>
     </html>
   )

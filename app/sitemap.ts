@@ -42,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     },
     // Páginas legales — poco cambio, prioridad baja
-    ...['/sostenibilidad', '/codigo-de-conducta', '/rnt', '/privacidad', '/terminos-y-condiciones'].map(
+    ...['/sostenibilidad', '/codigo-de-conducta', '/rnt', '/privacidad', '/terminos-y-condiciones', '/verificar'].map(
       path => ({
         url: `${base}${path}`,
         lastModified: now,

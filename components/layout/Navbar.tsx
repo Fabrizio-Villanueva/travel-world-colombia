@@ -8,10 +8,13 @@ import { Button } from '@/components/ui/Button'
 import { NAV_LINKS, SERVICIOS_MENU, SITE } from '@/lib/site'
 import { scrollBehavior } from '@/components/ui/useReducedMotion'
 import type { ColumnaMenu, ItemMenu } from '@/lib/menuDestinos'
+import { AvisoSeguridad } from './AvisoSeguridad'
 
 interface NavbarProps {
   /** Menú "Destinos" con sus submenús por región (lo arma el layout en el servidor). */
   destinosMenu: ItemMenu[]
+  /** Franja antisuplantación (null = apagada desde el panel). */
+  aviso?: { mensaje: string; numero: string } | null
 }
 
 type SubItem = ItemMenu
@@ -236,7 +239,7 @@ function Submenu({ visible, label, columnas, verTodos, estilo, onEnter, onClick 
   )
 }
 
-export function Navbar({ destinosMenu }: NavbarProps) {
+export function Navbar({ destinosMenu, aviso }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
   const [subAbierto, setSubAbierto] = useState<string | null>(null)
@@ -308,6 +311,7 @@ export function Navbar({ destinosMenu }: NavbarProps) {
         borderBottom: scrolled || open ? '1px solid var(--border)' : '1px solid transparent',
       }}
     >
+      {aviso && <AvisoSeguridad mensaje={aviso.mensaje} numero={aviso.numero} />}
       <nav
         aria-label="Navegación principal"
         className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4"

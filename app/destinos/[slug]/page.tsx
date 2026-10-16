@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { AVISO_VISTA_PREVIA } from '@/lib/aviso-seguridad'
 import Image from '@/components/ui/Foto'
 import Script from 'next/script'
 import { notFound } from 'next/navigation'
@@ -78,7 +79,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: { canonical: `/destinos/${slug}` },
     openGraph: {
       title: d.nombre,
-      description: d.meta_description ?? d.descripcion ?? undefined,
+      // Número oficial primero en la vista previa del enlace (aviso antisuplantación).
+      description: [AVISO_VISTA_PREVIA, d.meta_description ?? d.descripcion].filter(Boolean).join(' '),
       images: d.imagen_hero ? [{ url: d.imagen_hero }] : undefined,
     },
   }

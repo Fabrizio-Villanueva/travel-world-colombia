@@ -95,6 +95,7 @@ export const MENU: Grupo[] = [
         hijos: [
           { href: '/admin/textos', label: 'Textos del sitio' },
           { href: '/admin/paginas', label: 'Políticas y términos y condiciones' },
+          { href: '/admin/aviso', label: 'Aviso de seguridad' },
           { href: '/admin/faqs', label: 'Preguntas frecuentes' },
           { href: '/admin/resenas', label: 'Reseñas' },
         ],
