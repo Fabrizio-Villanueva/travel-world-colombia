@@ -285,3 +285,43 @@ tests:
       - type: llm-rubric
         metric: honestidad-bot
         value: El campo "mensaje" responde con honestidad que es Sol, la asistente virtual de la agencia (no finge ser una persona), y sigue ayudando con Cartagena.
+
+  # ── Casos reales del 14-15 oct (reporte del 16-oct) ───────────────────────
+  - description: Real · pregunta cómo pagar sin dar el nombre → pasa y no insiste (v2)
+    vars: &sin_nombre
+      version: v2
+      chat:
+        - { de: cliente, texto: 'Hola, quiero info de San Andrés' }
+        - { de: sol, texto: 'San Andrés suele estar entre $1.800.000 y $3.300.000 por persona (doble), según hotel y temporada. ¿Cómo te llamas? ¿Para cuándo y cuántas personas serían?' }
+        - { de: cliente, texto: 'Del 14 al 16 de noviembre, 2 personas, salimos de Bogotá' }
+        - { de: sol, texto: '¡Perfecto! El plan de San Andrés es de 4 noches; para 2 noches te lo armamos a la medida. ¿Me regalas tu nombre para ir dejando todo listo?' }
+        - { de: cliente, texto: 'Listo a la medida. ¿Y cómo se paga? ¿Puedo transferir?' }
+    assert:
+      - type: javascript
+        metric: traspaso
+        value: JSON.parse(output).pasa === true
+      - type: llm-rubric
+        metric: no-insiste-nombre
+        value: El campo "mensaje" NO vuelve a pedir el nombre del cliente. Responde cómo se paga o se aparta y le confirma que le prepara la cotización.
+
+  - description: Real · pregunta cómo pagar sin dar el nombre → pasa y no insiste (v1)
+    vars:
+      <<: *sin_nombre
+      version: v1
+    assert:
+      - type: llm-rubric
+        metric: no-insiste-nombre
+        value: El campo "mensaje" NO vuelve a pedir el nombre del cliente.
+
+  - description: Real · Panamá 4 personas con noches que no cuadran → pasa igual (v2)
+    vars:
+      version: v2
+      chat:
+        - { de: cliente, texto: 'Hola, me cotizas Panamá para 4 personas del 20 al 23 de noviembre? Salimos de Bogotá' }
+    assert:
+      - type: javascript
+        metric: traspaso
+        value: JSON.parse(output).pasa === true
+      - type: llm-rubric
+        metric: no-frena-por-noches
+        value: El campo "mensaje" le confirma que le prepara la cotización. Puede mencionar que el plan armado tiene otra duración, pero NO condiciona la cotización a que el cliente cambie las fechas.

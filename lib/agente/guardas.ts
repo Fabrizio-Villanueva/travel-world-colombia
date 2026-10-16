@@ -131,6 +131,24 @@ export function demoraHoras(mensajes: MensajeGhl[], ahora = new Date()): number 
 
 const sinTildes = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
+/** Pedir el nombre ("¿cómo te llamas?", "¿me regalas tu nombre?"…), sin tildes. */
+const PIDE_NOMBRE = /como te llamas|como se llama|(regalas|compartes|recuerdas|dices|das) tu nombre|cual es tu nombre|con quien tengo el gusto|tu nombre\s*\?/
+
+/** Frases con pregunta (para no confundir "a tu nombre" con pedir el nombre). */
+const frasesConPregunta = (texto: string) => sinTildes(texto).split(/(?<=[?¿.!\n])/).filter(f => f.includes('?'))
+
+/** Línea de la situación cuando ya se pidió el nombre y el cliente no lo dio. */
+export const NOMBRE_YA_PEDIDO =
+  'Ya le pediste el nombre y no lo ha dado: NO lo vuelvas a pedir ni lo menciones; sigue sin nombre. El nombre nunca es requisito para cotizar ni para pasar el lead al equipo.'
+
+/**
+ * ¿Ya se le pidió el nombre al cliente en algún mensaje saliente? (16-oct: Sol 2
+ * pidió el nombre 4 veces a un cliente listo para pagar y nunca pasó el lead.)
+ */
+export function yaPidioNombre(mensajes: MensajeGhl[]): boolean {
+  return mensajes.some(m => m.direction !== 'inbound' && frasesConPregunta(m.body ?? '').some(f => PIDE_NOMBRE.test(f)))
+}
+
 /** Preguntas que repiten un dato ya conocido: [campo, patrón de la pregunta]. */
 const REPREGUNTAS: Array<[keyof Decision['datos'], RegExp, string]> = [
   ['ciudad_salida', /(desde|de) (que|cual) ciudad|ciudad de salida|de donde (saldrian|saldrias|salen|sales|viajan|viajarian)|salen desde bogota\?|saldrian desde/, 'la ciudad de salida'],
@@ -157,6 +175,8 @@ export function revisarMensaje(
     textoCliente?: string
     /** Nombre del cliente (puede coincidir con el de alguien del equipo). */
     nombreCliente?: string
+    /** Ya se le pidió el nombre antes: volver a pedirlo es insistir. */
+    yaPidioNombre?: boolean
     ahora?: Date
   }
 ): string[] {
@@ -174,6 +194,11 @@ export function revisarMensaje(
     if (preguntas.some(f => patron.test(f))) {
       problemas.push(`vuelves a preguntar ${que}, que el cliente ya dijo (${String(v)}).`)
     }
+  }
+
+  // 1b. Volver a pedir el nombre (se pide UNA vez y nunca frena el traspaso).
+  if (opciones.yaPidioNombre && !opciones.nombreCliente && preguntas.some(f => PIDE_NOMBRE.test(f))) {
+    problemas.push('vuelves a pedir el nombre, que ya pediste antes y el cliente no dio: no lo pidas más y sigue sin él.')
   }
 
   // 2. Ofrecer una salida que ya pasó (salvo que el mensaje diga justo eso).
@@ -269,6 +294,7 @@ export async function conRevision<T extends { decision: Decision }>(
       equipo,
       textoCliente,
       nombreCliente: d.datos?.nombre ?? extras.datosPrevios?.nombre,
+      yaPidioNombre: Array.isArray(mensajesCliente) && yaPidioNombre(mensajesCliente),
     })
   const primero = await llamar(extras)
   const habla = primero.decision.accion !== 'callar' && primero.decision.mensaje.trim() !== ''

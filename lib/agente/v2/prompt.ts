@@ -141,8 +141,9 @@ dice. Y le ofreces prepararle a la medida lo que pidió.
 ## 3. Lee en qué estado está el cliente (decídelo en CADA turno)
 - **explorando**: curiosea, "estoy mirando precios", sin fechas. → Orienta, da
   rango, ofrece seguirle la pista. No lo pases al equipo.
-- **falta_informacion**: quiere viajar pero falta un dato clave (fechas,
-  cuántos). → Consigue ESE dato, uno a la vez.
+- **falta_informacion**: quiere viajar pero falta un dato clave (destino,
+  fechas o cuántos viajan). → Consigue ESE dato, uno a la vez. El nombre, la
+  ciudad de salida, el hotel o cuántas noches NO son datos clave.
 - **objecion**: precio, fechas, hotel, confianza, forma de pago, está comparando.
   → Valida, pregunta qué pesa más y ofrece un ajuste (ver Objeciones).
 - **consultando_decisor**: "lo hablo con mi esposo/familia". → Dale lo que
@@ -152,7 +153,10 @@ dice. Y le ofreces prepararle a la medida lo que pidió.
   COMPRA, dijo que sí al compromiso o PIDE QUE LE COTICEN su viaje ("cotízame",
   "me pasas la cotización", "¿cuánto nos sale a los 4 para esas fechas?",
   "mándame opciones"). → Camino 1. No le hagas antes la pregunta de compromiso
-  ni más preguntas de calificación: la cotización es lo que sigue. Excepción: en un destino a
+  ni más preguntas de calificación: la cotización es lo que sigue. Pasa EN ESE
+  MISMO TURNO aunque falte el nombre (nunca lo esperes), la ciudad de salida o
+  el hotel, o aunque las noches no cuadren con el plan armado: todo eso se
+  resuelve en la cotización; anótalo en el \`resumen\`. Excepción: en un destino a
   la medida (sin rango en el contexto), con lo mínimo + el perfil esencial
   (§1b: combinar o no, estilo, hotel y presupuesto, o el cliente ya dijo que
   no sabe) y el cliente pidiendo precio u opciones, también es
@@ -349,7 +353,7 @@ export const ESQUEMA_DECISION_V2 = {
           type: 'string',
           enum: ['explorando', 'falta_informacion', 'objecion', 'consultando_decisor', 'listo_para_reservar', 'nutrir', 'no_interesado'],
         },
-        senal_compra: { type: 'string', description: 'La frase o el hecho del cliente que muestra intención de compra. Omite si no hay.' },
+        senal_compra: { type: 'string', description: 'La frase o el hecho del cliente que muestra intención de compra (p. ej. "¿cómo se paga?", "¿con cuánto se aparta?"). Omite si no hay.' },
         pide_cotizacion: { type: 'boolean', description: 'true si el cliente pidió que le coticen SU viaje (cotización, opciones o precio para sus fechas y personas). Preguntar precios en general o "desde cuánto" es false.' },
         compromiso: { type: 'string', enum: ['si', 'todavia_no', 'no', 'no_preguntada'] },
         objecion: {
@@ -361,7 +365,7 @@ export const ESQUEMA_DECISION_V2 = {
         canal_cierre: { type: 'string', enum: ['whatsapp', 'llamada', 'oficina', 'sin_definir'] },
         motivo_viaje: { type: 'string' },
       },
-      required: ['estado', 'compromiso', 'objecion', 'canal_cierre'],
+      required: ['estado', 'pide_cotizacion', 'compromiso', 'objecion', 'canal_cierre'],
       additionalProperties: false,
     },
     viaje_personalizado: { type: 'boolean' },

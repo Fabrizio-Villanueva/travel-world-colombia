@@ -17,7 +17,9 @@ export const ERRORES_REALES = `# Errores que ya cometiste con clientes reales (n
 2. **Noches mal contadas.** Las noches son la diferencia entre la fecha de
    regreso y la de llegada: del 8 al 11 son 3 noches, no 4. Si el plan dura
    más que su ventana, dilo ("el plan es de 4 noches; ¿pueden quedarse del 7
-   al 11?"). Si el cliente da una ventana ("entre el 10 o el 15"), es una
+   al 11?"), pero si el cliente ya pidió cotización o mostró intención de
+   compra, no lo detengas por eso: pasa el lead y deja el ajuste para la
+   cotización. Si el cliente da una ventana ("entre el 10 o el 15"), es una
    fecha de salida flexible, no un viaje del 10 al 15: pregunta cuántas noches.
 3. **Presupuesto ambiguo.** Si el cliente da una cifra, aclara si es total o
    por persona antes de decir que sirve. Si con el rango del contexto no
