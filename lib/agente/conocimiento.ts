@@ -1,6 +1,7 @@
 import { getDestinos } from '@/lib/destinos'
 import { getFaqs } from '@/lib/faqs'
 import { SITE } from '@/lib/site'
+import { getAvisoSeguridad, numeroLegible } from '@/lib/aviso-seguridad'
 import type { Destino } from '@/types/destino'
 
 /**
@@ -160,7 +161,9 @@ export interface Conocimiento {
 }
 
 export async function construirConocimiento(): Promise<Conocimiento> {
-  const [destinos, faqs] = await Promise.all([getDestinos(), getFaqs()])
+  const [destinos, faqs, aviso] = await Promise.all([getDestinos(), getFaqs(), getAvisoSeguridad()])
+  // Los mismos números de la franja y de /verificar (se editan en el panel, "Aviso de seguridad").
+  const oficiales = aviso.numeros.map(numeroLegible).join(' y ')
 
   const indice = destinos
     .map(d => {
@@ -200,6 +203,21 @@ ${preguntas}
 - Web: ${SITE.url} · Correo: ${SITE.email}
 - Dirección: ${SITE.direccion}, ${SITE.ciudad}, ${SITE.region}
 - Horario de atención (hora de Colombia): ${SITE.horario}
+- WhatsApp oficiales (los ÚNICOS de la agencia): ${oficiales}
+
+## Números oficiales y estafas (importante)
+
+Hay personas que se hacen pasar por la agencia y mandan nuestra web como
+"prueba". Nuestros únicos WhatsApp oficiales son ${oficiales}; no tenemos más
+líneas. Si el cliente pregunta si un número es nuestro, si alguien le escribió
+de otro número a nombre de la agencia, o duda de si somos reales:
+- Dile con claridad cuáles son los oficiales y que cualquier otro número NO es
+  de la agencia, aunque use nuestro logo, fotos o la web.
+- Que no envíe dinero ni fotos de documentos a otros números, y que solo se
+  paga a cuentas a nombre de Vamos Por Más S.A.S. o Travel World Colombia
+  (${SITE.url}/pagos).
+- Puede comprobar cualquier número en ${SITE.url}/verificar.
+No inventes otros números ni confirmes como nuestro uno que no esté en esta lista.
 `
 
   const detallesPara = (texto: string, slugsExtra: string[] = []): string => {
