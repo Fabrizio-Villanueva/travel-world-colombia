@@ -14,7 +14,7 @@ interface NavbarProps {
   /** Menú "Destinos" con sus submenús por región (lo arma el layout en el servidor). */
   destinosMenu: ItemMenu[]
   /** Franja antisuplantación (null = apagada desde el panel). */
-  aviso?: { mensaje: string; numero: string } | null
+  aviso?: { mensaje: string; numeros: string[] } | null
 }
 
 type SubItem = ItemMenu
@@ -311,7 +311,7 @@ export function Navbar({ destinosMenu, aviso }: NavbarProps) {
         borderBottom: scrolled || open ? '1px solid var(--border)' : '1px solid transparent',
       }}
     >
-      {aviso && <AvisoSeguridad mensaje={aviso.mensaje} numero={aviso.numero} />}
+      {aviso && <AvisoSeguridad mensaje={aviso.mensaje} numeros={aviso.numeros} />}
       <nav
         aria-label="Navegación principal"
         className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4"

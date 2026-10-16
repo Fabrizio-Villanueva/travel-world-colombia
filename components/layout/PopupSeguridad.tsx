@@ -15,7 +15,7 @@ const CLAVE = 'aviso-popup-visto'
  * de entrada. Se cierra con la ✕, "Entendido", Esc o tocando fuera.
  * La imagen lleva todo el texto en `alt` para lectores de pantalla.
  */
-export function PopupSeguridad({ numero }: { numero: string }) {
+export function PopupSeguridad({ numeros }: { numeros: string[] }) {
   const pathname = usePathname()
   const [abierto, setAbierto] = useState(false)
   const boton = useRef<HTMLButtonElement>(null)
@@ -68,8 +68,8 @@ export function PopupSeguridad({ numero }: { numero: string }) {
         aria-modal="true"
         aria-label="Aviso de seguridad: nuestros únicos canales de atención"
         className="relative flex max-h-full flex-col overflow-hidden rounded-2xl shadow-2xl"
-        // Ancho según el alto disponible: la pieza (9:16) cabe entera sin desplazarse.
-        style={{ background: '#0D1E3C', width: 'min(420px, 100%, calc((100dvh - 110px) * 0.5625))' }}
+        // Ancho según el alto disponible: la pieza (2:3) cabe entera sin desplazarse.
+        style={{ background: '#0D1E3C', width: 'min(460px, 100%, calc((100dvh - 110px) * 0.6667))' }}
         onClick={e => e.stopPropagation()}
       >
         <button
@@ -85,9 +85,9 @@ export function PopupSeguridad({ numero }: { numero: string }) {
         <div>
           <Image
             src="/images/aviso-canales-oficiales.webp"
-            alt={`Recuerda que estas son nuestras únicas cuentas y canales de atención: Facebook Travel World Colombia; Instagram travelworldcolombiaoficial; TikTok @travelworldcolombia; teléfono ${numero}; página web www.travelworldcolombia.com. No tenemos más líneas oficiales. Evita fraudes.`}
-            width={900}
-            height={1600}
+            alt={`Recuerda que estas son nuestras únicas cuentas y canales de atención: Facebook Travel World Colombia; Instagram @travelworldcolombiaoficial; TikTok @travelworldcolombia; teléfono y WhatsApp ${numeros.join(' y ')}; página web www.travelworldcolombia.com. No tenemos más líneas oficiales. Evita fraudes.`}
+            width={1024}
+            height={1536}
             priority
             // Ya es WebP liviano (~200 KB): se sirve tal cual, sin pasar por el optimizador.
             unoptimized

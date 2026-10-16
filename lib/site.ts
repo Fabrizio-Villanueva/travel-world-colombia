@@ -28,8 +28,9 @@ export const SITE = {
 } as const
 
 export const WHATSAPP = {
-  // Único número oficial (16-oct-2026: el alterno se retiró por las suplantaciones).
+  // Los dos son oficiales (aviso antisuplantación, 16-oct-2026).
   principal: '573204891930',
+  alterno: '573005693381',
   telefonoDisplay: '+57 320 489 1930',
 } as const
 

@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { createPublicClient } from '@/lib/supabase/publico'
 import { SITE, WHATSAPP } from '@/lib/site'
-import { parsearNumeros } from './aviso-seguridad-numeros'
+import { numeroLegible, parsearNumeros } from './aviso-seguridad-numeros'
 
 export { normalizarNumero, numeroLegible, parsearNumeros } from './aviso-seguridad-numeros'
 
@@ -30,11 +30,11 @@ export const AVISO_POR_DEFECTO: AvisoSeguridad = {
   activo: true,
   popup: true,
   mensaje: 'Cuidado con estafas: solo te atendemos por WhatsApp desde nuestro número oficial. Si te escriben desde otro número, no somos nosotros.',
-  numeros: [WHATSAPP.principal],
+  numeros: [WHATSAPP.principal, WHATSAPP.alterno],
 }
 
 /** Frase para la vista previa del enlace (WhatsApp, Facebook…): número primero, se corta poco. */
-export const AVISO_VISTA_PREVIA = `⚠️ Único WhatsApp oficial: ${WHATSAPP.telefonoDisplay}. Si te escriben desde otro número, no somos nosotros.`
+export const AVISO_VISTA_PREVIA = `⚠️ WhatsApp oficiales: ${numeroLegible(WHATSAPP.principal)} y ${numeroLegible(WHATSAPP.alterno)}. Si te escriben desde otro número, no somos nosotros.`
 
 export const getAvisoSeguridad = cache(async function getAvisoSeguridad(): Promise<AvisoSeguridad> {
   try {

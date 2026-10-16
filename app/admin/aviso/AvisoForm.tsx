@@ -18,14 +18,14 @@ export function AvisoForm({ inicial, editable }: {
   const [popup, setPopup] = useState(inicial.popup)
   const [mensaje, setMensaje] = useState(inicial.mensaje)
   const [numeros, setNumeros] = useState(inicial.numeros.map(numeroLegible).join('\n'))
-  const primero = parsearNumeros(numeros)[0]
+  const lista = parsearNumeros(numeros)
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
       <section className="rounded-xl p-5" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
         <p className="mb-2 font-inter text-xs font-semibold" style={{ color: 'var(--text-dim)' }}>Así se ve arriba de todas las páginas</p>
         <div className="overflow-hidden rounded-md" style={{ border: '1px solid var(--border)', opacity: activo ? 1 : 0.45 }}>
-          <AvisoSeguridad key={`${mensaje}|${primero}`} mensaje={mensaje || '…'} numero={primero ? numeroLegible(primero) : '…'} />
+          <AvisoSeguridad key={`${mensaje}|${lista.join()}`} mensaje={mensaje || '…'} numeros={lista.length ? lista.map(numeroLegible) : ['…']} />
         </div>
         {!activo && <p className="mt-2 font-inter text-xs" style={{ color: '#b45309' }}>Apagada: no se muestra en la web.</p>}
       </section>
@@ -50,7 +50,7 @@ export function AvisoForm({ inicial, editable }: {
 
         <label className="block">
           <span className="mb-1 block font-inter text-xs font-semibold" style={{ color: 'var(--text-dim)' }}>
-            Números oficiales de WhatsApp (uno por línea, con indicativo). El primero sale en la franja; todos cuentan como oficiales en el verificador.
+            Números oficiales de WhatsApp (uno por línea, con indicativo). Todos salen en la franja y cuentan como oficiales en el verificador.
           </span>
           <textarea name="numeros" rows={3} value={numeros} onChange={e => setNumeros(e.target.value)} disabled={!editable} className={inputCls} style={inputStyle} />
         </label>

@@ -74,7 +74,7 @@ export default async function VerificarPage() {
       <LegalList
         items={[
           <>No envíes dinero ni fotos de tus documentos.</>,
-          <>Escríbenos a nuestro WhatsApp oficial ({numeros[0]}) para confirmar la oferta.</>,
+          <>Escríbenos a nuestro WhatsApp oficial ({numeros.join(' o ')}) para confirmar la oferta.</>,
           <>Denuncia en el <a href="https://caivirtual.policia.gov.co" target="_blank" rel="noopener noreferrer" className="underline hover:text-orange">CAI Virtual de la Policía Nacional</a> y reporta el número en WhatsApp.</>,
         ]}
       />

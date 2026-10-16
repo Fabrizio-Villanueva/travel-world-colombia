@@ -178,13 +178,13 @@ export default async function RootLayout({
         <PublicOnly>
           <Navbar
             destinosMenu={destinosMenu}
-            aviso={aviso.activo ? { mensaje: aviso.mensaje, numero: numeroLegible(aviso.numeros[0]) } : null}
+            aviso={aviso.activo ? { mensaje: aviso.mensaje, numeros: aviso.numeros.map(numeroLegible) } : null}
           />
         </PublicOnly>
         <main id="contenido">{children}</main>
         <PublicOnly><Footer /></PublicOnly>
         <PublicOnly><WhatsAppButton /></PublicOnly>
-        {aviso.popup && <PublicOnly><PopupSeguridad numero={numeroLegible(aviso.numeros[0])} /></PublicOnly>}
+        {aviso.popup && <PublicOnly><PopupSeguridad numeros={aviso.numeros.map(numeroLegible)} /></PublicOnly>}
       </body>
     </html>
   )

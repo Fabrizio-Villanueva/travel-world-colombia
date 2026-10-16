@@ -12,7 +12,18 @@ const CLAVE = 'aviso-seguridad-cerrado'
  * (sessionStorage), porque es justo quien llega por un enlace de un
  * estafador quien tiene que verla.
  */
-export function AvisoSeguridad({ mensaje, numero }: { mensaje: string; numero: string }) {
+export function AvisoSeguridad({ mensaje, numeros }: { mensaje: string; numeros: string[] }) {
+  const etiqueta = numeros.length > 1 ? 'WhatsApp oficiales:' : 'Único WhatsApp oficial:'
+  const lista = (
+    <>
+      {numeros.map((n, i) => (
+        <span key={n}>
+          {i > 0 && ' y '}
+          <strong className="whitespace-nowrap" style={{ color: '#B42318' }}>{n}</strong>
+        </span>
+      ))}
+    </>
+  )
   const [cerrado, setCerrado] = useState(false)
 
   useEffect(() => {
@@ -42,16 +53,13 @@ export function AvisoSeguridad({ mensaje, numero }: { mensaje: string; numero: s
         <ShieldAlert size={18} className="mt-0.5 shrink-0 sm:mt-0" style={{ color: '#B42318' }} aria-hidden />
         {/* Celular: versión corta (el mensaje completo ocupaba media pantalla). */}
         <p className="flex-1 font-inter text-[12.5px] leading-snug sm:hidden">
-          <strong>Cuidado con estafas.</strong> Único WhatsApp oficial:{' '}
-          <strong className="whitespace-nowrap" style={{ color: '#B42318' }}>{numero}</strong>.{' '}
+          <strong>Cuidado con estafas.</strong> {etiqueta} {lista}.{' '}
           <Link href="/verificar" className="whitespace-nowrap font-semibold underline underline-offset-2">
             Verificar
           </Link>
         </p>
         <p className="hidden flex-1 font-inter text-[13px] leading-snug sm:block">
-          <strong>{mensaje}</strong>{' '}
-          Único WhatsApp oficial:{' '}
-          <strong className="whitespace-nowrap" style={{ color: '#B42318' }}>{numero}</strong>.{' '}
+          <strong>{mensaje}</strong> {etiqueta} {lista}.{' '}
           <Link href="/verificar" className="whitespace-nowrap font-semibold underline underline-offset-2">
             Verifica un número aquí
           </Link>
