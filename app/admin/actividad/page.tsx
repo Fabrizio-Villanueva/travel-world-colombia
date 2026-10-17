@@ -1,4 +1,5 @@
 import {
+  Wallet,
   PlusCircle, Pencil, Trash2, Eye, EyeOff, Star, StarOff, Activity, UserCheck, UserX, UserCog,
   ClipboardList, Send, Link2, Ban, FileSearch, Globe, FileSignature,
 } from 'lucide-react'
@@ -41,6 +42,9 @@ const ACCIONES: Record<AccionAudit, { label: string; color: string; Icon: typeof
   'anular-contrato':           { label: 'Anuló un contrato', color: '#ef4444', Icon: Ban },
   'reenviar-copia-contrato':   { label: 'Reenvió copia de contrato firmado', color: '#4ade80', Icon: FileSignature },
   'ver-contrato':              { label: 'Abrió un contrato firmado', color: 'var(--orange)', Icon: FileSearch },
+  'registrar-abono':           { label: 'Registró un abono', color: '#4ade80', Icon: Wallet },
+  'anular-abono':              { label: 'Anuló un abono', color: '#ef4444', Icon: Ban },
+  'reenviar-confirmacion-abono': { label: 'Reenvió confirmación de abono', color: 'var(--orange)', Icon: Wallet },
 }
 
 // timeZone explícita: en Vercel el proceso corre en UTC, así que sin esto la

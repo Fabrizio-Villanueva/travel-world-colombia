@@ -25,6 +25,10 @@ export type AccionAudit =
   | 'anular-contrato'
   | 'reenviar-copia-contrato'
   | 'ver-contrato'
+  // Libro de abonos / estado de cuenta (17-oct-2026).
+  | 'registrar-abono'
+  | 'anular-abono'
+  | 'reenviar-confirmacion-abono'
 
 interface RegistroActividad {
   email: string

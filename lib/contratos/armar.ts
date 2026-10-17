@@ -41,7 +41,7 @@ export interface EntradaContrato {
 
 export const MAX_PASAJEROS = 20
 export const MAX_TRAYECTOS = 4
-export const MAX_PAGOS = 4
+export const MAX_PAGOS = 10 // 17-oct-2026: los llena el libro de abonos (lib/abonos)
 /** Cuotas pendientes (Cuota 1–6 en GHL; scripts/ghl-crear-campos-cuotas.mjs). */
 export const MAX_CUOTAS = 6
 

@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react'
 import { Loader2, Check, ChevronLeft, ChevronRight, FileSignature, Plus, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { RE_CUOTA, esCampoCuota, type CampoReserva, type ValorCampo } from '@/lib/admin/reservas'
+import type { CuentaDivisa } from '@/lib/abonos/calculo'
+import { AbonosPanel } from './AbonosPanel'
 import { DIVISAS, UNIDAD_TRM, divisaDe, enDivisa, type Divisa } from '@/lib/contratos/divisa'
 import { guardarReserva } from '../actions'
 
@@ -407,7 +409,8 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
       const pref = prefijoDe(c.name)
       const rep = pref ? numeroRepetible(pref) : null
       if (rep) {
-        series.add(rep.serie)
+        // Los pagos ya no se cuentan aquí: viven en el libro de abonos.
+        if (rep.serie !== 'Pago') series.add(rep.serie)
         if (rep.n > cuenta[rep.serie]) continue // fuera del contador: oculto
       }
       if (pref && camposDelPaso.filter(x => prefijoDe(x.name) === pref).length >= 2) {
@@ -520,6 +523,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
     return Number.isFinite(n) ? n : null
   }
   const cuotasVisibles = cuotaIds.slice(0, cuentaCuotas)
+  const [cuentasLibro, setCuentasLibro] = useState<CuentaDivisa[] | null>(null)
 
   // Divisa de cada pago: la guardada o, si falta, la que dicen sus montos.
   const divisaPago = (k: number): Divisa =>
@@ -528,7 +532,10 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
   // Saldo por divisa: el del último pago visible en esa divisa (el campo Saldo
   // o, si está vacío, total del plan menos sus abonos).
   const saldoPor: Record<Divisa, number | null> = { COP: null, USD: null, EUR: null }
-  {
+  if (cuentasLibro) {
+    // Desde el 17-oct-2026 el saldo sale del libro de abonos.
+    for (const c of cuentasLibro) saldoPor[c.divisa] = c.saldo
+  } else {
     const totalPor: Record<Divisa, number | null> = { COP: null, USD: null, EUR: null }
     const abonadoPor: Record<Divisa, number> = { COP: 0, USD: 0, EUR: 0 }
     for (let k = 1; k <= cuentaPago; k++) {
@@ -751,6 +758,9 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
             </fieldset>
           )
         })}
+
+        {/* Libro de abonos (17-oct-2026): reemplaza los Pago 1..4 manuales. */}
+        {carpetaActual === PASO_PAGOS && <AbonosPanel opportunityId={opportunityId} onCuentas={setCuentasLibro} />}
 
         {/* Plan de pagos por cuotas: filas que se agregan y se quitan, total
             programado, depósito mínimo a la vista y validaciones (no bloquean:

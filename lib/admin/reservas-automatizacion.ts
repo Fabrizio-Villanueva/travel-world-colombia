@@ -5,6 +5,7 @@ import { divisaDe } from '@/lib/contratos/divisa'
 import {
   actualizarCamposOportunidad,
   fijarValorOportunidad,
+  listarCamposTodosLosModelos,
   moverOportunidad,
   obtenerContacto,
   obtenerOportunidad,
@@ -26,20 +27,36 @@ import {
  */
 
 
-/** Plan de pagos de la oportunidad, en orden: abono, saldo y divisa de cada pago. */
-const PAGOS = [
-  { abono: 'WF8YaiAWMWSTYP6ETaoI', saldo: 'SqC50UYeBvKM9KmBaMkT', divisa: '3CBniKT34LxvJxQxIjir' }, // Pago 1
-  { abono: 'e9toIVVlRrLviMNLJk5H', saldo: 'sjgLOV456lH6vL2bSZIe', divisa: 'nmkOk8HeId6TTXwL5eEb' }, // Pago 2
-  { abono: '4bsIjvo10Z1Fwl4dmpif', saldo: 'gzVA4CQUBLxNlHjDE08e', divisa: '08eKMWCC3gHH4e6uP96A' }, // Pago 3
-  { abono: 'tilZL5wYDHmi5jVaNacL', saldo: 'l4hEjxajnvBuXoqqvBPB', divisa: 'U1M12paxFdCCd0rv2mi4' }, // Pago 4
-] as const
+/**
+ * Plan de pagos de la oportunidad, en orden: abono, saldo y divisa de cada
+ * pago. Desde el 17-oct-2026 son 10 (los llena el libro de abonos) y sus ids
+ * se buscan por nombre.
+ */
+type IdsPago = { abono: string; saldo: string; divisa: string }
+let cacheIds: { pagos: IdsPago[]; vence: number } | null = null
+
+async function idsPagos(): Promise<IdsPago[]> {
+  if (cacheIds && Date.now() < cacheIds.vence) return cacheIds.pagos
+  const porNombre = new Map(
+    (await listarCamposTodosLosModelos()).filter(c => c.model === 'opportunity' && c.name).map(c => [c.name!.trim(), c.id])
+  )
+  const pagos: IdsPago[] = []
+  for (let n = 1; n <= 10; n++) {
+    const abono = porNombre.get(`Pago ${n} - Abono`)
+    const saldo = porNombre.get(`Pago ${n} - Saldo en Pesos`)
+    const divisa = porNombre.get(`Pago ${n} - Divisa`)
+    if (abono && saldo && divisa) pagos.push({ abono, saldo, divisa })
+  }
+  cacheIds = { pagos, vence: Date.now() + 10 * 60_000 }
+  return pagos
+}
 
 /** Lee un campo numérico del GET por id (cada formato trae el valor en una llave distinta). */
 const numero = (o: OportunidadDetalleGhl, campoId: string) => numeroCampo(o.customFields, campoId)
 
 /** Etapa a la que deben llevarla los abonos registrados, o null si aún no hay ninguno. */
-function etapaPorPagos(o: OportunidadDetalleGhl): string | null {
-  const conAbono = PAGOS.map(p => {
+function etapaPorPagos(o: OportunidadDetalleGhl, pagos: IdsPago[]): string | null {
+  const conAbono = pagos.map(p => {
     const abono = numero(o, p.abono)
     return { abono, saldo: numero(o, p.saldo), divisa: divisaDe(textoCampo(o.customFields, p.divisa), abono) }
   }).filter(c => (c.abono ?? 0) > 0)
@@ -72,7 +89,7 @@ export async function automatizarReserva(opportunityId: string): Promise<string[
       hecho.push(`valor=${total}`)
     }
 
-    const destino = etapaPorPagos(o)
+    const destino = etapaPorPagos(o, await idsPagos())
     const orden: readonly string[] = PIPELINE_RESERVACIONES.orden
     if (destino && orden.indexOf(o.pipelineStageId ?? '') < orden.indexOf(destino)) {
       await moverOportunidad(opportunityId, PIPELINE_RESERVACIONES.id, destino, 'won')

@@ -205,6 +205,9 @@ export async function catalogoResuelto(): Promise<{
 
   for (const c of catalogoCrudo as CampoCatalogo[]) {
     if (CAMPOS_OCULTOS.has(c.name)) continue
+    // Pagos: los escribe el libro de abonos (17-oct-2026, lib/abonos), no se
+    // llenan a mano. Solo queda el depósito mínimo ("Pago 1 - Tipo de Pago").
+    if (/^Pago \d+ - /.test(c.name) && c.name !== 'Pago 1 - Tipo de Pago') continue
     const real = oportunidadPorNombre.get(c.name.trim())
     if (!real) {
       sinResolver.push(c.name)
