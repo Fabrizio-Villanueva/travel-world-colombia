@@ -6,6 +6,7 @@ import { Footer } from '@/components/layout/Footer'
 import { PopupSeguridad } from '@/components/layout/PopupSeguridad'
 import { WhatsAppButton } from '@/components/ui/WhatsAppButton'
 import { PublicOnly } from '@/components/layout/PublicOnly'
+import { RescateEnlaceAuth } from '@/components/auth/RescateEnlaceAuth'
 import { Analytics, AnalyticsNoScript } from '@/components/analytics/Analytics'
 import { FbPixelTracker } from '@/components/analytics/FbPixelTracker'
 import { SITE, WHATSAPP, SOCIALS } from '@/lib/site'
@@ -181,6 +182,7 @@ export default async function RootLayout({
             aviso={aviso.activo ? { mensaje: aviso.mensaje, numeros: aviso.numeros.map(numeroLegible) } : null}
           />
         </PublicOnly>
+        <RescateEnlaceAuth />
         <main id="contenido">{children}</main>
         <PublicOnly><Footer /></PublicOnly>
         <PublicOnly><WhatsAppButton /></PublicOnly>
