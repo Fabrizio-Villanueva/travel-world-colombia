@@ -18,7 +18,7 @@ import s from './ContratoDocumento.module.css'
  * celular y para generar el PDF.
  */
 
-const AGENCIA = {
+export const AGENCIA = {
   razonSocial: 'VAMOS POR MÁS S.A.S.',
   nombre: 'Travel World Colombia',
   nit: '900537199-7',
@@ -29,7 +29,7 @@ const AGENCIA = {
   web: 'travelworldcolombia.com',
 }
 
-const MEDIOS_DE_PAGO = [
+export const MEDIOS_DE_PAGO = [
   { Icono: Landmark, texto: 'Bancolombia Ahorros #264-133178-51 · VAMOS POR MÁS S.A.S.' },
   { Icono: Landmark, texto: 'Davivienda Corriente #406-169997292' },
   { Icono: QrCode, texto: 'Bre-B: Bancolombia 0090272526 · Davivienda @9005371997' },
@@ -43,7 +43,7 @@ const MEDIOS_DE_PAGO = [
  */
 const AVISO_CARGOS_LOCALES =
   'PUEDEN APLICAR CARGOS O IMPUESTOS LOCALES EN DESTINO QUE HASTA LA FECHA NO HAN SIDO ESPECIFICADOS POR EL HOTEL - HEMOS INCLUIDO TODOS LOS CONCEPTOS A PAGAR HASTA EL MOMENTO.'
-const AVISO_SALDOS_EXTRANJERA = [
+export const AVISO_SALDOS_EXTRANJERA = [
   'Se debe confirmar el valor final con su asesor, ya que el saldo se liquida el día en que se recibe el pago, a la TRM determinada por nuestro banco intermediario.',
   'El precio en pesos se toma como referencia con la TRM del día del contrato.',
   'Liquidación completa en la factura de venta.',

@@ -1,28 +1,31 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { CircleCheck, ShieldCheck } from 'lucide-react'
+import { Plane, ShieldCheck } from 'lucide-react'
 import { oportunidadDelToken } from '@/lib/abonos/enlace'
 import { libroDe, reservaGhl } from '@/lib/abonos/registro'
+import { obtenerContacto } from '@/lib/agente/ghl'
 import { enDivisa } from '@/lib/contratos/divisa'
 import { getAvisoSeguridad, numeroLegible } from '@/lib/aviso-seguridad'
-import { SITE } from '@/lib/site'
+import { AGENCIA, AVISO_SALDOS_EXTRANJERA, MEDIOS_DE_PAGO } from '@/components/contrato/ContratoDocumento'
+import s from '@/components/contrato/ContratoDocumento.module.css'
+import marco from '@/app/contrato/layout.module.css'
 import { ImprimirBoton } from './ImprimirBoton'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Estado de cuenta', robots: { index: false, follow: false } }
 
-const fechaLarga = (iso: string) => {
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('es-CO', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' })
+const fechaCorta = (iso: string) => {
+  const [y, m, d] = iso.slice(0, 10).split('-')
+  return `${d}/${m}/${y}`
 }
 
 /**
  * Estado de cuenta del cliente (17-oct-2026): todos sus abonos y el saldo por
- * divisa, siempre al día (sale del libro de abonos). El enlace va firmado
- * (lib/abonos/enlace.ts) y llega en cada confirmación de abono por WhatsApp.
- * No muestra datos internos (quién registró, notas).
+ * divisa, siempre al día (sale del libro de abonos). Misma marca que el
+ * contrato (cabecera, franja con el saldo en dorado, secciones numeradas,
+ * avisos y medios de pago) para que el cliente lo reconozca como parte del
+ * mismo documento. El enlace va firmado (lib/abonos/enlace.ts) y llega en cada
+ * confirmación de abono. No muestra datos internos (quién registró, notas).
  */
 export default async function EstadoDeCuentaPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -36,98 +39,196 @@ export default async function EstadoDeCuentaPage({ params }: { params: Promise<{
   } catch {
     notFound()
   }
-  const aviso = await getAvisoSeguridad()
+  const [aviso, contacto] = await Promise.all([
+    getAvisoSeguridad(),
+    reserva.contactId ? obtenerContacto(reserva.contactId).catch(() => null) : Promise.resolve(null),
+  ])
   const o = reserva.porNombre
   const numeroReserva = o['TWC'] ? String(o['TWC']) : null
   const destino = o['Destino de interés'] ? String(o['Destino de interés']) : null
-  const salida = o['Fecha confirmada de salida'] ? String(o['Fecha confirmada de salida']).slice(0, 10) : null
-  const titular = reserva.opp.name ?? ''
+  const salida = o['Fecha confirmada de salida'] ? String(o['Fecha confirmada de salida']) : null
+  const regreso = o['Fecha confirmada de regreso'] ? String(o['Fecha confirmada de regreso']) : null
+  // El titular es el contacto de la reserva; si no tiene nombre, el de la oportunidad.
+  const titular =
+    [contacto?.firstName, contacto?.lastName].filter(Boolean).join(' ').trim() ||
+    (reserva.opp.name ?? '').replace(/^🧪\s*PRUEBA\s*-\s*/i, '')
   const { abonos, cuentas } = libro.estado
-  const ahora = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'long', timeStyle: 'short' })
+  const pendientes = cuentas.filter(c => c.saldo != null && c.saldo > 0)
+  const conocidos = cuentas.some(c => c.saldo != null)
+  const saldoTexto = pendientes.length
+    ? pendientes.map(c => enDivisa(c.saldo!, c.divisa)).join(' + ')
+    : conocidos
+      ? 'Pagado'
+      : 'Por confirmar'
+  const abonadoTexto = cuentas.filter(c => c.abonado > 0).map(c => enDivisa(c.abonado, c.divisa)).join(' + ') || enDivisa(0, 'COP')
+  const extranjera = cuentas.some(c => c.divisa !== 'COP')
+  const ahora = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'medium', timeStyle: 'short' })
+  const viaje = salida ? (regreso ? `${fechaCorta(salida)} – ${fechaCorta(regreso)}` : fechaCorta(salida)) : '—'
 
   return (
-    <div className="min-h-screen px-4 py-8 sm:py-12" style={{ background: '#F4F7FB', color: '#0D1E3C' }}>
-      <div className="mx-auto max-w-2xl">
-        <header className="mb-6 flex items-center justify-between gap-4">
-          <Image src="/images/travel-world-colombia-logo.png" alt={SITE.nombre} width={170} height={44} className="h-10 w-auto" priority />
-          <ImprimirBoton />
-        </header>
+    <div className={marco.marco}>
+      <div className="mx-auto mb-3 flex max-w-[816px] justify-end px-4 pt-4 sm:px-0 sm:pt-0 print:hidden">
+        <ImprimirBoton />
+      </div>
+      <div className="shadow-xl sm:mx-auto sm:max-w-[816px] sm:overflow-hidden sm:rounded-xl">
+        <article className={s.contrato} lang="es">
+          {/* ── Cabecera ── */}
+          <header className={s.cabecera}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- igual que el contrato (también se imprime) */}
+            <img src="/images/travel-world-colombia-logo.png" alt="Travel World Colombia" className={s.logo} />
+            <div className={s.cabeceraTexto}>
+              <p className={s.eyebrow}>Estado de cuenta</p>
+              <p className={s.reserva}>{numeroReserva ? `Reserva TW-${numeroReserva}` : 'Tu reserva'}</p>
+              <p className={s.cabeceraMeta}>Actualizado al {ahora}</p>
+            </div>
+          </header>
 
-        <section className="rounded-2xl p-6 sm:p-8" style={{ background: 'white', boxShadow: '0 10px 30px -18px rgba(13,30,60,0.35)' }}>
-          <p className="font-inter text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: '#2957A4' }}>Estado de cuenta</p>
-          <h1 className="mt-1 font-plus-jakarta text-2xl font-extrabold">{titular}</h1>
-          <p className="mt-1 font-inter text-sm" style={{ color: '#5B6B82' }}>
-            {[numeroReserva ? `Reserva TW-${numeroReserva}` : null, destino, salida ? `Viaje: ${fechaLarga(salida)}` : null].filter(Boolean).join(' · ')}
-          </p>
-
-          {/* Resumen por divisa */}
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {cuentas.map(c => (
-              <div key={c.divisa} className="rounded-xl p-4" style={{ background: c.saldo === 0 ? '#E7F5EA' : '#F4F7FB' }}>
-                <p className="font-inter text-xs font-semibold" style={{ color: '#5B6B82' }}>{cuentas.length > 1 ? `En ${c.divisa}` : 'Resumen'}</p>
-                {c.total != null && <p className="mt-1 font-inter text-sm">Valor del plan: <strong>{enDivisa(c.total, c.divisa)}</strong></p>}
-                <p className="font-inter text-sm">Abonado: <strong>{enDivisa(c.abonado, c.divisa)}</strong></p>
-                <p className="mt-1 font-plus-jakarta text-lg font-extrabold" style={{ color: c.saldo === 0 ? '#1B5E20' : '#0D1E3C' }}>
-                  {c.saldo === 0 ? (
-                    <span className="flex items-center gap-1.5"><CircleCheck size={18} /> Pagado</span>
-                  ) : c.saldo != null ? (
-                    <>Saldo: {enDivisa(c.saldo, c.divisa)}</>
-                  ) : (
-                    <>Saldo por confirmar</>
-                  )}
-                </p>
+          {/* ── Resumen: como el del contrato, con el saldo en dorado ── */}
+          <div className={s.resumen}>
+            <div className={s.resumenDestino}>
+              <Plane size={16} aria-hidden />
+              <div>
+                <span className={s.resumenEtiqueta}>Destino</span>
+                <span className={s.resumenValor}>{destino ?? '—'}</span>
               </div>
-            ))}
+            </div>
+            <div>
+              <span className={s.resumenEtiqueta}>Viaje</span>
+              <span className={s.resumenValor}>{viaje}</span>
+            </div>
+            <div>
+              <span className={s.resumenEtiqueta}>Abonos</span>
+              <span className={s.resumenValor}>{abonos.length}</span>
+            </div>
+            <div>
+              <span className={s.resumenEtiqueta}>Total abonado</span>
+              <span className={s.resumenValor}>{abonadoTexto}</span>
+            </div>
+            <div className={s.resumenSaldo}>
+              <span className={s.resumenEtiqueta}>Saldo pendiente</span>
+              <span className={s.resumenValor}>{saldoTexto}</span>
+            </div>
           </div>
 
-          {/* Abonos */}
-          <h2 className="mt-8 mb-3 font-plus-jakarta text-base font-bold">Tus abonos ({abonos.length})</h2>
-          {abonos.length === 0 ? (
-            <p className="font-inter text-sm" style={{ color: '#5B6B82' }}>Todavía no hay abonos registrados.</p>
-          ) : (
-            <div className="overflow-hidden rounded-xl" style={{ border: '1px solid #E3E9F2' }}>
-              <table className="w-full font-inter text-sm">
-                <thead style={{ background: '#F4F7FB', color: '#5B6B82' }}>
-                  <tr className="text-left text-xs">
-                    <th className="px-3 py-2 font-semibold">#</th>
-                    <th className="px-3 py-2 font-semibold">Fecha</th>
-                    <th className="px-3 py-2 font-semibold">Medio</th>
-                    <th className="px-3 py-2 text-right font-semibold">Abono</th>
-                    <th className="hidden px-3 py-2 text-right font-semibold sm:table-cell">Saldo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {abonos.map((a, i) => (
-                    <tr key={a.id} style={{ borderTop: '1px solid #E3E9F2' }}>
-                      <td className="px-3 py-2.5" style={{ color: '#5B6B82' }}>{i + 1}</td>
-                      <td className="px-3 py-2.5">{fechaLarga(a.fecha)}</td>
-                      <td className="px-3 py-2.5" style={{ color: '#5B6B82' }}>{a.medio ?? '—'}</td>
-                      <td className="px-3 py-2.5 text-right font-semibold">{enDivisa(a.monto, a.divisa)}</td>
-                      <td className="hidden px-3 py-2.5 text-right sm:table-cell" style={{ color: '#5B6B82' }}>{a.saldoTras != null ? enDivisa(a.saldoTras, a.divisa) : '—'}</td>
+          <div className={s.cuerpo}>
+            <section className={s.seccion}>
+              <h2 className={s.seccionTitulo}>
+                <span className={s.seccionNumero}>01</span>
+                Titular
+              </h2>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>{titular}</p>
+            </section>
+
+            <section className={s.seccion}>
+              <h2 className={s.seccionTitulo}>
+                <span className={s.seccionNumero}>02</span>
+                Tus abonos
+              </h2>
+              {abonos.length === 0 ? (
+                <p style={{ margin: 0, color: 'var(--suave)' }}>Todavía no hay abonos registrados.</p>
+              ) : (
+                <table className={s.tabla}>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Fecha</th>
+                      <th>Medio de pago</th>
+                      <th className={s.num}>Abono</th>
+                      <th className={s.num}>Saldo</th>
                     </tr>
+                  </thead>
+                  <tbody>
+                    {abonos.map((a, i) => (
+                      <tr key={a.id}>
+                        <td data-label="#">{i + 1}</td>
+                        <td data-label="Fecha">{fechaCorta(a.fecha)}</td>
+                        <td data-label="Medio de pago">{a.medio ?? '—'}</td>
+                        <td data-label="Abono" className={s.num}><strong>{enDivisa(a.monto, a.divisa)}</strong></td>
+                        <td data-label="Saldo" className={s.num}>{a.saldoTras != null ? enDivisa(a.saldoTras, a.divisa) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className={s.total}>
+                      <td colSpan={3}>Total abonado</td>
+                      <td data-label="Abonado" className={s.num}>{abonadoTexto}</td>
+                      <td data-label="Saldo pendiente" className={s.num}>{saldoTexto}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+            </section>
+
+            {cuentas.length > 0 && (
+              <section className={s.seccion}>
+                <h2 className={s.seccionTitulo}>
+                  <span className={s.seccionNumero}>03</span>
+                  Resumen por divisa
+                </h2>
+                <table className={s.tabla}>
+                  <thead>
+                    <tr>
+                      <th>Divisa</th>
+                      <th className={s.num}>Valor del plan</th>
+                      <th className={s.num}>Abonado</th>
+                      <th className={s.num}>Saldo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cuentas.map(c => (
+                      <tr key={c.divisa}>
+                        <td data-label="Divisa">{c.divisa}</td>
+                        <td data-label="Valor del plan" className={s.num}>{c.total != null ? enDivisa(c.total, c.divisa) : 'Por confirmar'}</td>
+                        <td data-label="Abonado" className={s.num}>{enDivisa(c.abonado, c.divisa)}</td>
+                        <td data-label="Saldo" className={s.num}>
+                          <strong>{c.saldo == null ? 'Por confirmar' : c.saldo === 0 ? 'Pagado' : enDivisa(c.saldo, c.divisa)}</strong>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {extranjera && (
+                  <div className={`${s.aviso} ${s.avisoSaldos}`}>
+                    <span>Saldos en dólares o euros</span>
+                    <ul className={s.avisoLista}>
+                      {AVISO_SALDOS_EXTRANJERA.map(t => <li key={t}>{t}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {pendientes.length > 0 && (
+              <div className={s.medios}>
+                <span className={s.mediosTitulo}>Medios de pago autorizados</span>
+                <ul>
+                  {MEDIOS_DE_PAGO.map(({ Icono, texto }) => (
+                    <li key={texto}>
+                      <Icono size={12} aria-hidden /> {texto}
+                    </li>
                   ))}
-                </tbody>
-              </table>
+                </ul>
+              </div>
+            )}
+
+            <div className={`${s.aviso} ${s.avisoCargos}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <ShieldCheck size={16} aria-hidden style={{ flexShrink: 0, marginTop: 2, color: '#B42318' }} />
+              <div>
+                <span>Evita fraudes</span>
+                <p>
+                  ¿Algo no coincide? Escríbenos solo a nuestros WhatsApp oficiales: <strong>{aviso.numeros.map(numeroLegible).join(' o ')}</strong>.
+                  Paga únicamente a cuentas a nombre de Vamos Por Más S.A.S. o Travel World Colombia.
+                </p>
+              </div>
             </div>
-          )}
+            <div style={{ height: 24 }} />
+          </div>
 
-          <p className="mt-6 font-inter text-xs" style={{ color: '#5B6B82' }}>
-            Actualizado al {ahora}. Los saldos en dólares o euros se liquidan a la TRM del día en que se recibe cada pago; el valor final
-            lo confirma tu asesor y la liquidación completa va en la factura de venta.
-          </p>
-        </section>
-
-        <section className="mt-4 flex items-start gap-3 rounded-2xl p-5 font-inter text-sm" style={{ background: '#FFF4D6', border: '1px solid #E0A800', color: '#3D2E00' }}>
-          <ShieldCheck size={20} className="mt-0.5 shrink-0" style={{ color: '#B42318' }} />
-          <p>
-            ¿Algo no coincide? Escríbenos solo a nuestros WhatsApp oficiales: <strong>{aviso.numeros.map(numeroLegible).join(' o ')}</strong>.
-            Paga únicamente a las cuentas de <Link href="/pagos" className="font-semibold underline">nuestra página de pagos</Link>, a nombre de Vamos Por Más S.A.S.
-          </p>
-        </section>
-
-        <p className="mt-6 text-center font-inter text-[11px]" style={{ color: '#94A3B8' }}>
-          {SITE.nombre} · RNT {SITE.rnt} · {SITE.url.replace(/^https?:\/\//, '')}
-        </p>
+          <footer className={s.pie}>
+            {AGENCIA.razonSocial} · NIT {AGENCIA.nit} · RNT {AGENCIA.rnt} · {AGENCIA.direccion} · {AGENCIA.web}
+          </footer>
+        </article>
       </div>
     </div>
   )
