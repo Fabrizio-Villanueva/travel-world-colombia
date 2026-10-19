@@ -62,6 +62,8 @@ function Opcional() {
 export function FormularioCotizacion({ destinos }: Props) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  // El botón de WhatsApp del éxito abre el chat ya hablando de ese destino.
+  const [destinoEnviado, setDestinoEnviado] = useState<string>()
   const exitoRef = useRef<HTMLHeadingElement>(null)
 
   const {
@@ -82,7 +84,8 @@ export function FormularioCotizacion({ destinos }: Props) {
     setStatus('loading')
     const result = await submitCotizacion(data)
     if (result.ok) {
-      fbEvent('Lead', { content_name: 'formulario-cotizacion' })
+      if (result.registrado) fbEvent('Lead', { content_name: 'formulario-cotizacion' })
+      setDestinoEnviado(data.destino_interes)
       setStatus('success')
     } else {
       setErrorMsg(result.message)
@@ -114,7 +117,7 @@ export function FormularioCotizacion({ destinos }: Props) {
           </p>
         </div>
         <a
-          href={whatsappUrl()}
+          href={whatsappUrl(destinoEnviado === 'Otro destino' ? undefined : destinoEnviado)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 rounded-md px-6 py-3 font-plus-jakarta text-[11px] font-bold tracking-[0.12em] uppercase transition-all duration-200 hover:-translate-y-0.5"

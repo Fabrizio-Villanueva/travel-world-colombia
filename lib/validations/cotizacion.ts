@@ -73,8 +73,11 @@ export const cotizacionSchema = z.object({
 
   mensaje: z.string().max(1000, 'Máximo 1000 caracteres').optional(),
 
-  // Honeypot anti-bot
-  website: z.string().max(0, 'Bot detectado').optional(),
+  // Honeypot anti-bot. Se acepta lleno a propósito: así el envío llega al
+  // servidor, que lo descarta en silencio (app/contacto/actions.ts). Con
+  // max(0) el bot veía la validación fallar en el navegador y no se enteraba
+  // nadie de que era un bot.
+  website: z.string().max(500).optional(),
 })
 
 export type CotizacionInput = z.infer<typeof cotizacionSchema>

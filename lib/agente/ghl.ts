@@ -450,6 +450,47 @@ export async function obtenerContacto(contactId: string): Promise<ContactoGhl | 
   return r.contact ?? null
 }
 
+/** Contacto existente con ese teléfono (formato E.164, p. ej. +573001234567), o null. */
+export async function contactoPorTelefono(telefono: string): Promise<ContactoGhl | null> {
+  const r = await pedir<{ contact?: ContactoGhl | null }>(
+    `/contacts/search/duplicate?locationId=${GHL.locationId}&number=${encodeURIComponent(telefono)}`
+  )
+  return r.contact ?? null
+}
+
+/**
+ * Crea un contacto. Se usa POST y no upsert a propósito: el upsert pisa
+ * nombre y tags de un contacto existente; quien llama busca antes por teléfono.
+ */
+export async function crearContacto(cuerpo: {
+  firstName: string
+  phone: string
+  source?: string
+  tags?: string[]
+}): Promise<ContactoGhl> {
+  const r = await mandar<{ contact: ContactoGhl }>('POST', '/contacts/', {
+    locationId: GHL.locationId,
+    ...cuerpo,
+  })
+  return r.contact
+}
+
+/** Crea una oportunidad abierta (una tarjeta en el tablero). */
+export async function crearOportunidad(cuerpo: {
+  contactId: string
+  name: string
+  pipelineId: string
+  pipelineStageId: string
+  source?: string
+}): Promise<OportunidadGhl> {
+  const r = await mandar<{ opportunity: OportunidadGhl }>('POST', '/opportunities/', {
+    locationId: GHL.locationId,
+    status: 'open',
+    ...cuerpo,
+  })
+  return r.opportunity
+}
+
 /** Nombre de un usuario de la cuenta (p. ej. la asesora asignada). */
 export async function nombreUsuario(userId: string): Promise<string | null> {
   const r = await pedir<{ name?: string; firstName?: string; lastName?: string }>(`/users/${id(userId)}`)

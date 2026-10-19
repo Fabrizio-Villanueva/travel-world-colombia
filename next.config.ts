@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import { withBotId } from 'botid/next/config'
 
 const nextConfig: NextConfig = {
   // Contrato propio: las funciones que imprimen el PDF con Chromium necesitan
@@ -162,4 +163,5 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+// withBotId: proxy de Vercel BotID (anti-bots del formulario de /contacto).
+export default withBotId(nextConfig)
