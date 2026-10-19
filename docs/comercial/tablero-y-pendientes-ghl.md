@@ -48,7 +48,7 @@ Filtro de fecha arriba: **Este mes**.
 | Fila | Widget | Configuración | Para qué |
 |---|---|---|---|
 | 1 | **Opportunity Status** | Pipeline 🎯 Leads | Cuántos leads entraron y cuántos siguen abiertos |
-| 1 | **Conversion Rate** | Pipeline 🎯 Leads | Conversión real (cuando dejen de crear ventas en tarjetas nuevas) |
+| 1 | **Conversion Rate** | Pipeline 🎯 Leads | ⚠️ Sale ~0 %: la venta se muda a Reservaciones y GHL mide por pipeline. La conversión real está en el panel **/admin/conversion** (19-oct) |
 | 1 | **Opportunity Value** | Pipeline 🗂️ **Reservaciones** | Valor vendido (las ventas viven en Reservaciones, no en Leads) |
 | 2 | **Funnel** | Pipeline 🎯 Leads | Embudo Lead Nuevo → Ganada (ya quedó activado) |
 | 2 | **Stages Distribution** | Pipeline 🎯 Leads | Cuántos hay en cada etapa, incluida 🧊 No calificado |

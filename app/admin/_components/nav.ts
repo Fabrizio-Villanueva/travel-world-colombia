@@ -1,5 +1,5 @@
 import {
-  Activity, Bot, ClipboardList, FileCheck, Globe, LayoutDashboard, Plane, Users, type LucideIcon,
+  Activity, Bot, ClipboardList, FileCheck, Globe, LayoutDashboard, Plane, TrendingUp, Users, type LucideIcon,
 } from 'lucide-react'
 import type { Role } from '@/lib/admin/allowlist'
 
@@ -61,6 +61,12 @@ export const MENU: Grupo[] = [
         label: 'Documentos de viajeros',
         Icon: FileCheck,
         hijos: [{ href: '/admin/documentos', label: 'Documentos de viajeros' }],
+      },
+      {
+        id: 'conversion',
+        label: 'Conversión real',
+        Icon: TrendingUp,
+        hijos: [{ href: '/admin/conversion', label: 'Conversión real', soloAdmin: true }],
       },
     ],
   },

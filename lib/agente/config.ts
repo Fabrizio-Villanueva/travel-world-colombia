@@ -84,6 +84,20 @@ export const CAMPOS_RESERVA = {
 } as const
 
 /**
+ * Marca de la venta que viene de un lead (carpeta Generales del Viaje; creados
+ * el 19-oct-2026 con scripts/ghl-campos-origen-venta.mjs). La pone
+ * /api/agente/reservacion al mudar la tarjeta: GHL mide la conversión por
+ * pipeline y, tras la mudanza, Leads se queda sin sus ganadas.
+ */
+export const CAMPOS_VENTA = {
+  /** opportunity.origen_de_la_venta (SINGLE_OPTIONS: "Pipeline Leads") */
+  origen: 'En4GhvdViR1dggYwSXL7',
+  /** opportunity.fecha_de_venta (DATE; el search la trae en `fieldValueDate`, epoch ms) */
+  fecha: 'VeCbVUJlaOtb4zPQWdMS',
+} as const
+export const ORIGEN_VENTA_LEADS = 'Pipeline Leads'
+
+/**
  * Pipelines 100% humanos: "🗂️ Reservaciones (operación)", que cubre toda la
  * post-venta hasta el regreso del viaje ("🛫 Clientes Viajando" se migró aquí y
  * se eliminó el 2026-09-30).

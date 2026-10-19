@@ -346,7 +346,14 @@ export interface OportunidadBusquedaGhl extends OportunidadEnEtapaGhl {
   source?: string | null
   createdAt?: string
   /** El search los trae como `fieldValueString` / `fieldValueNumber`. */
-  customFields?: { id: string; fieldValueString?: string; fieldValueNumber?: number; fieldValue?: unknown }[]
+  customFields?: {
+    id: string
+    fieldValueString?: string
+    fieldValueNumber?: number
+    /** Campos DATE: epoch ms (a veces como texto). */
+    fieldValueDate?: string | number
+    fieldValue?: unknown
+  }[]
 }
 
 /**
@@ -447,6 +454,16 @@ export async function obtenerContacto(contactId: string): Promise<ContactoGhl | 
 export async function nombreUsuario(userId: string): Promise<string | null> {
   const r = await pedir<{ name?: string; firstName?: string; lastName?: string }>(`/users/${id(userId)}`)
   return r.name?.trim() || [r.firstName, r.lastName].filter(Boolean).join(' ').trim() || null
+}
+
+/** Usuarios de la subcuenta (id → nombre), para mostrar asesoras sin una llamada por cada una. */
+export async function listarUsuarios(): Promise<Map<string, string>> {
+  const r = await pedir<{ users?: { id: string; name?: string; firstName?: string; lastName?: string }[] }>(
+    `/users/?locationId=${GHL.locationId}`
+  )
+  return new Map(
+    (r.users ?? []).map(u => [u.id, u.name?.trim() || [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.id])
+  )
 }
 
 /** Conversación más reciente de un contacto. */

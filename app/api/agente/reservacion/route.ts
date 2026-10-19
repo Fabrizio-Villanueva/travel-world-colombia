@@ -2,11 +2,18 @@ import type { NextRequest } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { secretoRecibido } from '@/lib/agente/secreto'
 import {
+  CAMPOS_VENTA,
   ETAPA_GANADA,
+  ORIGEN_VENTA_LEADS,
   PIPELINE,
   PIPELINE_RESERVACIONES,
 } from '@/lib/agente/config'
-import { moverOportunidad, oportunidadesDe } from '@/lib/agente/ghl'
+import { actualizarCamposOportunidad, moverOportunidad, oportunidadesDe } from '@/lib/agente/ghl'
+
+/** Fecha de hoy en Bogotá (YYYY-MM-DD), para el campo DATE "Fecha de venta". */
+function hoyBogota(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date())
+}
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -93,7 +100,20 @@ export async function POST(req: NextRequest) {
       'won'
     )
 
-    return Response.json({ ok: true, opportunityId: objetivo.id, movida: true })
+    // Marca de origen para medir la conversión real (/admin/conversion). Si
+    // falla, la mudanza ya quedó: el panel la reconoce igual por sus fechas.
+    let marcada = true
+    try {
+      await actualizarCamposOportunidad(objetivo.id, [
+        { id: CAMPOS_VENTA.origen, field_value: ORIGEN_VENTA_LEADS },
+        { id: CAMPOS_VENTA.fecha, field_value: hoyBogota() },
+      ])
+    } catch (err) {
+      marcada = false
+      console.error('reservacion: no se pudo marcar el origen de la venta:', (err as Error).message)
+    }
+
+    return Response.json({ ok: true, opportunityId: objetivo.id, movida: true, marcada })
   } catch (err) {
     console.error('reservacion error:', err)
     return Response.json({ ok: false, error: (err as Error).message }, { status: 500 })
