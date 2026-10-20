@@ -110,3 +110,12 @@ export function minutosHabilesEntre(desde: Date, hasta: Date): number {
 export function esHabil(ahora = new Date()): boolean {
   return proximaApertura(ahora) === null
 }
+
+/**
+ * ¿La oficina está abierta AHORA? (L-V 9-17, sáb 9-13; domingos y festivos
+ * cerrado). Las alertas al equipo solo salen dentro de este horario
+ * (pedido del 20-oct-2026): lo que se cumple fuera, espera a la apertura.
+ */
+export function oficinaAbierta(ahora = new Date()): boolean {
+  return proximaApertura(ahora) === null
+}

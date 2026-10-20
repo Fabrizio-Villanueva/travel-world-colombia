@@ -18,6 +18,7 @@ import {
 import { idsDeSol } from '@/lib/agente/conversacion'
 import { escritoPorAsesora } from '@/lib/agente/etapas'
 import { enviarAlerta, type DestinoAlerta } from '@/lib/agente/alertas'
+import { oficinaAbierta } from '@/lib/agente/horario'
 import { duracionTexto, pasoSla, primerHumanoDesde } from '@/lib/agente/sla-reglas'
 import type { MotivoTraspaso } from '@/lib/agente/sla-registro'
 
@@ -43,6 +44,9 @@ import type { MotivoTraspaso } from '@/lib/agente/sla-registro'
  *     `sla_sin_respuesta_humana`.
  *  2. 3 h hábiles → aviso a supervisión (`ALERTAS_INTERNAS`).
  *  3. En cuanto escribe alguien del equipo → se cierra el episodio y se quita el tag.
+ *
+ * Los avisos solo se ENVÍAN con la oficina abierta (L-V 9-17, sáb 9-13; nunca
+ * domingos ni festivos): si el plazo se cumple fuera, sale en la apertura.
  *
  * Minutos HÁBILES: un lead calificado de noche empieza a contar en la
  * siguiente apertura (ver `minutosHabilesEntre`). Idempotente: cada aviso se
@@ -156,6 +160,9 @@ export async function revisarSlaHumano(
   const filas = (data ?? []) as FilaSla[]
   resumen.abiertos = filas.length
   let avisos = 0
+  // Los avisos solo salen con la oficina abierta (20-oct-2026). Fuera de
+  // horario la corrida igual cierra los episodios ya respondidos o vencidos.
+  const abierta = oficinaAbierta(ahora)
 
   for (const f of filas) {
     try {
@@ -201,6 +208,9 @@ export async function revisarSlaHumano(
         continue
       }
       if (paso === 'esperar') continue
+      // Fuera de horario el aviso queda pendiente (no se marca): sale en la
+      // primera corrida tras la apertura.
+      if (!abierta) continue
       if (avisos >= SLA_HUMANO.maxAvisosPorCorrida) continue
 
       const contacto = await obtenerContacto(f.contact_id)

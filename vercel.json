@@ -6,6 +6,6 @@
     { "path": "/api/agente/evaluador", "schedule": "25 * * * *" },
     { "path": "/api/agente/reactivacion", "schedule": "0-39 15 * * 1-6" },
     { "path": "/api/documentos/purga", "schedule": "0 9 * * *" },
-    { "path": "/api/catalogo/salud", "schedule": "0 13 * * 1" }
+    { "path": "/api/catalogo/salud", "schedule": "0 14 * * 1" }
   ]
 }
