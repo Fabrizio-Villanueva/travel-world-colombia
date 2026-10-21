@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { todasLasFilas } from '@/lib/supabase/paginar'
 import { legibleParaSol } from '@/lib/agente/claude'
 import { conversacionDe, obtenerContacto, ultimosMensajes, type MensajeGhl } from '@/lib/agente/ghl'
 import { idsDeSol } from '@/lib/agente/conversacion'
@@ -159,8 +160,8 @@ export async function evaluarLead(contactId: string, conversationId?: string | n
 export async function correrEvaluador(limite = 25, paralelo = 5): Promise<{ evaluados: number; fallos: string[]; pendientes: number }> {
   const db = createAdminClient()
   const [turnos, hechas] = await Promise.all([
-    db.from('sol_ab_turnos').select('contact_id, conversation_id, en').gte('en', COHORTE_DESDE).order('en', { ascending: true }).limit(20000),
-    db.from('agente_evaluaciones').select('contact_id').limit(20000),
+    todasLasFilas((a, b) => db.from('sol_ab_turnos').select('contact_id, conversation_id, en').gte('en', COHORTE_DESDE).order('en', { ascending: true }).order('id').range(a, b)),
+    todasLasFilas((a, b) => db.from('agente_evaluaciones').select('contact_id').order('contact_id').range(a, b)),
   ])
   if (turnos.error) throw new Error(`sol_ab_turnos: ${turnos.error.message}`)
   const yaEvaluados = new Set((hechas.data ?? []).map(r => r.contact_id as string))

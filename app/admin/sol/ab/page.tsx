@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getAdminSession } from '@/lib/admin/guard'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { todasLasFilas } from '@/lib/supabase/paginar'
 import { GHL } from '@/lib/agente/config'
 import type { Decision } from '@/lib/agente/claude'
 import { ControlAB } from './ControlAB'
@@ -35,8 +36,8 @@ export default async function ABPage() {
   const db = createAdminClient()
   const [cfg, asig, tur] = await Promise.all([
     db.from('sol_ab_config').select('porcentaje, activa, actualizado_en, actualizado_por').eq('id', 1).maybeSingle(),
-    db.from('sol_ab_asignaciones').select('*').order('en', { ascending: false }).limit(1000),
-    db.from('sol_ab_turnos').select('*').order('en', { ascending: true }).limit(3000),
+    todasLasFilas((a, b) => db.from('sol_ab_asignaciones').select('*').order('en', { ascending: false }).order('contact_id').range(a, b)),
+    todasLasFilas((a, b) => db.from('sol_ab_turnos').select('*').order('en', { ascending: true }).order('id').range(a, b)),
   ])
   const asignaciones = (asig.data ?? []) as Asignacion[]
   const turnos = (tur.data ?? []) as Turno[]

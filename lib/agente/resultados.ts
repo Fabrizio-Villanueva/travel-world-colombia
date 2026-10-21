@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { todasLasFilas } from '@/lib/supabase/paginar'
 import { buscarOportunidades, type OportunidadBusquedaGhl } from '@/lib/agente/ghl'
 import { PIPELINE, PIPELINE_RESERVACIONES } from '@/lib/agente/config'
 import { listoParaAsesora } from '@/lib/agente/crm'
@@ -59,10 +60,10 @@ export async function cargarResultados(dias: number | null): Promise<Resultados>
   const desde = ventana && ventana > new Date(COHORTE_DESDE) ? ventana.toISOString() : COHORTE_DESDE
   const db = createAdminClient()
   const [tur, asig, sla, ev] = await Promise.all([
-    db.from('sol_ab_turnos').select('contact_id, conversation_id, decision, en').gte('en', desde).order('en', { ascending: true }).limit(20000),
-    db.from('sol_ab_asignaciones').select('contact_id, grupo').limit(20000),
-    db.from('agente_sla_humano').select('contact_id, motivo, inicio, respondido_en, cierre').gte('inicio', desde).order('inicio', { ascending: true }).limit(20000),
-    db.from('agente_evaluaciones').select('contact_id, nombre, tipo, merecia_pasar, motivo, nota_sol, error_sol').limit(20000),
+    todasLasFilas((a, b) => db.from('sol_ab_turnos').select('contact_id, conversation_id, decision, en').gte('en', desde).order('en', { ascending: true }).order('id').range(a, b)),
+    todasLasFilas((a, b) => db.from('sol_ab_asignaciones').select('contact_id, grupo').order('contact_id').range(a, b)),
+    todasLasFilas((a, b) => db.from('agente_sla_humano').select('contact_id, motivo, inicio, respondido_en, cierre').gte('inicio', desde).order('inicio', { ascending: true }).order('id').range(a, b)),
+    todasLasFilas((a, b) => db.from('agente_evaluaciones').select('contact_id, nombre, tipo, merecia_pasar, motivo, nota_sol, error_sol').order('contact_id').range(a, b)),
   ])
   if (tur.error) throw new Error(`sol_ab_turnos: ${tur.error.message}`)
 
