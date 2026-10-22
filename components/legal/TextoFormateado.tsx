@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Button } from '@/components/ui/Button'
 import { LegalH2, LegalList, LegalP } from './LegalShell'
 
 /**
@@ -9,12 +10,14 @@ import { LegalH2, LegalList, LegalP } from './LegalShell'
  *   Párrafo (una línea en blanco separa párrafos; un salto simple se respeta).
  *   - Punto de una lista
  *   **negrita** · los correos y enlaces (https://…) se vuelven clic.
+ *   [Texto del botón](https://…) solo en su línea = botón.
  *
  * Se arma con elementos de React (nunca HTML crudo): lo que se escribe en el
  * panel no puede meter scripts en la web.
  */
 
-const ENLACE = /(\*\*[^*]+\*\*|https?:\/\/[^\s)]+|[\w.+-]+@[\w-]+\.[\w.-]+)/g
+const BOTON = /^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/
+const ENLACE =/(\*\*[^*]+\*\*|https?:\/\/[^\s)]+|[\w.+-]+@[\w-]+\.[\w.-]+)/g
 
 function enLinea(texto: string): ReactNode[] {
   return texto.split(ENLACE).map((t, i) => {
@@ -56,7 +59,16 @@ export function TextoFormateado({ texto }: { texto: string }) {
 
   for (const cruda of texto.replace(/\r\n/g, '\n').split('\n')) {
     const linea = cruda.trim()
-    if (!linea) {
+    const boton = BOTON.exec(linea)
+    if (boton) {
+      cerrarParrafo()
+      cerrarLista()
+      bloques.push(
+        <p key={bloques.length} className="my-6">
+          <Button href={boton[2]} target="_blank" rel="noopener noreferrer">{boton[1]}</Button>
+        </p>,
+      )
+    } else if (!linea) {
       cerrarParrafo()
       cerrarLista()
     } else if (/^#{1,3}\s+/.test(linea)) {

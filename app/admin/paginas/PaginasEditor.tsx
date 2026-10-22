@@ -143,7 +143,7 @@ function FormPagina({ def, guardada, editable }: { def: PaginaInfoDef; guardada?
         </div>
       )}
       <p className="mt-2 font-inter text-[11px]" style={{ color: 'var(--text-dim)' }}>
-        Formato: <code>## Subtítulo</code> · línea en blanco = párrafo nuevo · <code>- </code> al inicio = lista · <code>**negrita**</code> · correos y enlaces se vuelven clic.
+        Formato: <code>## Subtítulo</code> · línea en blanco = párrafo nuevo · <code>- </code> al inicio = lista · <code>**negrita**</code> · correos y enlaces se vuelven clic · <code>[Texto del botón](https://…)</code> solo en su línea = botón.
         {' '}Puedes pegar el texto desde Word.
       </p>
 
