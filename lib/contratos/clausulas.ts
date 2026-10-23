@@ -102,6 +102,28 @@ export const CLAUSULA_ASISTENCIA: { titulo: string; bloques: BloqueClausula[] } 
       '**Instrucciones.** Seguir las indicaciones del personal de TRAVELKIT para gestionar el caso.',
     ] },
     { tipo: 'parrafo', texto: 'Tener el voucher a la mano y elegir la opción correcta en el menú agiliza la atención y la solución del caso. Junto con este contrato, el viajero recibe por WhatsApp la guía con este paso a paso.' },
+    // Texto de TRAVELKIT entregado por el cliente el 23-oct-2026. Su lista
+    // saltaba del 13 al 15: aquí la numeración es corrida (1–16).
+    { tipo: 'titulo', texto: 'Causales de cancelación por multicausa (beneficiarios menores de 75 años)' },
+    { tipo: 'parrafo', texto: 'Según las **Condiciones Generales de Asistencia en Viajes TRAVELKIT**, la cancelación por multicausa aplica en los siguientes casos:' },
+    { tipo: 'numerada', items: [
+      'El fallecimiento, accidente o enfermedad grave no preexistente del Beneficiario o familiar en primer grado de consanguinidad (cónyuge, padres, hijos, hermanos), entendiéndose por enfermedad grave una alteración de la salud que, a juicio del Departamento Médico de la Central de Asistencia, imposibilite al Beneficiario para iniciar el viaje en la fecha contratada originalmente.',
+      'La convocatoria como parte, testigo o jurado de un tribunal.',
+      'Los daños que, por incendio, robo, hurto o por la fuerza de la naturaleza en su residencia habitual o en sus locales profesionales, que los hagan inhabitables y justifican ineludiblemente su presencia.',
+      'Cuarentena médica como consecuencia de suceso accidental.',
+      'Despido laboral comprobado (sin justa causa), con fecha posterior a la contratación de asistencia.',
+      'Convocatoria de emergencia para prestar servicio militar, médico o público.',
+      'Si la persona que ha de acompañar al Beneficiario en el viaje, entendiéndose como tales las personas que compartan la misma habitación del hotel con el Beneficiario, o cabina de crucero (misma cabina), o sean familiares de primer grado de consanguinidad (cónyuge, padres, hijos o hermanos), también poseedores de un Plan de Asistencia en las mismas condiciones que el Beneficiario, y dichos acompañantes se viesen obligados a anular el viaje por alguna de las causas enumeradas anteriormente.',
+      'Las agudizaciones imprevistas de enfermedades preexistentes. En cuyo caso el pasajero con dicha enfermedad preexistente deberá haber permanecido estable, sin episodios, durante un periodo mínimo de 6 meses previos al viaje. TRAVELKIT se reserva el derecho de solicitar la historia clínica original del pasajero previa a la fecha en que este manifiesta la agudización de la enfermedad.',
+      'Las complicaciones de embarazos.',
+      'Cancelación de boda.',
+      'Entrega de niño en adopción.',
+      'Parto de emergencia.',
+      'Secuestro del Beneficiario o familiares directos siempre y cuando sea comprobable, y de conocimiento público (primer grado de consanguinidad).',
+      'Cancelación de vacaciones por disposición de la empresa.',
+      'Cambio de trabajo.',
+      'No aprobación de la Visa para ingresar al país de destino. Esta cobertura es válida si la compra se realiza por lo menos 72 horas antes de la cita para la obtención de la visa ante la embajada respectiva. No aplica para los costos de los trámites consulares (costo de la visa).',
+    ] },
   ],
 }
 
