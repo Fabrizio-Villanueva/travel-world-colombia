@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { use, useActionState } from 'react'
 import Link from 'next/link'
 import { signIn, type LoginState } from '../actions'
 
@@ -12,8 +12,11 @@ const inputStyle = {
   color: '#0d1e3c',
 } as const
 
-export default function LoginPage() {
+export default function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const [state, action, pending] = useActionState(signIn, initial)
+  // /auth/confirm manda aquí con ?error=enlace_invalido si el enlace del correo
+  // venció o ya se usó: antes no se mostraba nada y parecía que "no pasaba nada".
+  const avisoEnlace = use(searchParams).error === 'enlace_invalido'
   // ?next= (lo pone el proxy): volver a la página que se pidió, p. ej. el
   // enlace de documentos del CRM. El servidor valida que sea del panel.
   function entrar(formData: FormData) {
@@ -55,8 +58,13 @@ export default function LoginPage() {
           style={inputStyle}
         />
 
-        {state.error && (
+        {state.error ? (
           <p className="mb-4 font-inter text-xs" style={{ color: '#fca5a5' }}>{state.error}</p>
+        ) : avisoEnlace && (
+          <p className="mb-4 font-inter text-xs" style={{ color: '#fca5a5' }}>
+            El enlace del correo venció o ya se usó (cada enlace sirve una sola vez). Si ya tienes contraseña, entra aquí;
+            si no, pide uno nuevo en «¿Olvidaste tu contraseña?».
+          </p>
         )}
 
         <button

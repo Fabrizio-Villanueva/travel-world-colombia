@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdminRole, requireEditor } from '@/lib/admin/guard'
 import { isSuperadmin, type Role, ROLES } from '@/lib/admin/allowlist'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { registrarActividad } from '@/lib/admin/audit'
 import { SITE } from '@/lib/site'
 
@@ -31,21 +32,36 @@ export async function invitarUsuario(_prev: InviteState, formData: FormData): Pr
   const { error } = await admin.auth.admin.inviteUserByEmail(e, {
     redirectTo: `${SITE.url}/auth/confirm?next=/admin/actualizar-password`,
   })
+  let yaTeniaCuenta = false
   if (error) {
-    if (/already.*(registered|exists|been invited)/i.test(error.message)) {
-      return { error: 'Ese correo ya tiene cuenta. Si está en "Pendientes", apruébalo directamente.' }
+    if (!/already.*(registered|exists|been invited)/i.test(error.message)) {
+      return { error: `No se pudo enviar la invitación: ${error.message}` }
     }
-    return { error: `No se pudo enviar la invitación: ${error.message}` }
+    // Ya tiene cuenta (p. ej. abrió una invitación vieja pero nunca creó la
+    // contraseña): Supabase no reenvía invitaciones, así que "reinvitar" no
+    // mandaba ningún correo. Le mandamos el enlace de restablecer contraseña,
+    // que sí llega y pasa por /auth/confirm.
+    const { error: errReset } = await (await createClient()).auth.resetPasswordForEmail(e, {
+      redirectTo: `${SITE.url}/auth/confirm?next=/admin/actualizar-password`,
+    })
+    if (errReset) {
+      return { error: `Ese correo ya tiene cuenta y no se pudo enviar el enlace para crear contraseña: ${errReset.message}` }
+    }
+    yaTeniaCuenta = true
   }
 
   // Aprobado de una vez: al aceptar la invitación entra directo con su rol.
   const { error: errAllow } = await admin
     .from('admin_allowlist')
-    .upsert({ email: e, rol, nombre, aprobado_por: user.email }, { onConflict: 'email' })
+    // Sin nombre escrito no pisamos el que ya tuviera (reinvitación).
+    .upsert({ email: e, rol, ...(nombre ? { nombre } : {}), aprobado_por: user.email }, { onConflict: 'email' })
   if (errAllow) return { error: `Invitación enviada, pero falló la aprobación: ${errAllow.message}` }
 
   await registrarActividad({ email: user.email!, accion: 'invitar-usuario', nombre: `${e} → ${rol}` })
   revalidatePath('/admin/usuarios')
+  if (yaTeniaCuenta) {
+    return { ok: `${e} ya tenía cuenta: le enviamos un enlace para crear una contraseña nueva (rol ${rol}). Sirve una sola vez.` }
+  }
   return { ok: `Invitación enviada a ${e} (rol ${rol}). Debe abrir el correo y crear su contraseña.` }
 }
 

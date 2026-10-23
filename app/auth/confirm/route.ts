@@ -29,6 +29,12 @@ export async function GET(request: NextRequest) {
     // Respaldo por si la plantilla usa el flujo PKCE por defecto.
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) return redirectTo(request, next)
+  } else if (!searchParams.has('error')) {
+    // Flujo implícito (plantilla con {{ .ConfirmationURL }}, p. ej. "Invite
+    // user"): la sesión viene en el #fragmento, que el servidor no ve. El
+    // navegador conserva el fragmento al redirigir y RescateEnlaceAuth (en el
+    // layout raíz) la guarda; sin ?error para no mostrar "enlace vencido".
+    return redirectTo(request, '/admin/login')
   }
 
   return redirectTo(request, '/admin/login?error=enlace_invalido')
