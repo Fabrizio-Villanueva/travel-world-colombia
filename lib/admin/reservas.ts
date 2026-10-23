@@ -228,7 +228,8 @@ export async function catalogoResuelto(): Promise<{
         .filter((x): x is string => Boolean(x)),
       // Las cuotas y las divisas (oct-2026) nacieron en la oportunidad, sin
       // campo viejo de contacto, pero el contrato sí las imprime.
-      enContrato: Boolean(c.sourceContactKey) || esCampoCuota(c.name) || RE_DIVISA_PAGO.test(c.name),
+      enContrato:
+        Boolean(c.sourceContactKey) || esCampoCuota(c.name) || RE_DIVISA_PAGO.test(c.name) || c.name === CAMPO_ALCANCE,
     })
   }
 
@@ -298,6 +299,11 @@ export const RE_CUOTA = /^Cuota (\d{1,2}) - (Importe|Fecha de vencimiento|Divisa
 /** "Pago N - Divisa" (COP / USD), 10-oct-2026. */
 export const RE_DIVISA_PAGO = /^Pago (\d) - Divisa$/
 export const esCampoCuota = (nombre: string) => RE_CUOTA.test(nombre)
+/**
+ * Nacional / Internacional (23-oct-2026, scripts/ghl-campo-alcance-viaje.mjs).
+ * Internacional = cláusula TRAVELKIT en el contrato + paso a paso al firmar.
+ */
+export const CAMPO_ALCANCE = 'Alcance del viaje'
 
 /** Valor de formulario: siempre serializable y simple. */
 export type ValorCampo = string | string[]

@@ -119,6 +119,11 @@ function fila(
   return { concepto, tarifaPorPax, cantidad, valorPlan, valorTotal: total ?? 0 }
 }
 
+function alcanceDe(v: Valor): ContratoDatos['alcance'] {
+  const t = texto(v)?.toLowerCase()
+  return t === 'internacional' ? 'Internacional' : t === 'nacional' ? 'Nacional' : undefined
+}
+
 export function armarContrato(e: EntradaContrato): ContratoDatos {
   const o = (nombre: string) => e.opp[nombre]
 
@@ -232,6 +237,7 @@ export function armarContrato(e: EntradaContrato): ContratoDatos {
     fechaContrato: fechaIso(o('Fecha del contrato')) ?? e.hoy,
     producto: texto(o('Tipo de Contrato')),
     destino: texto(o('Destino de interés')),
+    alcance: alcanceDe(o('Alcance del viaje')),
     agente: e.agente,
     facturacion: e.facturacion,
     titular: {

@@ -16,6 +16,7 @@ import {
   normalizarValor,
   valorParaGhl,
   ESPEJO_CONTACTO_TRANSICION,
+  CAMPO_ALCANCE,
   type CampoReserva,
   type ValorCampo,
 } from '@/lib/admin/reservas'
@@ -31,6 +32,7 @@ import {
   mismaPersona,
   nombreContacto,
 } from '@/lib/contratos/nacimiento'
+import { alcanceDeDestino } from '@/lib/documentos/visas'
 
 export interface ClienteEncontrado {
   id: string
@@ -162,6 +164,16 @@ export async function cargarReserva(opportunityId: string): Promise<ReservaCarga
     if (!nacimiento && typeof fecha === 'string' && fechaNacimientoValida(fecha)) {
       prefill['std:dateOfBirth'] = fecha
     }
+  }
+
+  // Alcance del viaje: se sugiere por el país del destino (Colombia → Nacional).
+  // Va también para clientes que repiten: sale del destino de ESTA oportunidad.
+  const alcance = campos.find(c => c.name === CAMPO_ALCANCE)
+  const idDestino = campos.find(c => c.name === 'Destino de interés')?.ghlId
+  if (alcance && valores[alcance.ghlId] === undefined && idDestino) {
+    const destino = valores[idDestino] ?? prefill[idDestino]
+    const sugerido = typeof destino === 'string' ? await alcanceDeDestino(destino).catch(() => null) : null
+    if (sugerido) prefill[alcance.ghlId] = sugerido
   }
 
   const p = pipelines.find(x => x.id === oportunidad.pipelineId)

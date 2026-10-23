@@ -7,7 +7,8 @@ import { contratoDesdeGhl } from '@/lib/contratos/desde-ghl'
  * 2 tarifas por tramo, 2 pagos y 2 cuotas pendientes). `?pax=N` la arma con
  * N personas (1–20) para ver cómo crece el documento; `?cuotas=0` la muestra
  * sin cuotas ni depósito mínimo (como las reservas anteriores a oct-2026);
- * `?divisas=mixto`, con un pago en dólares y otro en pesos; `?divisas=eur`, en euros.
+ * `?divisas=mixto`, con un pago en dólares y otro en pesos; `?divisas=eur`, en euros;
+ * `?alcance=nacional`, sin la cláusula TRAVELKIT (solo va en internacionales).
  *
  * Solo en desarrollo local: `?opp=<id>` arma el contrato con una oportunidad
  * real de GHL, para probar el traductor sin iniciar sesión en el panel. En
@@ -16,16 +17,17 @@ import { contratoDesdeGhl } from '@/lib/contratos/desde-ghl'
 export default async function ContratoMuestraPage({
   searchParams,
 }: {
-  searchParams: Promise<{ opp?: string; pax?: string; cuotas?: string; divisas?: string }>
+  searchParams: Promise<{ opp?: string; pax?: string; cuotas?: string; divisas?: string; alcance?: string }>
 }) {
-  const { opp, pax, cuotas, divisas } = await searchParams
+  const { opp, pax, cuotas, divisas, alcance } = await searchParams
   const base =
     process.env.NODE_ENV === 'development' && opp && /^[A-Za-z0-9]{10,40}$/.test(opp)
       ? await contratoDesdeGhl(opp)
       : pax
         ? muestraConPasajeros(Number(pax) || 1)
         : CONTRATO_MUESTRA
-  const datos = cuotas === '0' ? muestraSinCuotas(base) : divisas === 'mixto' ? muestraDivisasMixtas(base) : divisas === 'eur' ? muestraEuros(base) : base
+  const conDivisas = cuotas === '0' ? muestraSinCuotas(base) : divisas === 'mixto' ? muestraDivisasMixtas(base) : divisas === 'eur' ? muestraEuros(base) : base
+  const datos = alcance === 'nacional' ? { ...conDivisas, alcance: 'Nacional' as const } : conDivisas
 
   return (
     <div className="shadow-xl sm:mx-auto sm:max-w-[816px]">

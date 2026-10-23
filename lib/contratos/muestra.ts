@@ -9,6 +9,7 @@ export const CONTRATO_MUESTRA: ContratoDatos = {
   fechaContrato: '2026-10-07',
   producto: 'Paquete turístico',
   destino: 'Punta Cana, República Dominicana',
+  alcance: 'Internacional',
   agente: 'Ginna Cardenas',
 
   facturacion: {

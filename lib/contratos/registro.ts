@@ -12,6 +12,7 @@ import {
 import { hashToken, nuevoToken } from '@/lib/documentos/token'
 import { contratoDesdeGhl } from './desde-ghl'
 import { firmaImpresion } from './acceso'
+import { aplicaAsistencia, enviarGuiaAsistencia } from './asistencia'
 import { origenInterno, pdfDeUrl } from './pdf'
 import {
   BUCKET_CONTRATOS,
@@ -33,7 +34,19 @@ import type { ContratoDatos } from './tipos'
  */
 
 export interface EventoContrato {
-  tipo: 'creado' | 'codigo_enviado' | 'verificado' | 'visto' | 'firmado' | 'pdf' | 'anulado' | 'descargado' | 'copia_reenviada' | 'firma_fallida'
+  tipo:
+    | 'creado'
+    | 'codigo_enviado'
+    | 'verificado'
+    | 'visto'
+    | 'firmado'
+    | 'pdf'
+    | 'anulado'
+    | 'descargado'
+    | 'copia_reenviada'
+    | 'firma_fallida'
+    | 'asistencia_enviada'
+    | 'asistencia_fallida'
   en: string
   ip?: string
   ua?: string
@@ -147,6 +160,7 @@ export function problemasParaEnviar(d: ContratoDatos): string[] {
   if (!d.titular.nombre) p.push('Falta el titular de la reserva.')
   if (d.pasajeros.length === 0) p.push('No hay pasajeros (P1 – Nombre y Apellido).')
   if (!d.viaje.fechaIda) p.push('Falta la fecha confirmada de salida.')
+  if (!d.alcance) p.push('Falta el alcance del viaje (Nacional o Internacional), en el paso Contrato.')
   if (!d.liquidacion.total.valorTotal) p.push('La liquidación está en cero.')
   return p
 }
@@ -350,6 +364,17 @@ export async function firmarContrato(c: ContratoRow, f: DatosFirma, host?: strin
       `✍️ Contrato TW-${c.reserva} FIRMADO por ${nombre} (${documento}) el ${new Date(ahora).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}, ` +
         `desde la IP ${f.ip}.${firmado.pdf_sha256 ? ` Huella del PDF (SHA-256): ${firmado.pdf_sha256}.` : ''}`
     ).catch(e => console.error('[contratos] nota de firma:', e))
+  }
+  // Viaje internacional: guía de la asistencia TRAVELKIT por WhatsApp. Un
+  // fallo aquí no tumba la firma: queda en los eventos para reenviarla a mano.
+  if (c.contact_id && aplicaAsistencia(c.datos)) {
+    const contacto = await obtenerContacto(c.contact_id).catch(() => null)
+    await enviarGuiaAsistencia(c.contact_id, contacto?.firstName?.trim() || null, c.reserva)
+      .then(id => registrarEvento(c.id, { tipo: 'asistencia_enviada', detalle: id ? `messageId ${id}` : undefined }))
+      .catch(e => {
+        console.error('[contratos] guía TRAVELKIT:', e)
+        return registrarEvento(c.id, { tipo: 'asistencia_fallida', detalle: String(e instanceof Error ? e.message : e).slice(0, 300) })
+      })
   }
   return firmado
 }

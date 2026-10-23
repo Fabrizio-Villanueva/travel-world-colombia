@@ -68,6 +68,11 @@ export interface ContratoDatos {
   fechaContrato: string
   producto?: string
   destino?: string
+  /**
+   * "Alcance del viaje" (23-oct-2026). Internacional imprime la cláusula de
+   * asistencia TRAVELKIT. Las fotos congeladas anteriores no lo traen.
+   */
+  alcance?: 'Nacional' | 'Internacional'
   /** Nombre de la asesora que hace la venta. */
   agente?: string
 

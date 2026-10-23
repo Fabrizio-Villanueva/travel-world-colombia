@@ -60,3 +60,4 @@ scripts/*.png
 !/public/img/equipo/
 !/public/img/paginas/
 !/public/img/pagos/
+!/public/img/asistencia/

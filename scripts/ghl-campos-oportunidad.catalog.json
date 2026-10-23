@@ -105,6 +105,16 @@
  },
  {
   "folder": "Contrato",
+  "name": "Alcance del viaje",
+  "dataType": "SINGLE_OPTIONS",
+  "options": [
+   "Nacional",
+   "Internacional"
+  ],
+  "note": "nuevo (23-oct-2026): Internacional imprime la cláusula TRAVELKIT y envía el paso a paso al firmar"
+ },
+ {
+  "folder": "Contrato",
   "name": "Fecha del contrato",
   "dataType": "DATE",
   "sourceContactKey": "contact.c__fecha_destino"

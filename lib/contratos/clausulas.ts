@@ -85,6 +85,26 @@ export const CLAUSULA_RETRACTO: { titulo: string; bloques: BloqueClausula[] } = 
   ],
 }
 
+/**
+ * Asistencia en viaje TRAVELKIT (23-oct-2026): SOLO en viajes internacionales
+ * ("Alcance del viaje" = Internacional). El procedimiento calca la pieza
+ * "¿Cómo contactar a TRAVELKIT?" que se le envía al cliente al firmar
+ * (public/img/asistencia/travelkit-paso-a-paso.jpg).
+ */
+export const CLAUSULA_ASISTENCIA: { titulo: string; bloques: BloqueClausula[] } = {
+  titulo: 'Asistencia en viaje TRAVELKIT (viajes internacionales)',
+  bloques: [
+    { tipo: 'parrafo', texto: 'En caso de una **emergencia en destino** o para solicitar una **cancelación por multicausa**, el viajero debe comunicarse directamente con **TRAVELKIT**, siguiendo estos pasos:' },
+    { tipo: 'numerada', items: [
+      '**Contacto.** Escribir al número **+1 (863) 204-2766**, donde lo atenderá el personal de TRAVELKIT.',
+      '**Tipo de solicitud.** En el menú que se despliega, elegir la opción que corresponda: **Emergencia en destino** o **Cancelación por multicausa**.',
+      '**Voucher de asistencia.** Tener a la mano el número del voucher de asistencia (aparece en la parte superior del documento, por ejemplo TK-XXXXXX), que le será solicitado.',
+      '**Instrucciones.** Seguir las indicaciones del personal de TRAVELKIT para gestionar el caso.',
+    ] },
+    { tipo: 'parrafo', texto: 'Tener el voucher a la mano y elegir la opción correcta en el menú agiliza la atención y la solución del caso. Junto con este contrato, el viajero recibe por WhatsApp la guía con este paso a paso.' },
+  ],
+}
+
 /** Declaración sobre las firmas (texto del cliente, 15-oct-2026); un párrafo por elemento. */
 export const DECLARACION_FIRMA = [
   'Declaro que he leído, comprendido y acepto las condiciones y restricciones de mi tiquete aéreo, la cláusula de responsabilidad y las condiciones establecidas en el presente contrato. Asimismo, autorizo el tratamiento de mis datos personales conforme a la política de protección de datos personales de la agencia y manifiesto conocer y aceptar las condiciones aplicables al derecho de retracto y al desistimiento del servicio, de acuerdo con la normativa vigente.',

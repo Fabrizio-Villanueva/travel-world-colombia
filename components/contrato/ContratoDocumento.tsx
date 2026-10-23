@@ -1,6 +1,13 @@
 import type { ReactNode } from 'react'
 import { Check, X, Landmark, Monitor, Mail, QrCode, Plane } from 'lucide-react'
-import { CLAUSULA_DATOS, CLAUSULA_RESPONSABILIDAD, CLAUSULA_RETRACTO, DECLARACION_FIRMA, type BloqueClausula } from '@/lib/contratos/clausulas'
+import {
+  CLAUSULA_ASISTENCIA,
+  CLAUSULA_DATOS,
+  CLAUSULA_RESPONSABILIDAD,
+  CLAUSULA_RETRACTO,
+  DECLARACION_FIRMA,
+  type BloqueClausula,
+} from '@/lib/contratos/clausulas'
 import type { ContratoDatos, ContratoLiquidacionFila, ContratoPago, ContratoPasajero } from '@/lib/contratos/tipos'
 import { enDivisa, type Divisa } from '@/lib/contratos/divisa'
 import s from './ContratoDocumento.module.css'
@@ -604,6 +611,15 @@ export function ContratoDocumento({
               <Bloques bloques={CLAUSULA_RETRACTO.bloques} />
             </div>
           </Seccion>
+
+          {/* TRAVELKIT solo aplica a viajes internacionales (23-oct-2026). */}
+          {datos.alcance === 'Internacional' && (
+            <Seccion n={sig()} titulo={CLAUSULA_ASISTENCIA.titulo} className={s.clausula}>
+              <div className={s.clausulaTexto}>
+                <Bloques bloques={CLAUSULA_ASISTENCIA.bloques} />
+              </div>
+            </Seccion>
+          )}
 
           <section className={s.firmaSeccion}>
             <div className={s.declaracion}>
