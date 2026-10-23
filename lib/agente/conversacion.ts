@@ -320,6 +320,9 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
   )
   const decision = turno.decision
   marcarFuenteAnuncio(decision, anuncio)
+  // El aviso de datos ya abre con "¡Hola! Soy Sol…": un segundo "¡Hola!" justo
+  // debajo se ve robótico (caso real 23-oct). El prompt lo pide; esto lo asegura.
+  if (primerContacto) decision.mensaje = sinSaludoInicial(decision.mensaje)
 
   // Re-chequeo de ráfaga, ya con la respuesta lista: GHL a veces entrega el
   // webhook con 15-20 s de retraso, y el mensaje siguiente del cliente puede
@@ -426,6 +429,20 @@ export async function atender(e: Entrada): Promise<ResultadoTurno> {
       .filter(Boolean)
       .join(' · '),
   }
+}
+
+const SALUDO_INICIAL =
+  /^\s*¡?\s*(?:hola+|holi|buen(?:os|as)?\s+(?:d[ií]as?|tardes?|noches?)|qu[eé]\s+tal)(?:[\s,]+[\p{L}]+)?\s*[!¡,.]+\s*/iu
+
+/**
+ * Quita el saludo con que abre el mensaje ("¡Hola!", "¡Hola, Jorge!", "Buenas
+ * tardes,") y pone en mayúscula lo que sigue. Si el mensaje es solo el saludo,
+ * lo deja como está.
+ */
+export function sinSaludoInicial(mensaje: string): string {
+  const resto = mensaje.replace(SALUDO_INICIAL, '')
+  if (resto === mensaje || !resto.trim()) return mensaje
+  return resto.charAt(0).toUpperCase() + resto.slice(1)
 }
 
 /**

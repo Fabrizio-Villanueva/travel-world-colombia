@@ -50,7 +50,15 @@ export interface Decision {
 /** Calificado = lo mínimo para que una asesora cotice sin re-preguntar (destino + fechas + viajeros). */
 export function datosMinimos(d: Decision['datos']): boolean {
   const pax = (d.adultos ?? 0) + (d.ninos ?? 0)
-  return Boolean(d.destino?.trim() && d.fechas?.trim() && pax > 0)
+  // Con niños, sus edades son parte del mínimo: la tarifa de niño depende de
+  // la edad y sin ellas la asesora no puede cotizar (caso real 22-oct).
+  const edadesOk = !(d.ninos && d.ninos > 0) || Boolean(d.edades_ninos?.trim())
+  return Boolean(d.destino?.trim() && d.fechas?.trim() && pax > 0 && edadesOk)
+}
+
+/** El cliente dijo que todavía no (solo mirando, "todavía no", "no"): ninguna regla lo pasa a la asesora. */
+export function aunNoCompra(v: VentaV2 | undefined): boolean {
+  return v?.objecion === 'solo_mirando' || v?.compromiso === 'todavia_no' || v?.compromiso === 'no'
 }
 
 export type EstadoComercial =
@@ -224,7 +232,7 @@ export async function decidir(
         : 'No sabes su nombre; pregúntaselo una vez, con naturalidad, sin insistir.',
     contexto.canal ? `Canal: ${contexto.canal}.` : null,
     contexto.primerContacto
-      ? 'Es el PRIMER mensaje de este contacto: por separado ya se le envía el saludo con tu nombre y el aviso de datos. NO te vuelvas a presentar ni saludes con "Soy Sol". Salúdalo con calidez, pregúntale su nombre y qué viaje tiene en mente, y sigue SU conversación. En este primer mensaje NO listes destinos ni precios del catálogo: esas recomendaciones son solo para cuando pregunte o mencione un destino o tipo de viaje.'
+      ? 'Es el PRIMER mensaje de este contacto: por separado ya se le envía el saludo con tu nombre y el aviso de datos. NO te vuelvas a presentar ni vuelvas a saludar (nada de "¡Hola!" ni "Buen día" al inicio: ese saludo ya va en el aviso). Arranca directo y con calidez, pregúntale su nombre y qué viaje tiene en mente, y sigue SU conversación. En este primer mensaje NO listes destinos ni precios del catálogo: esas recomendaciones son solo para cuando pregunte o mencione un destino o tipo de viaje.'
       : null,
     contexto.seguimiento
       ? `Este turno es un SEGUIMIENTO programado (intento ${contexto.seguimiento.intento} de ${contexto.seguimiento.maximo}): el cliente NO ha contestado tu último mensaje; no hay mensaje nuevo suyo.${contexto.seguimiento.angulo ? ` Ángulo que dejaste anotado: ${contexto.seguimiento.angulo}` : ''}`

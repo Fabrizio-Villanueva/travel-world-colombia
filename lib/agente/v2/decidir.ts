@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { aHistorial, datosMinimos, lineaAnuncio, type Decision, type EstadoComercial } from '@/lib/agente/claude'
+import { aHistorial, aunNoCompra, datosMinimos, lineaAnuncio, type Decision, type EstadoComercial } from '@/lib/agente/claude'
 import { construirConocimiento } from '@/lib/agente/conocimiento'
 import { resolverAudios } from '@/lib/agente/transcribir'
 import { cargarReglas, reglasParaPrompt, type ReglasComerciales } from '@/lib/agente/reglas'
@@ -73,7 +73,7 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
     }
   }
 
-  const [{ base, detallesPara, nombreDe }, reglas, miembros] = await Promise.all([
+  const [{ base, detallesPara, nombreDe, catalogo }, reglas, miembros] = await Promise.all([
     construirConocimiento(),
     ctx.reglas ? Promise.resolve(ctx.reglas) : cargarReglas(),
     equipo(),
@@ -102,10 +102,10 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
         : 'No sabes su nombre: pregúntalo una vez, sin insistir.',
     ctx.canal ? `Canal: ${ctx.canal}.` : null,
     ctx.primerContacto
-      ? 'Es el PRIMER mensaje: aparte ya se le envía el saludo con tu nombre y el aviso de datos. No te vuelvas a presentar. Si solo saluda, pregúntale qué viaje tiene en mente; si ya dijo destino, ve directo a eso.'
+      ? 'Es el PRIMER mensaje: justo antes, aparte, ya se le envía el saludo ("¡Hola! Soy Sol…") y el aviso de datos. No te presentes ni vuelvas a saludar: nada de "¡Hola!", "Buen día" ni "Hola, Ana" al inicio; arranca directo con la conversación. Si solo saluda, pregúntale qué viaje tiene en mente; si ya dijo destino, ve directo a eso.'
       : null,
     ctx.seguimiento
-      ? `Este turno es un SEGUIMIENTO programado (intento ${ctx.seguimiento.intento} de ${ctx.seguimiento.maximo}): el cliente no contestó tu último mensaje.${ctx.seguimiento.angulo ? ` Ángulo anotado: ${ctx.seguimiento.angulo}` : ''} Decide si vale la pena escribir ("callar" es válido); si escribes, aporta algo nuevo y corto.${ctx.seguimiento.producto ? ` El producto que le interesó es «${ctx.seguimiento.producto.nombre}»: cierra el mensaje con [ficha:${ctx.seguimiento.producto.slug}|por qué le encaja] para que vea el plan (en un seguimiento SÍ puedes repetir esa ficha).` : ''}`
+      ? `Este turno es un SEGUIMIENTO programado (intento ${ctx.seguimiento.intento} de ${ctx.seguimiento.maximo}): el cliente no contestó tu último mensaje.${ctx.seguimiento.angulo ? ` Ángulo anotado: ${ctx.seguimiento.angulo}` : ''} Decide si vale la pena escribir ("callar" es válido); si escribes, aporta algo nuevo y corto.${ctx.seguimiento.producto ? lineaProductoSeguimiento(ctx.seguimiento.intento, ctx.seguimiento.producto) : ''}`
       : null,
     lineaEquipo(miembros, Boolean(ctx.respaldo)),
     lineaHorario(),
@@ -177,15 +177,37 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
   // pasa, aunque el modelo lo haya dejado en otro estado. 16-oct: también con
   // una señal de compra (un cliente preguntó cómo pagar y Sol siguió pidiendo
   // el nombre). Así el borrador, el CRM y el foco del próximo turno quedan
-  // coherentes.
+  // coherentes. 23-oct: nunca si el cliente dijo que solo está mirando o que
+  // todavía no, ni con niños sin edades (datosMinimos).
   const v = decision.venta
   const pidio = v?.pide_cotizacion ? 'pidió cotización' : v?.senal_compra?.trim() ? `señal de compra («${v.senal_compra.trim()}»)` : null
   if (
-    decision.accion === 'responder' && v && pidio && datosMinimos(decision.datos)
+    decision.accion === 'responder' && v && pidio && datosMinimos(decision.datos) && !aunNoCompra(v)
     && v.estado !== 'listo_para_reservar' && v.estado !== 'no_interesado'
   ) {
     decision.motivo = `${decision.motivo} · pasa por regla: ${pidio} con datos mínimos (estaba en ${v.estado})`
     v.estado = 'listo_para_reservar'
+  }
+
+  // Seguimiento 2+: si propuso una alternativa del catálogo pero olvidó su
+  // ficha, se la agrega el código (sin tarjeta el cliente no ve la opción).
+  const seg = ctx.seguimiento
+  if (seg?.producto && seg.intento >= 2 && decision.accion === 'responder' && !/\[ficha:/i.test(decision.mensaje)) {
+    const alt = alternativaNombrada(decision.mensaje, catalogo, seg.producto.slug)
+    if (alt) decision.mensaje = `${decision.mensaje.trim()} [ficha:${alt.slug}|Otra opción para comparar]`
+  }
+
+  // Regla del 23-oct: a quien dijo que solo estaba mirando se le pregunta el
+  // presupuesto; si lo da (y hay datos mínimos), pasa a la asesora.
+  const presupuestoNuevo = Boolean(decision.datos.presupuesto?.trim()) && !ctx.extras?.datosPrevios?.presupuesto?.trim()
+  if (
+    decision.accion === 'responder' && v && presupuestoNuevo && datosMinimos(decision.datos)
+    && (ctx.estadoPrevio === 'explorando' || v.objecion === 'solo_mirando' || preguntoPresupuesto(mensajes))
+    && v.estado !== 'listo_para_reservar' && v.estado !== 'no_interesado' && v.compromiso !== 'no'
+  ) {
+    decision.motivo = `${decision.motivo} · pasa por regla: dio su presupuesto (${decision.datos.presupuesto}) tras estar mirando (estaba en ${v.estado})`
+    v.estado = 'listo_para_reservar'
+    v.objecion = 'ninguna'
   }
 
   // Borrador de cotización: lo arma el código solo cuando el lead quedó listo
@@ -199,6 +221,41 @@ export async function decidirV2(mensajes: MensajeGhl[], ctx: ContextoV2): Promis
   }
 
   return { decision, uso }
+}
+
+const plano = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+
+/** El destino del catálogo (distinto del que ya vio) que nombra el mensaje; el nombre más largo gana. */
+export function alternativaNombrada(
+  mensaje: string,
+  catalogo: { slug: string; nombre: string }[],
+  excluir: string
+): { slug: string; nombre: string } | null {
+  const texto = plano(mensaje)
+  const hallados = catalogo.filter(d => {
+    if (d.slug === excluir || !d.nombre?.trim()) return false
+    const n = plano(d.nombre).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return new RegExp(`(^|[^a-z0-9])${n}([^a-z0-9]|$)`).test(texto)
+  })
+  return hallados.sort((a, b) => b.nombre.length - a.nombre.length)[0] ?? null
+}
+
+/** ¿El último mensaje de Sol le preguntó el presupuesto al cliente? (mensajes del más reciente al más antiguo) */
+export function preguntoPresupuesto(mensajes: MensajeGhl[]): boolean {
+  const ultimo = mensajes.find(m => m.direction === 'outbound' && !m.messageType?.startsWith('TYPE_ACTIVITY'))
+  return /presupuesto[^?]*\?/i.test(ultimo?.body ?? '')
+}
+
+/**
+ * Qué producto muestra cada seguimiento (decisión del 23-oct): el primero
+ * insiste en lo que le interesó; el segundo le abre UNA alternativa parecida
+ * del catálogo, para no mandarle la misma tarjeta cada vez.
+ */
+export function lineaProductoSeguimiento(intento: number, producto: { slug: string; nombre: string }): string {
+  if (intento <= 1) {
+    return ` El producto que le interesó es «${producto.nombre}»: cierra el mensaje con [ficha:${producto.slug}|por qué le encaja] para que vea el plan (en un seguimiento SÍ puedes repetir esa ficha).`
+  }
+  return ` Le interesó «${producto.nombre}» y ya vio esa ficha: NO la repitas. Propón UNA alternativa del catálogo parecida (mismo tipo de viaje —playa, todo incluido, circuito…— y un precio "desde" cercano), con una frase de por qué podría gustarle, y TERMINA el mensaje con la ficha de esa alternativa: [ficha:slug-de-la-alternativa|por qué le encaja] (el slug es el del link …/destinos/slug en el índice del catálogo). Sin esa ficha el cliente no ve la opción. Preséntala como otra opción ("por si quieres comparar…"), sin dejar de lado lo que pidió. Si no hay una alternativa que de verdad se parezca, aporta algo nuevo de «${producto.nombre}» sin ficha.`
 }
 
 /** Costo aproximado en USD de un turno con Sonnet 5 (por millón: entrada $2, caché leída $0,20, escritura de caché 1 h $4, salida $10). */

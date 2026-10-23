@@ -28,7 +28,7 @@ import {
   PIPELINES_POSTVENTA,
   TAGS,
 } from '@/lib/agente/config'
-import { datosMinimos, type Decision } from '@/lib/agente/claude'
+import { aunNoCompra, datosMinimos, type Decision } from '@/lib/agente/claude'
 
 /**
  * Fase 3: la mano de Sol sobre el CRM.
@@ -102,7 +102,7 @@ export async function sincronizarCrm(e: EntradaCrm): Promise<string[]> {
 export function listoParaAsesora(decision: Decision): boolean {
   if (decision.venta) {
     return decision.venta.estado === 'listo_para_reservar'
-      || (decision.venta.pide_cotizacion === true && decision.venta.estado !== 'no_interesado' && datosMinimos(decision.datos))
+      || (decision.venta.pide_cotizacion === true && decision.venta.estado !== 'no_interesado' && !aunNoCompra(decision.venta) && datosMinimos(decision.datos))
   }
   return datosMinimos(decision.datos)
 }

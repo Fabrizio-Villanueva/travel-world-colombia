@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { PIPELINES_POSTVENTA } from '@/lib/agente/config'
 import { oportunidadesDe, type MensajeGhl } from '@/lib/agente/ghl'
 import { salidasVencidas } from '@/lib/agente/salidas-vencidas'
+import { revisarTraspaso } from '@/lib/agente/v2/traspaso'
 import type { Decision } from '@/lib/agente/claude'
 
 /**
@@ -131,6 +132,22 @@ export function demoraHoras(mensajes: MensajeGhl[], ahora = new Date()): number 
 
 const sinTildes = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
+const MESES = 'enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre'
+const RE_MES = new RegExp(String.raw`\b(?:${MESES})\b`)
+
+/** ¿El texto (ya sin tildes) nombra ese mes con un año posterior al actual? "julio de 2027", "julio 2.027". */
+function mesEnAnioFuturo(mes: string, texto: string, anioHoy: number): boolean {
+  const re = new RegExp(String.raw`\b${mes}\s+(?:(?:de|del)\s+)?(\d\.?\d{3})\b`, 'g')
+  return [...texto.matchAll(re)].some(m => Number(m[1].replace('.', '')) > anioHoy)
+}
+
+/**
+ * Palabras que vuelven lugar al nombre que sigue: "Museo Reina Sofía", "San
+ * Juan" (Puerto Rico), "Santa Marta" no son la Sofía, el Juan Camilo ni una
+ * Marta del equipo.
+ */
+const ANTES_DE_LUGAR = 'reina|rey|san|santa|santo|museo|hotel|hostal|plaza|isla|parque|puerto|playa|calle|villa|bahia|barrio|teatro|iglesia|catedral'
+
 /** Pedir el nombre ("¿cómo te llamas?", "¿me regalas tu nombre?"…), sin tildes. */
 const PIDE_NOMBRE = /como te llamas|como se llama|(regalas|compartes|recuerdas|dices|das) tu nombre|cual es tu nombre|con quien tengo el gusto|tu nombre\s*\?/
 
@@ -202,7 +219,15 @@ export function revisarMensaje(
   }
 
   // 2. Ofrecer una salida que ya pasó (salvo que el mensaje diga justo eso).
-  const vencidas = salidasVencidas(mensaje, opciones.ahora)
+  //    Una fecha sin año es ambigua: si el cliente ya ubicó ese mes en un año
+  //    futuro ("julio de 2027"), Sol habla de ese y no de la que pasó.
+  const contextoFechas = sinTildes(`${opciones.textoCliente ?? ''} ${opciones.previos?.fechas ?? ''}`)
+  const anioHoy = (opciones.ahora ?? new Date()).getFullYear()
+  const vencidas = salidasVencidas(mensaje, opciones.ahora).filter(v => {
+    if (/\d\.?\d{3}/.test(v)) return true
+    const mes = sinTildes(v).match(RE_MES)?.[0]
+    return !mes || !mesEnAnioFuturo(mes, contextoFechas, anioHoy)
+  })
   if (vencidas.length && !/ya (paso|partio|salio|zarpo)|ya no esta disponible|ya se cumplio/.test(plano)) {
     problemas.push(
       `mencionas como vigente una fecha que ya pasó (${vencidas.map(v => `«${v}»`).join(', ')}): hoy es posterior. Ofrece solo salidas futuras o di que esa ya partió.`
@@ -249,7 +274,8 @@ export function revisarMensaje(
     const pilas = [...new Set(opciones.equipo.map(n => sinTildes(n).split(/[^a-zñ]+/).filter(Boolean)[0]).filter(Boolean))]
     for (const pila of pilas) {
       if (propios.has(pila) || cliente.includes(pila)) continue
-      if (new RegExp(String.raw`\b${pila}\b`).test(plano) && !problemas.some(p => p.includes('intermediaria'))) {
+      const nombra = new RegExp(String.raw`(?<!\b(?:${ANTES_DE_LUGAR})\s+)\b${pila}\b`)
+      if (nombra.test(plano) && !problemas.some(p => p.includes('intermediaria'))) {
         problemas.push(`nombras a «${pila}» del equipo sin que el cliente la haya mencionado: habla en primera persona y no nombres a nadie del equipo.`)
         break
       }
@@ -288,14 +314,19 @@ export async function conRevision<T extends { decision: Decision }>(
     typeof mensajesCliente === 'string'
       ? mensajesCliente
       : (mensajesCliente ?? []).filter(m => m.direction === 'inbound').slice(0, 4).map(m => m.body ?? '').join(' ')
-  const revisar = (d: Decision) =>
-    revisarMensaje(d.mensaje, {
+  const ultimoCliente =
+    typeof mensajesCliente === 'string' ? mensajesCliente : mensajesCliente?.find(m => m.direction === 'inbound')?.body ?? ''
+  const revisar = (d: Decision) => [
+    ...revisarMensaje(d.mensaje, {
       previos: extras.datosPrevios,
       equipo,
       textoCliente,
       nombreCliente: d.datos?.nombre ?? extras.datosPrevios?.nombre,
       yaPidioNombre: Array.isArray(mensajesCliente) && yaPidioNombre(mensajesCliente),
-    })
+    }),
+    // Solo v2 (trae `venta`): no pasar sin edades de niños ni a quien solo está mirando.
+    ...revisarTraspaso(d, { previos: extras.datosPrevios, ultimoCliente }),
+  ]
   const primero = await llamar(extras)
   const habla = primero.decision.accion !== 'callar' && primero.decision.mensaje.trim() !== ''
   if (!habla) return primero

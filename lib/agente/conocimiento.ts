@@ -158,6 +158,8 @@ export interface Conocimiento {
   detallesPara: (texto: string, slugsExtra?: string[]) => string
   /** Nombre de un destino del catálogo por su slug. */
   nombreDe: (slug: string) => string | undefined
+  /** Slug y nombre de cada destino del catálogo. */
+  catalogo: { slug: string; nombre: string }[]
 }
 
 export async function construirConocimiento(): Promise<Conocimiento> {
@@ -241,7 +243,9 @@ No inventes otros números ni confirmes como nuestro uno que no esté en esta li
 
   const nombreDe = (slug: string) => destinos.find(d => d.slug === slug)?.nombre
 
-  return { base, detallesPara, nombreDe }
+  const catalogo = destinos.map(d => ({ slug: d.slug, nombre: d.nombre }))
+
+  return { base, detallesPara, nombreDe, catalogo }
 }
 
 const RE_FOTO = /\[foto:\s*([a-z0-9-]+)\s*\]/gi
