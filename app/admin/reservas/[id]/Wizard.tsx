@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { Loader2, Check, ChevronLeft, ChevronRight, FileSignature, Plus, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react'
-import { RE_CUOTA, esCampoCuota, type CampoReserva, type ValorCampo } from '@/lib/admin/reservas'
+import { CAMPO_ALCANCE, RE_CUOTA, esCampoCuota, type CampoReserva, type ValorCampo } from '@/lib/admin/reservas'
+import { CAMPOS_PISTA_ALCANCE, inferirAlcance, type PistasAlcance } from '@/lib/contratos/alcance'
 import type { CuentaDivisa } from '@/lib/abonos/calculo'
 import { AbonosPanel } from './AbonosPanel'
 import { DIVISAS, UNIDAD_TRM, divisaDe, enDivisa, type Divisa } from '@/lib/contratos/divisa'
@@ -20,6 +21,7 @@ interface Props {
   campos: CampoReserva[]
   valoresIniciales: Record<string, ValorCampo>
   prefill: Record<string, ValorCampo>
+  pistas: PistasAlcance
 }
 
 /** Prefijo de grupo: "P3 - Nombre" → "P3" · "Pago 2 - Fecha" → "Pago 2". */
@@ -132,7 +134,8 @@ const FILAS_PASAJEROS = ['ADL Sencillo', 'ADL Doble', 'ADL Multiple', 'Valor Ni�
 function recalcular(
   vals: Record<string, ValorCampo>,
   autosPrevios: Set<string>,
-  idDe: (nombre: string) => string | undefined
+  idDe: (nombre: string) => string | undefined,
+  pistas: PistasAlcance
 ): { valores: Record<string, ValorCampo>; autos: Set<string> } {
   const v = { ...vals }
   const autos = new Set(autosPrevios)
@@ -145,7 +148,7 @@ function recalcular(
     return Number.isFinite(n) ? n : null
   }
 
-  const poner = (nombre: string, valor: number | null) => {
+  const poner = (nombre: string, valor: number | string | null) => {
     const id = idDe(nombre)
     if (!id) return
     const esManual = v[id] !== undefined && v[id] !== '' && !autos.has(id)
@@ -158,7 +161,7 @@ function recalcular(
       }
       return
     }
-    v[id] = String(Math.round(valor * 100) / 100)
+    v[id] = typeof valor === 'string' ? valor : String(Math.round(valor * 100) / 100)
     autos.add(id)
   }
 
@@ -212,6 +215,10 @@ function recalcular(
     poner(`Pago ${n} - Saldo en Pesos`, total !== null && abono !== null ? total - abonadoPor[d] : null)
   }
 
+  // 5. Alcance del viaje (23-oct-2026): sale del destino, las rutas y el tipo
+  //    de contrato; Internacional imprime la cláusula TRAVELKIT.
+  poner(CAMPO_ALCANCE, inferirAlcance(CAMPOS_PISTA_ALCANCE.map(n => texto(v, idDe(n))), pistas))
+
   return { valores: v, autos }
 }
 
@@ -227,7 +234,7 @@ const card: React.CSSProperties = {
   borderRadius: 12,
 }
 
-export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Props) {
+export function Wizard({ opportunityId, campos, valoresIniciales, prefill, pistas }: Props) {
   const pasos = useMemo(() => {
     const vistos: string[] = []
     for (const c of campos) if (!vistos.includes(c.folder)) vistos.push(c.folder)
@@ -263,7 +270,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
 
   // Estado inicial: valores guardados + prefill, con las autosumas ya corridas.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const inicial = useMemo(() => recalcular({ ...prefillTodo, ...valoresIniciales }, new Set(), idDe), [])
+  const inicial = useMemo(() => recalcular({ ...prefillTodo, ...valoresIniciales }, new Set(), idDe, pistas), [])
 
   const [paso, setPaso] = useState(0)
   const [valores, setValores] = useState<Record<string, ValorCampo>>(inicial.valores)
@@ -429,7 +436,7 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
     // de tocarlo. Después del cambio, la aritmética se recorre completa.
     const autosSinEste = new Set(autos)
     autosSinEste.delete(id)
-    const r = recalcular({ ...valores, [id]: v }, autosSinEste, idDe)
+    const r = recalcular({ ...valores, [id]: v }, autosSinEste, idDe, pistas)
     setValores(r.valores)
     setAutos(r.autos)
     setSugeridos(prev => {
@@ -474,8 +481,9 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
         }
       }
       // Los contadores (campos reales del contrato) viajan con cualquier paso:
-      // el representante pudo ajustarlos desde el encabezado.
-      for (const id of [idNumPasajeros, idNumTrayectos]) {
+      // el representante pudo ajustarlos desde el encabezado. El alcance
+      // también: lo recalculan las rutas del paso Vuelos, aunque viva en Contrato.
+      for (const id of [idNumPasajeros, idNumTrayectos, idDe(CAMPO_ALCANCE)]) {
         const v = id ? valores[id] : undefined
         if (id && typeof v === 'string' && v !== '') lote[id] = v
       }
@@ -721,7 +729,8 @@ export function Wizard({ opportunityId, campos, valoresIniciales, prefill }: Pro
 
         {autos.size > 0 && camposDelPaso.some(c => autos.has(c.ghlId)) && (
           <p className="mb-4 rounded-md px-3 py-2 font-inter text-xs" style={{ background: '#eff6ff', color: '#1d4ed8' }}>
-            Los campos en azul se calculan solos (tarifa × cantidad, totales y saldos).
+            Los campos en azul se calculan solos (tarifa × cantidad, totales, saldos y el alcance del viaje,
+            según el destino y las rutas).
             Si escribes encima, tu valor manda y no se recalcula.
           </p>
         )}

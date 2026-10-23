@@ -13,6 +13,8 @@ import { hashToken, nuevoToken } from '@/lib/documentos/token'
 import { contratoDesdeGhl } from './desde-ghl'
 import { firmaImpresion } from './acceso'
 import { aplicaAsistencia, enviarGuiaAsistencia } from './asistencia'
+import { inferirAlcance } from './alcance'
+import { pistasAlcance } from '@/lib/documentos/visas'
 import { origenInterno, pdfDeUrl } from './pdf'
 import {
   BUCKET_CONTRATOS,
@@ -165,6 +167,12 @@ export function problemasParaEnviar(d: ContratoDatos): string[] {
   return p
 }
 
+/** Alcance que sale del destino, las rutas y el tipo de contrato (lib/contratos/alcance.ts). */
+export async function alcanceInferido(d: ContratoDatos): Promise<ContratoDatos['alcance']> {
+  const pistas = await pistasAlcance().catch(() => ({ paises: [], viajes: [] }))
+  return inferirAlcance([d.destino, ...d.trayectos.map(t => t.ruta), d.producto], pistas) ?? undefined
+}
+
 /** Dispara el workflow de GHL que manda el enlace: vacía y escribe la acción. */
 async function dispararEnvio(opportunityId: string, accion: 'Enviar' | 'Reenviar'): Promise<void> {
   await actualizarCamposOportunidad(opportunityId, [{ id: CAMPOS_CONTRATO.enviar, field_value: '' }])
@@ -183,6 +191,15 @@ export interface ContratoEnviado {
  */
 export async function crearYEnviarContrato(opportunityId: string, creadoPor: string): Promise<ContratoEnviado> {
   const datos = await contratoDesdeGhl(opportunityId)
+  // Alcance sin guardar (la asesora no guardó el paso Contrato): se infiere
+  // como en el Generador y se escribe en GHL. Solo bloquea si no hay pistas.
+  if (!datos.alcance) {
+    const alcance = await alcanceInferido(datos)
+    if (alcance) {
+      await actualizarCamposOportunidad(opportunityId, [{ id: CAMPOS_CONTRATO.alcance, field_value: alcance }])
+      datos.alcance = alcance
+    }
+  }
   const problemas = problemasParaEnviar(datos)
   if (problemas.length) throw new Error(problemas.join(' '))
 

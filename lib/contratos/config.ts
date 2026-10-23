@@ -18,6 +18,7 @@ export const CAMPOS_CONTRATO = {
   estado: '7yL8JdhJSgDDtF7gdZpM', //  Estado del contrato (Enviado/Visto/Firmado/Anulado)
   pdf: 't8bIRDEiXjY3NdfJPhLA', //     Contrato firmado (PDF) — enlace del panel
   enviar: 'EdPNxTWoXR9j09mMkZjX', //  Enviar contrato al cliente (Enviar/Reenviar) → workflow
+  alcance: 'ehY4iI9tVP2yPnh78MUP', // Alcance del viaje (Nacional/Internacional), scripts/ghl-campo-alcance-viaje.mjs
 } as const
 
 export type EstadoContratoGhl = 'Enviado' | 'Visto' | 'Firmado' | 'Anulado'

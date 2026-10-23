@@ -6,6 +6,7 @@ import { registrarActividad } from '@/lib/admin/audit'
 import { contratoDesdeGhl } from '@/lib/contratos/desde-ghl'
 import { enviarCopiaFirmada } from '@/lib/contratos/copia'
 import {
+  alcanceInferido,
   anularContrato,
   contratoDeOportunidad,
   crearYEnviarContrato,
@@ -46,6 +47,9 @@ export async function estadoContrato(opportunityId: string): Promise<EstadoContr
     contratoDeOportunidad(opportunityId),
     contratoDesdeGhl(opportunityId).catch(() => null),
   ])
+  // Si el alcance no está guardado, al enviar se infiere (crearYEnviarContrato):
+  // solo es un problema cuando tampoco se puede inferir.
+  if (datos && !datos.alcance) datos.alcance = await alcanceInferido(datos)
   const problemas = datos ? problemasParaEnviar(datos) : ['No se pudo leer la oportunidad en GHL.']
   if (!c) return { problemas, ultimo: null }
   const enlace = estadoEnlaceContrato(c)

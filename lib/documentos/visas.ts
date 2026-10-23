@@ -4,6 +4,7 @@ import {
   REQUISITOS_NACIONAL,
   type Requisitos,
 } from '@/lib/documentos/config'
+import type { PistasAlcance } from '@/lib/contratos/alcance'
 
 /**
  * Reglas de visa por país (tabla doc_reglas_visa, editable en /admin/documentos/visas)
@@ -98,25 +99,19 @@ export async function sugerirRequisitos(destino: string | null | undefined): Pro
 }
 
 /**
- * Alcance del viaje (23-oct-2026) según el país del destino, con las mismas dos
- * vías que sugerirRequisitos: un país de la tabla en el texto, o un viaje del
- * catálogo con ese nombre. null = no se pudo saber (la asesora lo elige).
+ * Pistas para inferir el "Alcance del viaje" (lib/contratos/alcance.ts): los
+ * países de la tabla de visas y los viajes del catálogo con su país.
  */
-export async function alcanceDeDestino(destino: string | null | undefined): Promise<'Nacional' | 'Internacional' | null> {
-  const texto = normalizar(destino ?? '')
-  if (!texto) return null
-  const deP = (pais: string) => (normalizar(pais) === 'colombia' ? 'Nacional' : 'Internacional')
-
-  const reglas = await listarReglasVisa()
-  const directa = reglas
-    .filter(r => texto.includes(normalizar(r.pais)))
-    .sort((a, b) => b.pais.length - a.pais.length)[0]
-  if (directa) return deP(directa.pais)
-
+export async function pistasAlcance(): Promise<PistasAlcance> {
   const admin = createAdminClient()
-  const { data: viajes } = await admin.from('destinos').select('nombre, pais').limit(500)
-  const viaje = ((viajes ?? []) as { nombre: string; pais: string | null }[])
-    .filter(v => v.pais && v.nombre && (texto.includes(normalizar(v.nombre)) || normalizar(v.nombre).includes(texto)))
-    .sort((a, b) => b.nombre.length - a.nombre.length)[0]
-  return viaje?.pais ? deP(viaje.pais) : null
+  const [reglas, { data: viajes }] = await Promise.all([
+    listarReglasVisa(),
+    admin.from('destinos').select('nombre, pais').limit(500),
+  ])
+  return {
+    paises: reglas.map(r => r.pais),
+    viajes: ((viajes ?? []) as { nombre: string; pais: string | null }[])
+      .filter(v => v.nombre && v.pais)
+      .map(v => ({ nombre: v.nombre, nacional: normalizar(v.pais!) === 'colombia' })),
+  }
 }

@@ -16,7 +16,6 @@ import {
   normalizarValor,
   valorParaGhl,
   ESPEJO_CONTACTO_TRANSICION,
-  CAMPO_ALCANCE,
   type CampoReserva,
   type ValorCampo,
 } from '@/lib/admin/reservas'
@@ -32,7 +31,8 @@ import {
   mismaPersona,
   nombreContacto,
 } from '@/lib/contratos/nacimiento'
-import { alcanceDeDestino } from '@/lib/documentos/visas'
+import { pistasAlcance } from '@/lib/documentos/visas'
+import type { PistasAlcance } from '@/lib/contratos/alcance'
 
 export interface ClienteEncontrado {
   id: string
@@ -92,6 +92,8 @@ export interface ReservaCargada {
   valores: Record<string, ValorCampo>
   /** Prefill desde el contacto (transición), por ghlId — solo donde no hay valor. */
   prefill: Record<string, ValorCampo>
+  /** Para calcular el "Alcance del viaje" en vivo en el Generador. */
+  pistas: PistasAlcance
   /** Campos del catálogo que no existen en GHL (no debería pasar; se muestran). */
   sinResolver: string[]
 }
@@ -166,15 +168,9 @@ export async function cargarReserva(opportunityId: string): Promise<ReservaCarga
     }
   }
 
-  // Alcance del viaje: se sugiere por el país del destino (Colombia → Nacional).
-  // Va también para clientes que repiten: sale del destino de ESTA oportunidad.
-  const alcance = campos.find(c => c.name === CAMPO_ALCANCE)
-  const idDestino = campos.find(c => c.name === 'Destino de interés')?.ghlId
-  if (alcance && valores[alcance.ghlId] === undefined && idDestino) {
-    const destino = valores[idDestino] ?? prefill[idDestino]
-    const sugerido = typeof destino === 'string' ? await alcanceDeDestino(destino).catch(() => null) : null
-    if (sugerido) prefill[alcance.ghlId] = sugerido
-  }
+  // Alcance del viaje: el Generador lo calcula en vivo con estas pistas
+  // (lib/contratos/alcance.ts). Si fallan, queda vacío y la asesora lo elige.
+  const pistas = await pistasAlcance().catch(() => ({ paises: [], viajes: [] }))
 
   const p = pipelines.find(x => x.id === oportunidad.pipelineId)
   const etapa = p?.stages?.find(s => s.id === oportunidad.pipelineStageId)
@@ -196,6 +192,7 @@ export async function cargarReserva(opportunityId: string): Promise<ReservaCarga
     campos,
     valores,
     prefill,
+    pistas,
     sinResolver,
   }
 }

@@ -107,6 +107,7 @@ export default async function ReservaPage({ params }: { params: Promise<{ id: st
           campos={reserva.campos}
           valoresIniciales={reserva.valores}
           prefill={reserva.prefill}
+          pistas={reserva.pistas}
         />
       </section>
     </div>
