@@ -89,7 +89,7 @@ export const CLAUSULA_RETRACTO: { titulo: string; bloques: BloqueClausula[] } = 
  * Asistencia en viaje TRAVELKIT (23-oct-2026): SOLO en viajes internacionales
  * ("Alcance del viaje" = Internacional). El procedimiento calca la pieza
  * "¿Cómo contactar a TRAVELKIT?" que se le envía al cliente al firmar
- * (public/img/asistencia/travelkit-paso-a-paso.jpg).
+ * (public/img/asistencia/travelkit-paso-a-paso-v2.jpg).
  */
 export const CLAUSULA_ASISTENCIA: { titulo: string; bloques: BloqueClausula[] } = {
   titulo: 'Asistencia en viaje TRAVELKIT (viajes internacionales)',
@@ -102,6 +102,7 @@ export const CLAUSULA_ASISTENCIA: { titulo: string; bloques: BloqueClausula[] } 
       '**Instrucciones.** Seguir las indicaciones del personal de TRAVELKIT para gestionar el caso.',
     ] },
     { tipo: 'parrafo', texto: 'Tener el voucher a la mano y elegir la opción correcta en el menú agiliza la atención y la solución del caso. Junto con este contrato, el viajero recibe por WhatsApp la guía con este paso a paso.' },
+    { tipo: 'parrafo', texto: '**Importante:** todo incidente que tenga cobertura bajo la póliza de seguro debe reportarse a la aseguradora **dentro de las veinticuatro (24) horas** siguientes al suceso. Pasado este plazo, la cobertura pierde vigencia.' },
     // Texto de TRAVELKIT entregado por el cliente el 23-oct-2026. Su lista
     // saltaba del 13 al 15: aquí la numeración es corrida (1–16).
     { tipo: 'titulo', texto: 'Causales de cancelación por multicausa (beneficiarios menores de 75 años)' },

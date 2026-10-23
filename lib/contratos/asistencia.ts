@@ -9,7 +9,9 @@ import type { ContratoDatos } from './tipos'
  * por el mismo canal de su conversación. En nacionales no aplica y no sale.
  * JPG y no WebP: WhatsApp no muestra WebP como foto.
  */
-export const RUTA_GUIA_TRAVELKIT = '/img/asistencia/travelkit-paso-a-paso.jpg'
+// v2 (23-oct-2026): suma el aviso de reportar dentro de las 24 horas. Nombre
+// nuevo para que ninguna caché sirva la versión anterior.
+export const RUTA_GUIA_TRAVELKIT = '/img/asistencia/travelkit-paso-a-paso-v2.jpg'
 
 export function aplicaAsistencia(d: ContratoDatos): boolean {
   return d.alcance === 'Internacional'
@@ -21,7 +23,8 @@ export function textoGuiaAsistencia(nombre: string | null, reserva: string | nul
     `Hola${nombre ? ` ${nombre}` : ''}, gracias por firmar tu contrato${reserva ? ` TW-${reserva}` : ''}. ` +
     `Tu viaje internacional cuenta con asistencia *TRAVELKIT*.\n\n` +
     `Guarda esta imagen: si tienes una *emergencia en destino* o necesitas una *cancelación por multicausa*, ` +
-    `escribe al *+1 (863) 204-2766*, elige la opción de tu caso y ten a la mano el número de tu voucher de asistencia.`
+    `escribe al *+1 (863) 204-2766*, elige la opción de tu caso y ten a la mano el número de tu voucher de asistencia.\n\n` +
+    `⚠️ Importante: todo incidente debe reportarse *dentro de las 24 horas* siguientes; pasado ese plazo, la cobertura pierde vigencia.`
   )
 }
 
